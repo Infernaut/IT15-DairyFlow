@@ -1,0 +1,121 @@
+﻿@{
+    ViewData["Title"] = "Privacy Policy";
+}
+
+<style>
+    .privacy-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .privacy-header {
+        background: linear-gradient(135deg, #ffffff, #e7f3ff);
+        border-radius: 24px;
+        border: 1px solid #dbe7f3;
+        padding: 3rem;
+        margin-bottom: 3rem;
+        text-align: center;
+    }
+
+    .privacy-card {
+        background: #ffffff;
+        border: 1px solid #eef2f7;
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        transition: transform 0.2s ease;
+    }
+
+        .privacy-card:hover {
+            border-color: #0d6efd;
+        }
+
+    .icon-box {
+        width: 50px;
+        height: 50px;
+        background: #f0f7ff;
+        color: #0d6efd;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .policy-text {
+        color: #475569;
+        line-height: 1.7;
+    }
+
+    .last-updated {
+        font-size: 0.85rem;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+</style>
+
+<div class="privacy-container py-5">
+    <div class="privacy-header shadow-sm">
+        <div class="last-updated mb-2">Last Updated: February 2026</div>
+        <h1 class="fw-bold text-primary display-5">Privacy Policy</h1>
+        <p class="text-muted fs-5 mb-0">How we protect your dairy manufacturing data and enterprise integrity.</p>
+    </div>
+
+    <div class="privacy-card shadow-sm">
+        <div class="icon-box">
+            <i class="bi bi-shield-lock"></i>
+        </div>
+        <h4 class="fw-bold">Data Sovereignty</h4>
+        <p class="policy-text">
+            In our multi-tenant environment, your data belongs strictly to your organization. DairyFlow collects
+            manufacturing metrics, batch histories, and user activity logs solely to provide ERP services.
+            We never share proprietary formulations or financial data with third parties.
+        </p>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="privacy-card h-100 shadow-sm">
+                <div class="icon-box">
+                    <i class="bi bi-safe2"></i>
+                </div>
+                <h5 class="fw-bold">Security Measures</h5>
+                <p class="policy-text small">
+                    All data is encrypted at rest using AES-256 and in transit via TLS 1.3.
+                    We maintain strict logical separation between company tenants.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="privacy-card h-100 shadow-sm">
+                <div class="icon-box">
+                    <i class="bi bi-cookie"></i>
+                </div>
+                <h5 class="fw-bold">Session & Cookies</h5>
+                <p class="policy-text small">
+                    We use essential cookies to maintain your secure session and remember your
+                    dashboard preferences. We do not use tracking or advertising cookies.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="privacy-card shadow-sm border-start border-primary border-4">
+        <h4 class="fw-bold">Your Rights</h4>
+        <ul class="policy-text mb-0">
+            <li>Request a full export of your organizational manufacturing data.</li>
+            <li>Audit user access logs for compliance verification.</li>
+            <li>Request permanent deletion of data upon contract termination.</li>
+            <li>Update or correct sensitive financial or formulation records.</li>
+        </ul>
+    </div>
+
+    <div class="text-center mt-5">
+        <p class="text-muted">Questions about your data? Contact our Compliance Team.</p>
+        <a href="mailto:compliance@dairyflow.com" class="btn btn-outline-primary px-4 rounded-pill">
+            <i class="bi bi-envelope me-2"></i>Email Support
+        </a>
+    </div>
+</div>

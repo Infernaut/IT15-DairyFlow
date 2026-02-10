@@ -1,0 +1,123 @@
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - DairyFlow ERP</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    <style>
+        :root {
+            --blue-main: #0d6efd;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fbff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Navbar Styling */
+        .navbar-custom {
+            height: 70px;
+            border-bottom: 1px solid #eef2f7 !important;
+            z-index: 1030;
+        }
+
+        /* Hide Scrollbars while allowing functionality */
+        main[role="main"], .sidebar-scroll-container {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+            main[role="main"]::-webkit-scrollbar, .sidebar-scroll-container::-webkit-scrollbar {
+                display: none;
+            }
+
+        .main-wrapper {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        main[role="main"] {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .footer-custom {
+            background: #fff;
+            border-top: 1px solid #eef2f7;
+            padding: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-light bg-white navbar-custom shadow-sm">
+            <div class="container-fluid">
+                <a class="navbar-brand fw-bold text-primary" asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-droplet-half me-2"></i>DairyFlow
+                </a>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        @* LOGIC: Only show Home/Privacy when NOT logged in *@
+                        @if (!SignInManager.IsSignedIn(User))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link px-3" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link px-3" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <span class="nav-link disabled text-primary fw-bold px-3">ERP Portal</span>
+                            </li>
+                        }
+                    </ul>
+                    <partial name="_LoginPartial" />
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="main-wrapper">
+        @if (SignInManager.IsSignedIn(User))
+        {
+            <partial name="_SidebarPartial" />
+        }
+
+        <main role="main">
+            @RenderBody()
+
+            @if (!SignInManager.IsSignedIn(User))
+            {
+                <footer class="footer-custom">
+                    <div class="container text-center">
+                        <span>&copy; 2026 - DairyFlow ERP</span>
+                    </div>
+                </footer>
+            }
+        </main>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

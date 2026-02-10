@@ -1,0 +1,194 @@
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+
+@{
+    // Helper to check current controller for auto-expanding menus
+    string currentController = ViewContext.RouteData.Values["Controller"]?.ToString() ?? "";
+}
+
+<style>
+    .sidebar {
+        min-width: 280px;
+        max-width: 280px;
+        background: #ffffff;
+        border-right: 1px solid #eef2f7;
+        height: calc(100vh - 70px);
+        position: sticky;
+        top: 70px;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1020;
+    }
+
+    .sidebar-scroll-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem 0;
+        /* Hide scrollbar logic */
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+        .sidebar-scroll-container::-webkit-scrollbar {
+            display: none;
+        }
+
+    .sidebar-section-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #94a3b8;
+        padding: 1.25rem 1.5rem 0.5rem;
+        letter-spacing: 0.05em;
+    }
+
+    .sidebar-link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.7rem 1.5rem;
+        color: #475569;
+        text-decoration: none !important;
+        font-weight: 500;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+        border-left: 4px solid transparent;
+    }
+
+        .sidebar-link i:first-child {
+            font-size: 1.1rem;
+            width: 25px;
+            color: #64748b;
+        }
+
+        .sidebar-link:hover {
+            background: #f8fbff;
+            color: #0d6efd;
+        }
+
+            .sidebar-link:hover i {
+                color: #0d6efd;
+            }
+
+        .sidebar-link.active {
+            background: #f0f7ff;
+            color: #0d6efd;
+            border-left-color: #0d6efd;
+            font-weight: 600;
+        }
+
+    .sidebar-submenu {
+        background: #fafcfe;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .submenu-link {
+        display: block;
+        padding: 0.5rem 1.5rem 0.5rem 3.5rem;
+        color: #64748b;
+        font-size: 0.85rem;
+        text-decoration: none !important;
+        transition: 0.2s;
+    }
+
+        .submenu-link:hover {
+            color: #0d6efd;
+        }
+</style>
+
+<div class="sidebar d-none d-md-flex">
+    <div class="sidebar-scroll-container">
+
+        <a class="sidebar-link @(currentController == "Home" ? "active" : "")" asp-controller="Home" asp-action="Index">
+            <span><i class="bi bi-grid-1x2-fill me-2"></i> Dashboard</span>
+        </a>
+
+        <div class="sidebar-section-label">Product Lifecycle</div>
+        <a class="sidebar-link" data-bs-toggle="collapse" href="#plmMenu">
+            <span><i class="bi bi-droplet-half me-2"></i> PLM</span>
+            <i class="bi bi-chevron-down small opacity-50"></i>
+        </a>
+        <div class="collapse @(currentController == "PLM" ? "show" : "")" id="plmMenu">
+            <div class="sidebar-submenu">
+                <a class="submenu-link" href="#">Products</a>
+                <a class="submenu-link" href="#">Product Versions</a>
+                <a class="submenu-link" href="#">Formulations</a>
+                <a class="submenu-link" href="#">Lifecycle Status</a>
+            </div>
+        </div>
+
+        <div class="sidebar-section-label">Manufacturing</div>
+        <a class="sidebar-link" data-bs-toggle="collapse" href="#prodMenu">
+            <span><i class="bi bi-hammer me-2"></i> Production</span>
+            <i class="bi bi-chevron-down small opacity-50"></i>
+        </a>
+        <div class="collapse @(currentController == "Production" ? "show" : "")" id="prodMenu">
+            <div class="sidebar-submenu">
+                <a class="submenu-link" asp-controller="Production" asp-action="Batches">Production Batches</a>
+                <a class="submenu-link" href="#">Production Schedule</a>
+                <a class="submenu-link" href="#">Production Cost</a>
+            </div>
+        </div>
+
+        <div class="sidebar-section-label">Quality & Compliance</div>
+        <a class="sidebar-link" data-bs-toggle="collapse" href="#qmMenu">
+            <span><i class="bi bi-shield-check me-2"></i> Quality (QM)</span>
+            <i class="bi bi-chevron-down small opacity-50"></i>
+        </a>
+        <div class="collapse @(currentController == "Quality" ? "show" : "")" id="qmMenu">
+            <div class="sidebar-submenu">
+                <a class="submenu-link" href="#">Quality Inspections</a>
+                <a class="submenu-link" href="#">Inspection Results</a>
+                <a class="submenu-link" href="#">Non-Conformance Reports</a>
+            </div>
+        </div>
+
+        <div class="sidebar-section-label">Logistics</div>
+        <a class="sidebar-link" data-bs-toggle="collapse" href="#invMenu">
+            <span><i class="bi bi-box-seam me-2"></i> Inventory</span>
+            <i class="bi bi-chevron-down small opacity-50"></i>
+        </a>
+        <div class="collapse @(currentController == "Inventory" ? "show" : "")" id="invMenu">
+            <div class="sidebar-submenu">
+                <a class="submenu-link" href="#">Raw Materials</a>
+                <a class="submenu-link" href="#">Finished Goods</a>
+                <a class="submenu-link" href="#">Stock Levels</a>
+                <a class="submenu-link" href="#">Expiry Alerts</a>
+            </div>
+        </div>
+
+        <div class="sidebar-section-label">Enterprise</div>
+        <a class="sidebar-link" data-bs-toggle="collapse" href="#finMenu">
+            <span><i class="bi bi-calculator me-2"></i> Finance</span>
+            <i class="bi bi-chevron-down small opacity-50"></i>
+        </a>
+        <div class="collapse @(currentController == "Finance" ? "show" : "")" id="finMenu">
+            <div class="sidebar-submenu">
+                <a class="submenu-link" href="#">Expenses</a>
+                <a class="submenu-link" href="#">Budgets</a>
+                <a class="submenu-link" href="#">Journal Entries</a>
+                <a class="submenu-link" href="#">Financial Reports</a>
+            </div>
+        </div>
+
+        @if (User.IsInRole("Admin"))
+        {
+            <div class="sidebar-section-label">System Administration</div>
+            <a class="sidebar-link @(currentController == "Admin" ? "active" : "")" href="#">
+                <span><i class="bi bi-people me-2"></i> User Access</span>
+            </a>
+            <a class="sidebar-link" href="#">
+                <span><i class="bi bi-gear me-2"></i> System Settings</span>
+            </a>
+        }
+
+        <div class="sidebar-section-label">Support</div>
+        <a class="sidebar-link" href="#">
+            <span><i class="bi bi-question-circle me-2"></i> Help & Support</span>
+        </a>
+    </div>
+</div>
