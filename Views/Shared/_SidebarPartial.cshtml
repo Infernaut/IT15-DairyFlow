@@ -175,17 +175,6 @@
             </div>
         </div>
 
-        @if (User.IsInRole("Admin"))
-        {
-            <div class="sidebar-section-label">System Administration</div>
-            <a class="sidebar-link @(currentController == "Admin" ? "active" : "")" href="#">
-                <span><i class="bi bi-people me-2"></i> User Access</span>
-            </a>
-            <a class="sidebar-link" href="#">
-                <span><i class="bi bi-gear me-2"></i> System Settings</span>
-            </a>
-        }
-
         <div class="sidebar-section-label">Support</div>
         <a class="sidebar-link" href="#">
             <span><i class="bi bi-question-circle me-2"></i> Help & Support</span>

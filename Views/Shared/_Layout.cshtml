@@ -99,7 +99,18 @@
     <div class="main-wrapper">
         @if (SignInManager.IsSignedIn(User))
         {
-            <partial name="_SidebarPartial" />
+            if (User.IsInRole("Superadmin"))
+            {
+                <partial name="_SuperAdminSidebarPartial" />
+            }
+            else if (User.IsInRole("Admin"))
+            {
+                <partial name="_AdminSidebarPartial" />
+            }
+            else
+            {
+                <partial name="_SidebarPartial" />
+            }
         }
 
         <main role="main">

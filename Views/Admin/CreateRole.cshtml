@@ -1,0 +1,35 @@
+@model IT15_DairyFlow.Models.Admin.RoleEditViewModel
+
+@{
+    ViewData["Title"] = "Add Role";
+}
+
+<div class="container-fluid p-4">
+    <div class="mb-4">
+        <h2 class="mb-1">Add Role</h2>
+        <p class="text-muted mb-0">Create a new role for access control.</p>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form asp-action="CreateRole" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label"></label>
+                    <input asp-for="Name" class="form-control" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Create Role</button>
+                    <a class="btn btn-outline-secondary" asp-action="Roles">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

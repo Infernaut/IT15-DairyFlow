@@ -1,0 +1,73 @@
+@model IT15_DairyFlow.Models.Admin.EditUserViewModel
+
+@{
+    ViewData["Title"] = "Edit User";
+}
+
+<div class="container-fluid p-4">
+    <div class="mb-4">
+        <h2 class="mb-1">Edit User</h2>
+        <p class="text-muted mb-0">Update user details and access status.</p>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form asp-action="EditUser" method="post">
+                @Html.AntiForgeryToken()
+                <input asp-for="Id" type="hidden" />
+                <input asp-for="IsProtected" type="hidden" />
+
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="UserName" class="form-label"></label>
+                    <input asp-for="UserName" class="form-control" />
+                    <span asp-validation-for="UserName" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="PhoneNumber" class="form-label"></label>
+                    <input asp-for="PhoneNumber" class="form-control" />
+                    <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Roles</label>
+                    <input class="form-control" value="@Model.RoleSummary" disabled />
+                </div>
+
+                <div class="form-check mb-4">
+                    @if (Model.IsProtected)
+                    {
+                        <input asp-for="IsActive" class="form-check-input" disabled />
+                    }
+                    else
+                    {
+                        <input asp-for="IsActive" class="form-check-input" />
+                    }
+                    <label asp-for="IsActive" class="form-check-label">Active (allow sign-in)</label>
+                </div>
+
+                @if (Model.IsProtected)
+                {
+                    <div class="alert alert-warning">
+                        This account is protected and cannot be deactivated.
+                    </div>
+                }
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a class="btn btn-outline-secondary" asp-action="Users">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
