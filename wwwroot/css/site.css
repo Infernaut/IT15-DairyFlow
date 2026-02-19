@@ -29,3 +29,199 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+
+/* Professional Enhancements for PLM & Tables */
+.card {
+    border: none;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+.table > :not(caption) > * > * {
+    padding: 1rem 0.75rem;
+}
+
+.table-hover tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f8fbff;
+    transform: scale(1.001);
+}
+
+.badge {
+    padding: 0.4rem 0.75rem;
+    font-weight: 500;
+    font-size: 0.8rem;
+    letter-spacing: 0.3px;
+}
+
+.btn {
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.5rem 1.25rem;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+    border: none;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    color: white;
+}
+
+.modal-content {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    padding: 1.5rem 1.5rem 1rem;
+}
+
+.modal-body {
+    padding: 1rem 1.5rem;
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem 1.5rem;
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.1);
+}
+
+.input-group-text {
+    border-radius: 8px 0 0 8px;
+    border: 1px solid #dee2e6;
+}
+
+.form-control-lg {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+}
+
+.form-select-lg {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+}
+
+/* Animation for table rows */
+@@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.product-row {
+    animation: fadeIn 0.3s ease;
+}
+
+/* Status badges with glow effect */
+.badge.bg-success {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.badge.bg-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+    box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
+}
+
+.badge.bg-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%) !important;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+}
+
+.badge.bg-secondary {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%) !important;
+    box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+}
+
+/* Professional Alert Styling */
+.alert {
+    border-radius: 10px;
+    border: none;
+}
+
+.alert-light {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+/* Improved spacing */
+.gap-2 {
+    gap: 0.5rem !important;
+}
+
+.gap-3 {
+    gap: 1rem !important;
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Hover effects for action buttons */
+.btn-sm {
+    border-radius: 6px;
+    padding: 0.35rem 0.75rem;
+}
+
+.btn-outline-primary:hover {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+/* Table header styling */
+.table-light {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table-light th {
+    color: #495057;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+/* Empty state styling */
+.bi-inbox {
+    color: #dee2e6;
+}

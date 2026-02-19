@@ -1,0 +1,206 @@
+/****** 1. Company Table ******/
+CREATE TABLE [dbo].[Company](
+    [CompanyID] [int] IDENTITY(1,1) NOT NULL,
+    [companyName] [nvarchar](256) NOT NULL,
+    [SubscriptionID] [int] NULL, -- Links to Subscription table below
+    [status] [nvarchar](50) NULL,
+ CONSTRAINT [PK_Company] PRIMARY KEY CLUSTERED ([CompanyID] ASC)
+) ON [PRIMARY]
+GO
+
+/****** 2. Subscription Table ******/
+CREATE TABLE [dbo].[Subscription](
+    [SubscriptionID] [int] IDENTITY(1,1) NOT NULL,
+    [planName] [nvarchar](100) NULL,
+    [price] [decimal](18, 2) NULL,
+    [billingCycle] [nvarchar](50) NULL,
+ CONSTRAINT [PK_Subscription] PRIMARY KEY CLUSTERED ([SubscriptionID] ASC)
+) ON [PRIMARY]
+GO
+
+/****** 3. Product Table ******/
+CREATE TABLE [dbo].[Product](
+    [ProductID] [int] IDENTITY(1,1) NOT NULL,
+    [CompanyID] [int] NOT NULL,
+    [UserID] [nvarchar](450) NOT NULL, -- Added per your clarification
+    [productName] [nvarchar](256) NULL,
+    [type] [nvarchar](100) NULL,
+    [lifecycleStatus] [nvarchar](50) NULL,
+ CONSTRAINT [PK_Product] PRIMARY KEY CLUSTERED ([ProductID] ASC)
+) ON [PRIMARY]
+GO
+
+/****** 4. Inventory Table ******/
+CREATE TABLE [dbo].[Inventory](
+    [InventoryID] [int] IDENTITY(1,1) NOT NULL,
+    [ProductID] [int] NOT NULL,
+    [CompanyID] [int] NOT NULL,
+    [UserID] [nvarchar](450) NOT NULL, -- Added per your clarification
+    [quantity] [int] NULL,
+    [expiry] [datetime] NULL,
+ CONSTRAINT [PK_Inventory] PRIMARY KEY CLUSTERED ([InventoryID] ASC)
+) ON [PRIMARY]
+GO
+
+/****** 5. Expense Table ******/
+CREATE TABLE [dbo].[Expense](
+    [ExpenseID] [int] IDENTITY(1,1) NOT NULL,
+    [CompanyID] [int] NOT NULL,
+    [SupplierID] [int] NULL,
+    [UserID] [nvarchar](450) NOT NULL, -- Added per your clarification
+    [amount] [decimal](18, 2) NULL,
+    [expenseDate] [datetime] NULL,
+ CONSTRAINT [PK_Expense] PRIMARY KEY CLUSTERED ([ExpenseID] ASC)
+) ON [PRIMARY]
+GO
+
+/****** 6. Supplier Table ******/
+CREATE TABLE [dbo].[Supplier](
+    [SupplierID] [int] IDENTITY(1,1) NOT NULL,
+    [CompanyID] [int] NOT NULL,
+    [name] [nvarchar](256) NULL,
+    [contactInfo] [nvarchar](max) NULL,
+    [status] [nvarchar](50) NULL,
+ CONSTRAINT [PK_Supplier] PRIMARY KEY CLUSTERED ([SupplierID] ASC)
+) ON [PRIMARY]
+GO
+
+/****** FOREIGN KEY CONNECTIONS TO ASPNETUSERS ******/
+
+-- Connect Product to AspNetUsers
+ALTER TABLE [dbo].[Product] WITH CHECK ADD CONSTRAINT [FK_Product_AspNetUsers] 
+FOREIGN KEY([UserID]) REFERENCES [dbo].[AspNetUsers] ([Id])
+GO
+
+-- Connect Inventory to AspNetUsers
+ALTER TABLE [dbo].[Inventory] WITH CHECK ADD CONSTRAINT [FK_Inventory_AspNetUsers] 
+FOREIGN KEY([UserID]) REFERENCES [dbo].[AspNetUsers] ([Id])
+GO
+
+-- Connect Expense to AspNetUsers
+ALTER TABLE [dbo].[Expense] WITH CHECK ADD CONSTRAINT [FK_Expense_AspNetUsers] 
+FOREIGN KEY([UserID]) REFERENCES [dbo].[AspNetUsers] ([Id])
+GO
+
+-- Connect Tables to Company
+ALTER TABLE [dbo].[Product] WITH CHECK ADD CONSTRAINT [FK_Product_Company] FOREIGN KEY([CompanyID]) REFERENCES [dbo].[Company] ([CompanyID])
+GO
+ALTER TABLE [dbo].[Expense] WITH CHECK ADD CONSTRAINT [FK_Expense_Company] FOREIGN KEY([CompanyID]) REFERENCES [dbo].[Company] ([CompanyID])
+GO
+ALTER TABLE [dbo].[Supplier] WITH CHECK ADD CONSTRAINT [FK_Supplier_Company] FOREIGN KEY([CompanyID]) REFERENCES [dbo].[Company] ([CompanyID])
+GO
+
+/****** 7. RawMaterial Table ******/
+CREATE TABLE [dbo].[RawMaterial](
+    [RawMaterialID] [int] IDENTITY(1,1) NOT NULL,
+    [SupplierID] [int] NOT NULL,
+    [CompanyID] [int] NOT NULL,
+    [materialName] [nvarchar](256) NULL,
+    [unitCost] [decimal](18, 2) NULL,
+ CONSTRAINT [PK_RawMaterial] PRIMARY KEY CLUSTERED ([RawMaterialID] ASC)
+) ON [PRIMARY]
+GO
+
+/****** 8. ProductionBatch Table ******/
+CREATE TABLE [dbo].[ProductionBatch](
+    [ProductionBatchID] [int] IDENTITY(1,1) NOT NULL,
+    [CompanyID] [int] NOT NULL,
+    [batchCode] [nvarchar](100) NULL,
+    [date] [datetime] NULL,
+    [status] [nvarchar](50) NULL,
+ CONSTRAINT [PK_ProductionBatch] PRIMARY KEY CLUSTERED ([ProductionBatchID] ASC)
+) ON [PRIMARY]
+GO
+
+/****** 9. ProductionCost Table ******/
+CREATE TABLE [dbo].[ProductionCost](
+    [ProductionCostID] [int] IDENTITY(1,1) NOT NULL,
+    [ProductionBatchID] [int] NOT NULL,
+    [TotalCost] [decimal](18, 2) NULL,
+    [CompanyID] [int] NOT NULL,
+ CONSTRAINT [PK_ProductionCost] PRIMARY KEY CLUSTERED ([ProductionCostID] ASC)
+) ON [PRIMARY]
+GO
+
+/****** 10. QualityInspection Table ******/
+CREATE TABLE [dbo].[QualityInspection](
+    [QualityInspectionID] [int] IDENTITY(1,1) NOT NULL,
+    [CompanyID] [int] NOT NULL,
+    [ProductionBatchID] [int] NOT NULL,
+    [type] [nvarchar](100) NULL,
+    [result] [nvarchar](100) NULL,
+ CONSTRAINT [PK_QualityInspection] PRIMARY KEY CLUSTERED ([QualityInspectionID] ASC)
+) ON [PRIMARY]
+GO
+
+/****** 11. Budget Table ******/
+CREATE TABLE [dbo].[Budget](
+    [BudgetID] [int] IDENTITY(1,1) NOT NULL,
+    [CompanyID] [int] NOT NULL,
+    [period] [nvarchar](50) NULL,
+    [allocatedAmount] [decimal](18, 2) NULL,
+ CONSTRAINT [PK_Budget] PRIMARY KEY CLUSTERED ([BudgetID] ASC)
+) ON [PRIMARY]
+GO
+
+/****** 12. BillingInvoice Table ******/
+CREATE TABLE [dbo].[BillingInvoice](
+    [BillingInvoiceID] [int] IDENTITY(1,1) NOT NULL,
+    [CompanyID] [int] NOT NULL,
+    [amount] [decimal](18, 2) NULL,
+    [dueDate] [datetime] NULL,
+    [paymentStatus] [nvarchar](50) NULL,
+ CONSTRAINT [PK_BillingInvoice] PRIMARY KEY CLUSTERED ([BillingInvoiceID] ASC)
+) ON [PRIMARY]
+GO
+
+/****** 13. JournalEntry Table ******/
+CREATE TABLE [dbo].[JournalEntry](
+    [JournalEntryID] [int] IDENTITY(1,1) NOT NULL,
+    [CompanyID] [int] NOT NULL,
+    [date] [datetime] NULL,
+    [totalDebit] [decimal](18, 2) NULL,
+    [totalCredit] [decimal](18, 2) NULL,
+ CONSTRAINT [PK_JournalEntry] PRIMARY KEY CLUSTERED ([JournalEntryID] ASC)
+) ON [PRIMARY]
+GO
+
+/****** 14. AuditLog Table ******/
+CREATE TABLE [dbo].[AuditLog](
+    [AuditLogID] [int] IDENTITY(1,1) NOT NULL,
+    [CompanyID] [int] NOT NULL,
+    [UserID] [nvarchar](450) NOT NULL, -- Linked to AspNetUsers
+    [action] [nvarchar](max) NULL,
+    [timeStamp] [datetime] DEFAULT GETDATE(),
+ CONSTRAINT [PK_AuditLog] PRIMARY KEY CLUSTERED ([AuditLogID] ASC)
+) ON [PRIMARY]
+GO
+
+/****** REMAINING FOREIGN KEY CONNECTIONS ******/
+
+-- RawMaterial to Supplier and Company
+ALTER TABLE [dbo].[RawMaterial] WITH CHECK ADD CONSTRAINT [FK_RawMaterial_Supplier] FOREIGN KEY([SupplierID]) REFERENCES [dbo].[Supplier] ([SupplierID])
+GO
+ALTER TABLE [dbo].[RawMaterial] WITH CHECK ADD CONSTRAINT [FK_RawMaterial_Company] FOREIGN KEY([CompanyID]) REFERENCES [dbo].[Company] ([CompanyID])
+GO
+
+-- Production related links
+ALTER TABLE [dbo].[ProductionBatch] WITH CHECK ADD CONSTRAINT [FK_ProductionBatch_Company] FOREIGN KEY([CompanyID]) REFERENCES [dbo].[Company] ([CompanyID])
+GO
+ALTER TABLE [dbo].[ProductionCost] WITH CHECK ADD CONSTRAINT [FK_ProductionCost_ProductionBatch] FOREIGN KEY([ProductionBatchID]) REFERENCES [dbo].[ProductionBatch] ([ProductionBatchID])
+GO
+ALTER TABLE [dbo].[QualityInspection] WITH CHECK ADD CONSTRAINT [FK_QualityInspection_ProductionBatch] FOREIGN KEY([ProductionBatchID]) REFERENCES [dbo].[ProductionBatch] ([ProductionBatchID])
+GO
+
+-- AuditLog to User (Identity)
+ALTER TABLE [dbo].[AuditLog] WITH CHECK ADD CONSTRAINT [FK_AuditLog_AspNetUsers] 
+FOREIGN KEY([UserID]) REFERENCES [dbo].[AspNetUsers] ([Id])
+GO
+
+-- Financial links to Company
+ALTER TABLE [dbo].[Budget] WITH CHECK ADD CONSTRAINT [FK_Budget_Company] FOREIGN KEY([CompanyID]) REFERENCES [dbo].[Company] ([CompanyID])
+GO
+ALTER TABLE [dbo].[BillingInvoice] WITH CHECK ADD CONSTRAINT [FK_BillingInvoice_Company] FOREIGN KEY([CompanyID]) REFERENCES [dbo].[Company] ([CompanyID])
+GO
+ALTER TABLE [dbo].[JournalEntry] WITH CHECK ADD CONSTRAINT [FK_JournalEntry_Company] FOREIGN KEY([CompanyID]) REFERENCES [dbo].[Company] ([CompanyID])
+GO
