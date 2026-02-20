@@ -1,6 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Identity
-@inject SignInManager<IdentityUser> SignInManager
-@inject UserManager<IdentityUser> UserManager
+@using IT15_DairyFlow.Models
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
 
 @{
     // Helper to check current controller for auto-expanding menus
@@ -115,6 +116,7 @@
         <div class="collapse @(currentController == "PLM" ? "show" : "")" id="plmMenu">
             <div class="sidebar-submenu">
                 <a class="submenu-link" asp-controller="PLM" asp-action="Products">Products</a>
+                <a class="submenu-link" asp-controller="PLM" asp-action="Archives">Archives</a>
                 <a class="submenu-link" href="#">Product Versions</a>
                 <a class="submenu-link" href="#">Formulations</a>
                 <a class="submenu-link" href="#">Lifecycle Status</a>
@@ -129,8 +131,8 @@
         <div class="collapse @(currentController == "Production" ? "show" : "")" id="prodMenu">
             <div class="sidebar-submenu">
                 <a class="submenu-link" asp-controller="Production" asp-action="Batches">Production Batches</a>
-                <a class="submenu-link" href="#">Production Schedule</a>
-                <a class="submenu-link" href="#">Production Cost</a>
+                <a class="submenu-link" asp-controller="Production" asp-action="Schedule">Production Schedule</a>
+                <a class="submenu-link" asp-controller="Production" asp-action="Costs">Production Cost</a>
             </div>
         </div>
 

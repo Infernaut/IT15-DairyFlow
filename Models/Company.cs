@@ -33,5 +33,7 @@ namespace IT15_DairyFlow.Models
         public virtual ICollection<BillingInvoice> BillingInvoices { get; set; } = new List<BillingInvoice>();
         public virtual ICollection<JournalEntry> JournalEntries { get; set; } = new List<JournalEntry>();
         public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
+        public virtual ICollection<ApplicationUser> Users { get; set; } = new List<ApplicationUser>();
+        public virtual ICollection<Equipment> Equipments { get; set; } = new List<Equipment>();
     }
 }

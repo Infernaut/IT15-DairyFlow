@@ -1,0 +1,199 @@
+@model IEnumerable<IT15_DairyFlow.Models.PLM.ProductListViewModel>
+
+@{
+    ViewData["Title"] = "Archived Products";
+}
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">Archived Products</h2>
+            <p class="text-muted mb-0">Products marked as archived or archive status.</p>
+        </div>
+        <a class="btn btn-outline-secondary" asp-controller="PLM" asp-action="Products">
+            <i class="bi bi-arrow-left me-1"></i> Back to Products
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="px-4">Product Name</th>
+                            <th>Type</th>
+                            <th>Lifecycle Status</th>
+                            <th>Created By</th>
+                            <th class="text-end px-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-5">
+                                    <i class="bi bi-archive display-4 d-block mb-3 opacity-25"></i>
+                                    <p class="mb-0">No archived products found.</p>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var product in Model)
+                            {
+                                <tr class="archive-row" data-product-id="@product.ProductID" style="cursor: pointer;">
+                                    <td class="px-4 fw-semibold">@product.ProductName</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(product.Type))
+                                        {
+                                            <span class="badge bg-light text-dark border">@product.Type</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">@(product.LifecycleStatus ?? "Archived")</span>
+                                    </td>
+                                    <td class="text-muted">@product.UserEmail</td>
+                                    <td class="text-end px-4">
+                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="event.stopPropagation(); viewArchivedProduct(@product.ProductID)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); unarchiveProduct(@product.ProductID, '@product.ProductName')">
+                                            <i class="bi bi-arrow-counterclockwise"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Archived Product Detail Modal -->
+<div class="modal fade" id="archivedProductModal" tabindex="-1" aria-labelledby="archivedProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="archivedProductModalLabel">
+                    <i class="bi bi-archive text-primary me-2"></i>Archived Product Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="archivedProductContent"></div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function viewArchivedProduct(productId) {
+            try {
+                const response = await fetch(`@Url.Action("GetProductDetail", "PLM")/${productId}`);
+                if (response.ok) {
+                    const product = await response.json();
+                    renderArchivedProduct(product);
+                    new bootstrap.Modal(document.getElementById('archivedProductModal')).show();
+                }
+            } catch (error) {
+                console.error(error);
+                showToast('error', 'Failed to load product details');
+            }
+        }
+
+        function renderArchivedProduct(product) {
+            const statusBadgeClass = {
+                'Active': 'bg-success',
+                'Development': 'bg-info',
+                'Discontinued': 'bg-warning',
+                'Archived': 'bg-secondary',
+                'Archive': 'bg-secondary'
+            }[product.lifecycleStatus] || 'bg-secondary';
+
+            const content = `
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted small">Product Name</label>
+                        <input type="text" class="form-control form-control-lg" value="${product.productName}" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted small">Type</label>
+                        <input type="text" class="form-control form-control-lg" value="${product.type || '-'}" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted small">Lifecycle Status</label>
+                        <div class="mt-2"><span class="badge ${statusBadgeClass}">${product.lifecycleStatus}</span></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted small">Created By</label>
+                        <input type="text" class="form-control form-control-lg" value="${product.userEmail}" readonly>
+                    </div>
+                    <div class="col-12">
+                        <div class="alert alert-light border mb-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="text-muted d-block">Product ID</small>
+                                    <strong>#${product.productID}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('archivedProductContent').innerHTML = content;
+        }
+
+        async function unarchiveProduct(productId, productName) {
+            if (!confirm(`Unarchive "${productName}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`@Url.Action("UnarchiveProduct", "PLM")/${productId}`, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showToast('success', result.message);
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast('error', 'Failed to unarchive product');
+                }
+            } catch (error) {
+                showToast('error', 'An error occurred');
+                console.error(error);
+            }
+        }
+
+        document.querySelectorAll('.archive-row').forEach(row => {
+            row.addEventListener('click', function() {
+                const productId = this.dataset.productId;
+                viewArchivedProduct(productId);
+            });
+        });
+
+        function showToast(type, message) {
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed top-0 end-0 m-3`;
+            toast.style.zIndex = '9999';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+}
+
+@Html.AntiForgeryToken()

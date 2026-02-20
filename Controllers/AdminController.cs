@@ -1,4 +1,5 @@
 using IT15_DairyFlow.Models.Admin;
+using IT15_DairyFlow.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,10 +11,10 @@ namespace IT15_DairyFlow.Controllers
     public class AdminController : Controller
     {
         private const string SuperAdminRoleName = "Superadmin";
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
 
-        public AdminController(UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager)
+        public AdminController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             _userManager = userManager;
             _roleManager = roleManager;
@@ -136,7 +137,7 @@ namespace IT15_DairyFlow.Controllers
                 return View(model);
             }
 
-            var user = new IdentityUser
+            var user = new ApplicationUser
             {
                 UserName = model.UserName,
                 Email = model.Email,
@@ -406,7 +407,7 @@ namespace IT15_DairyFlow.Controllers
             return RedirectToAction(nameof(Users));
         }
 
-        private static bool IsUserActive(IdentityUser user)
+        private static bool IsUserActive(ApplicationUser user)
         {
             if (!user.LockoutEnd.HasValue)
             {

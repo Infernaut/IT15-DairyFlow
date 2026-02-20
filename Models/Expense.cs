@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.AspNetCore.Identity;
+using IT15_DairyFlow.Models;
 
 namespace IT15_DairyFlow.Models
 {
@@ -31,6 +31,6 @@ namespace IT15_DairyFlow.Models
         public virtual Supplier? Supplier { get; set; }
 
         [ForeignKey("UserID")]
-        public virtual IdentityUser User { get; set; } = null!;
+        public virtual ApplicationUser User { get; set; } = null!;
     }
 }

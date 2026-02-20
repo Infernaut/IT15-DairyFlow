@@ -118,6 +118,9 @@
                                         <button class="btn btn-sm btn-outline-primary me-1" onclick="event.stopPropagation(); viewProductDetail(@product.ProductID)">
                                             <i class="bi bi-eye"></i>
                                         </button>
+                                        <button class="btn btn-sm btn-outline-secondary me-1" onclick="event.stopPropagation(); editProduct(@product.ProductID)">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
                                         @if (product.LifecycleStatus != "Archived")
                                         {
                                             <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); archiveProduct(@product.ProductID, '@product.ProductName')">
@@ -293,7 +296,7 @@
         }
 
         // View product detail
-        async function viewProductDetail(productId) {
+        async function viewProductDetail(productId, openEdit = false) {
             currentProductId = productId;
             isEditMode = false;
             
@@ -303,11 +306,18 @@
                     const product = await response.json();
                     displayProductDetail(product);
                     new bootstrap.Modal(document.getElementById('viewProductModal')).show();
+                    if (openEdit) {
+                        toggleEditMode();
+                    }
                 }
             } catch (error) {
                 console.error(error);
                 showToast('error', 'Failed to load product details');
             }
+        }
+
+        function editProduct(productId) {
+            viewProductDetail(productId, true);
         }
 
         // Click on row to view details

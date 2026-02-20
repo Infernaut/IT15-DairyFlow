@@ -4,7 +4,7 @@ using IT15_DairyFlow.Models;
 
 namespace IT15_DairyFlow.Data
 {
-    public class ApplicationDbContext : IdentityDbContext
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
@@ -21,9 +21,10 @@ namespace IT15_DairyFlow.Data
 
         // Production Entities
         public DbSet<RawMaterial> RawMaterials { get; set; }
-        public DbSet<ProductionBatch> ProductionBatches { get; set; }
+        public DbSet<ProductionBatch> ProductionBatch { get; set; }
         public DbSet<ProductionCost> ProductionCosts { get; set; }
         public DbSet<QualityInspection> QualityInspections { get; set; }
+        public DbSet<Equipment> Equipments { get; set; }
 
         // Financial Entities
         public DbSet<Budget> Budgets { get; set; }
@@ -42,6 +43,12 @@ namespace IT15_DairyFlow.Data
                 .HasOne(c => c.Subscription)
                 .WithMany(s => s.Companies)
                 .HasForeignKey(c => c.SubscriptionID)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<ApplicationUser>()
+                .HasOne(u => u.Company)
+                .WithMany(c => c.Users)
+                .HasForeignKey(u => u.CompanyID)
                 .OnDelete(DeleteBehavior.SetNull);
 
             // Configure Product relationships
@@ -120,6 +127,31 @@ namespace IT15_DairyFlow.Data
                 .HasOne(pb => pb.Company)
                 .WithMany(c => c.ProductionBatches)
                 .HasForeignKey(pb => pb.CompanyID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ProductionBatch>()
+                .HasOne(pb => pb.Product)
+                .WithMany()
+                .HasForeignKey(pb => pb.ProductID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ProductionBatch>()
+                .HasOne(pb => pb.Equipment)
+                .WithMany(e => e.ProductionBatches)
+                .HasForeignKey(pb => pb.EquipmentID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ProductionBatch>()
+                .HasOne(pb => pb.User)
+                .WithMany()
+                .HasForeignKey(pb => pb.UserID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure Equipment relationships
+            modelBuilder.Entity<Equipment>()
+                .HasOne(e => e.Company)
+                .WithMany(c => c.Equipments)
+                .HasForeignKey(e => e.CompanyID)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Configure ProductionCost relationships

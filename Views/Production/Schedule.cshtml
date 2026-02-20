@@ -1,0 +1,155 @@
+@model IEnumerable<IT15_DairyFlow.Models.Production.ProductionScheduleItemViewModel>
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = "Production Schedule";
+    var scheduleData = Model.Select(item => new
+    {
+        id = item.ProductionBatchID,
+        batchCode = item.BatchCode,
+        startDate = item.StartDate?.ToString("yyyy-MM-dd"),
+        endDate = item.EndDate?.ToString("yyyy-MM-dd"),
+        status = item.Status,
+        productName = item.ProductName,
+        equipmentName = item.EquipmentName
+    }).ToList();
+    var scheduleJson = JsonSerializer.Serialize(scheduleData);
+}
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">Production Schedule</h2>
+            <p class="text-muted mb-0">Calendar view of current and upcoming production.</p>
+        </div>
+    </div>
+
+    <div class="calendar-shell">
+        <div class="calendar-header">
+            <div>
+                <div class="calendar-title" id="calendarTitle">Month Year</div>
+                <div class="calendar-subtitle">Pinned batches span start to end date</div>
+            </div>
+            <div class="calendar-actions">
+                <button class="btn btn-outline-secondary btn-sm" id="prevMonthBtn">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" id="todayBtn">Today</button>
+                <button class="btn btn-outline-secondary btn-sm" id="nextMonthBtn">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const scheduleItems = @Html.Raw(scheduleJson);
+        let currentMonth = new Date();
+
+        const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const monthNames = [
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+
+        function formatDateKey(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function expandEvents(items) {
+            const map = {};
+            items.forEach(item => {
+                if (!item.startDate) {
+                    return;
+                }
+                const start = new Date(item.startDate + 'T00:00:00');
+                const end = item.endDate ? new Date(item.endDate + 'T00:00:00') : new Date(item.startDate + 'T00:00:00');
+                for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                    const key = formatDateKey(d);
+                    if (!map[key]) {
+                        map[key] = [];
+                    }
+                    map[key].push({
+                        ...item,
+                        isStart: formatDateKey(start) === key,
+                        isEnd: formatDateKey(end) === key
+                    });
+                }
+            });
+            return map;
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid');
+            const title = document.getElementById('calendarTitle');
+            const eventsByDate = expandEvents(scheduleItems);
+
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            title.textContent = `${monthNames[month]} ${year}`;
+
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startOffset = firstDay.getDay();
+            const totalCells = Math.ceil((startOffset + lastDay.getDate()) / 7) * 7;
+
+            let html = '';
+            dayNames.forEach(name => {
+                html += `<div class="calendar-dow">${name}</div>`;
+            });
+
+            for (let cell = 0; cell < totalCells; cell++) {
+                const dayNumber = cell - startOffset + 1;
+                const inMonth = dayNumber > 0 && dayNumber <= lastDay.getDate();
+                const date = new Date(year, month, inMonth ? dayNumber : 1);
+                const dateKey = inMonth ? formatDateKey(date) : '';
+                const isToday = inMonth && formatDateKey(new Date()) === dateKey;
+                const events = inMonth && eventsByDate[dateKey] ? eventsByDate[dateKey] : [];
+
+                html += `<div class="calendar-day ${inMonth ? '' : 'is-muted'} ${isToday ? 'is-today' : ''}">`;
+                html += `<div class="calendar-day-num">${inMonth ? dayNumber : ''}</div>`;
+                html += `<div class="calendar-events">`;
+                events.slice(0, 3).forEach(event => {
+                    const statusClass = (event.status || '').toLowerCase().replace(/\s+/g, '-');
+                    const edgeClass = `${event.isStart ? 'is-start' : ''} ${event.isEnd ? 'is-end' : ''}`.trim();
+                    html += `
+                        <div class="calendar-event ${statusClass} ${edgeClass}">
+                            <div class="event-title">${event.batchCode}</div>
+                            <div class="event-meta">${event.productName}</div>
+                        </div>
+                    `;
+                });
+                if (events.length > 3) {
+                    html += `<div class="calendar-more">+${events.length - 3} more</div>`;
+                }
+                html += `</div>`;
+                html += `</div>`;
+            }
+
+            grid.innerHTML = html;
+        }
+
+        document.getElementById('prevMonthBtn').addEventListener('click', () => {
+            currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+            renderCalendar();
+        });
+
+        document.getElementById('nextMonthBtn').addEventListener('click', () => {
+            currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+            renderCalendar();
+        });
+
+        document.getElementById('todayBtn').addEventListener('click', () => {
+            currentMonth = new Date();
+            renderCalendar();
+        });
+
+        renderCalendar();
+    </script>
+}
