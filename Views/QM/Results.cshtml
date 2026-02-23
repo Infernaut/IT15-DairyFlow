@@ -1,0 +1,247 @@
+@model IT15_DairyFlow.Models.QM.QualityInspectionResultsPageViewModel
+
+@{
+    ViewData["Title"] = "Inspection Results";
+}
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">Inspection Results</h2>
+            <p class="text-muted mb-0">View completed quality inspection results and outcomes.</p>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search by product name...">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" id="resultFilter">
+                        <option value="">All Results</option>
+                        <option value="pass">Pass</option>
+                        <option value="fail">Fail</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                        <i class="bi bi-x-circle me-1"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="resultsTable">
+                <thead class="table-light">
+                    <tr>
+                        <th class="px-4">Product Name</th>
+                        <th>Result</th>
+                        <th>Inspector</th>
+                        <th>Tests Performed</th>
+                        <th class="text-end px-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Results.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-5">
+                                <i class="bi bi-file-earmark-check display-4 d-block mb-3 opacity-25"></i>
+                                <p class="mb-0">No inspection results found.</p>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var result in Model.Results)
+                        {
+                            <tr class="result-row" data-result-id="@result.QualityInspectionID" style="cursor: pointer;">
+                                <td class="px-4 fw-semibold">@result.ProductName</td>
+                                <td>
+                                    @{
+                                        var resultBadge = result.Result switch
+                                        {
+                                            "pass" => "bg-success",
+                                            "fail" => "bg-danger",
+                                            _ => "bg-secondary"
+                                        };
+                                    }
+                                    <span class="badge @resultBadge">@result.Result</span>
+                                </td>
+                                <td>@result.UserName</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(result.Type))
+                                    {
+                                        <span class="text-muted small">@result.Type</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="text-end px-4">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); viewResultDetail(@result.QualityInspectionID)">
+                                        <i class="bi bi-eye"></i> View
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Result Detail Modal -->
+<div class="modal fade" id="resultDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-file-earmark-check text-primary me-2"></i>Inspection Result Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted small">Product Name</label>
+                        <input type="text" class="form-control form-control-lg" id="resultProductName" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted small">Result</label>
+                        <input type="text" class="form-control form-control-lg" id="resultValue" readonly>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold text-muted small">Inspector</label>
+                        <input type="text" class="form-control" id="resultInspector" readonly>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold text-muted small">Tests Performed</label>
+                        <div class="border rounded p-3 bg-light">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="viewTaste" disabled>
+                                <label class="form-check-label" for="viewTaste">Taste</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="viewTemperature" disabled>
+                                <label class="form-check-label" for="viewTemperature">Temperature</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="viewBacteria" disabled>
+                                <label class="form-check-label" for="viewBacteria">Bacteria Test</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="viewSmell" disabled>
+                                <label class="form-check-label" for="viewSmell">Smell</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="viewAppearance" disabled>
+                                <label class="form-check-label" for="viewAppearance">Appearance</label>
+                            </div>
+                            <div class="form-check mb-0">
+                                <input class="form-check-input" type="checkbox" id="viewAcidity" disabled>
+                                <label class="form-check-label" for="viewAcidity">Acidity</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('keyup', filterTable);
+        document.getElementById('resultFilter').addEventListener('change', filterTable);
+
+        function filterTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const resultFilter = document.getElementById('resultFilter').value.toLowerCase();
+            const rows = document.querySelectorAll('#resultsTable tbody tr.result-row');
+
+            rows.forEach(row => {
+                const productName = row.cells[0].textContent.toLowerCase();
+                const result = row.cells[1].textContent.toLowerCase();
+
+                const matchesSearch = productName.includes(searchTerm);
+                const matchesResult = !resultFilter || result.includes(resultFilter);
+
+                row.style.display = (matchesSearch && matchesResult) ? '' : 'none';
+            });
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('resultFilter').value = '';
+            filterTable();
+        }
+
+        // Click on row to view details
+        document.querySelectorAll('.result-row').forEach(row => {
+            row.addEventListener('click', function() {
+                const resultId = this.dataset.resultId;
+                viewResultDetail(resultId);
+            });
+        });
+
+        async function viewResultDetail(resultId) {
+            try {
+                const response = await fetch(`@Url.Action("GetInspectionDetail", "QM")/${resultId}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    displayResultDetail(result);
+                    new bootstrap.Modal(document.getElementById('resultDetailModal')).show();
+                }
+            } catch (error) {
+                console.error(error);
+                showToast('error', 'Failed to load result details');
+            }
+        }
+
+        function displayResultDetail(result) {
+            document.getElementById('resultProductName').value = result.productName;
+            document.getElementById('resultValue').value = result.result;
+            document.getElementById('resultInspector').value = result.userName;
+
+            // Reset all checkboxes
+            document.getElementById('viewTaste').checked = false;
+            document.getElementById('viewTemperature').checked = false;
+            document.getElementById('viewBacteria').checked = false;
+            document.getElementById('viewSmell').checked = false;
+            document.getElementById('viewAppearance').checked = false;
+            document.getElementById('viewAcidity').checked = false;
+
+            // Check the tests that were performed
+            if (result.type) {
+                const tests = result.type.toLowerCase().split(',').map(t => t.trim());
+                if (tests.includes('taste')) document.getElementById('viewTaste').checked = true;
+                if (tests.includes('temperature')) document.getElementById('viewTemperature').checked = true;
+                if (tests.includes('bacteria test')) document.getElementById('viewBacteria').checked = true;
+                if (tests.includes('smell')) document.getElementById('viewSmell').checked = true;
+                if (tests.includes('appearance')) document.getElementById('viewAppearance').checked = true;
+                if (tests.includes('acidity')) document.getElementById('viewAcidity').checked = true;
+            }
+        }
+
+        function showToast(type, message) {
+            // Implement toast notification
+            alert(message);
+        }
+    </script>
+}

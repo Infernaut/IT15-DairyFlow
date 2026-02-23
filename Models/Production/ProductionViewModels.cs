@@ -51,6 +51,9 @@ namespace IT15_DairyFlow.Models.Production
 
         [Required]
         public int EquipmentID { get; set; }
+
+        [Required]
+        public int Quantity { get; set; } = 0;
     }
 
     public class ProductionScheduleItemViewModel

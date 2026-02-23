@@ -1,0 +1,387 @@
+@{
+    ViewData["Title"] = "Non-conformance Reports";
+}
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">Non-conformance Reports</h2>
+            <p class="text-muted mb-0">Document and track quality non-conformance issues and corrective actions.</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createReportModal">
+            <i class="bi bi-plus-lg me-1"></i> Create Report
+        </button>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-danger bg-opacity-10 text-danger rounded p-3">
+                                <i class="bi bi-exclamation-triangle fs-3"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1 small">Open Reports</h6>
+                            <h3 class="mb-0 fw-bold">12</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-warning bg-opacity-10 text-warning rounded p-3">
+                                <i class="bi bi-clock-history fs-3"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1 small">In Progress</h6>
+                            <h3 class="mb-0 fw-bold">8</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-success bg-opacity-10 text-success rounded p-3">
+                                <i class="bi bi-check-circle fs-3"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1 small">Resolved</h6>
+                            <h3 class="mb-0 fw-bold">45</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <div class="bg-info bg-opacity-10 text-info rounded p-3">
+                                <i class="bi bi-graph-up fs-3"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="text-muted mb-1 small">This Month</h6>
+                            <h3 class="mb-0 fw-bold">7</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search reports...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="statusFilter">
+                        <option value="">All Statuses</option>
+                        <option value="open">Open</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="severityFilter">
+                        <option value="">All Severities</option>
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                        <i class="bi bi-x-circle me-1"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reports Table -->
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="reportsTable">
+                <thead class="table-light">
+                    <tr>
+                        <th class="px-4">Report ID</th>
+                        <th>Issue Description</th>
+                        <th>Severity</th>
+                        <th>Status</th>
+                        <th>Date Reported</th>
+                        <th>Assigned To</th>
+                        <th class="text-end px-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Sample Data -->
+                    <tr style="cursor: pointer;" onclick="viewReportDetail(1)">
+                        <td class="px-4 fw-semibold">NCR-2026-001</td>
+                        <td>Product temperature out of specification range</td>
+                        <td><span class="badge bg-danger">Critical</span></td>
+                        <td><span class="badge bg-warning">In Progress</span></td>
+                        <td>Feb 20, 2026</td>
+                        <td>John Smith</td>
+                        <td class="text-end px-4">
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="event.stopPropagation(); viewReportDetail(1)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); editReport(1)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr style="cursor: pointer;" onclick="viewReportDetail(2)">
+                        <td class="px-4 fw-semibold">NCR-2026-002</td>
+                        <td>Packaging defect detected in batch</td>
+                        <td><span class="badge bg-warning">High</span></td>
+                        <td><span class="badge bg-danger">Open</span></td>
+                        <td>Feb 21, 2026</td>
+                        <td>Sarah Johnson</td>
+                        <td class="text-end px-4">
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="event.stopPropagation(); viewReportDetail(2)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); editReport(2)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr style="cursor: pointer;" onclick="viewReportDetail(3)">
+                        <td class="px-4 fw-semibold">NCR-2026-003</td>
+                        <td>Minor appearance deviation from standard</td>
+                        <td><span class="badge bg-info">Medium</span></td>
+                        <td><span class="badge bg-success">Resolved</span></td>
+                        <td>Feb 19, 2026</td>
+                        <td>Mike Wilson</td>
+                        <td class="text-end px-4">
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="event.stopPropagation(); viewReportDetail(3)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); editReport(3)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create Report Modal -->
+<div class="modal fade" id="createReportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-plus-circle text-primary me-2"></i>Create Non-conformance Report
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createReportForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Report ID</label>
+                            <input type="text" class="form-control" value="Auto-generated" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Date Reported <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Severity <span class="text-danger">*</span></label>
+                            <select class="form-select" required>
+                                <option value="">Select severity...</option>
+                                <option value="critical">Critical</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
+                            <select class="form-select" required>
+                                <option value="open" selected>Open</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="resolved">Resolved</option>
+                                <option value="closed">Closed</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Issue Description <span class="text-danger">*</span></label>
+                            <textarea class="form-control" rows="3" placeholder="Describe the non-conformance issue..." required></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Root Cause Analysis</label>
+                            <textarea class="form-control" rows="3" placeholder="Identify the root cause of the issue..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Corrective Action</label>
+                            <textarea class="form-control" rows="3" placeholder="Describe corrective actions taken or planned..."></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Assigned To</label>
+                            <select class="form-select">
+                                <option value="">Select assignee...</option>
+                                <option value="1">John Smith</option>
+                                <option value="2">Sarah Johnson</option>
+                                <option value="3">Mike Wilson</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Target Resolution Date</label>
+                            <input type="date" class="form-control">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createReport()">
+                    <i class="bi bi-check-lg me-1"></i>Create Report
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Report Detail Modal -->
+<div class="modal fade" id="reportDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-file-earmark-text text-primary me-2"></i>Non-conformance Report Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted small">Report ID</label>
+                        <input type="text" class="form-control form-control-lg" id="viewReportId" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted small">Date Reported</label>
+                        <input type="text" class="form-control form-control-lg" id="viewReportDate" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted small">Severity</label>
+                        <input type="text" class="form-control" id="viewSeverity" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted small">Status</label>
+                        <input type="text" class="form-control" id="viewStatus" readonly>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold text-muted small">Issue Description</label>
+                        <textarea class="form-control" id="viewDescription" rows="3" readonly></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold text-muted small">Assigned To</label>
+                        <input type="text" class="form-control" id="viewAssignee" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="editReport()">
+                    <i class="bi bi-pencil me-1"></i>Edit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('severityFilter').value = '';
+        }
+
+        function createReport() {
+            const form = document.getElementById('createReportForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+            
+            alert('Report creation functionality will be implemented in the backend.');
+            bootstrap.Modal.getInstance(document.getElementById('createReportModal')).hide();
+        }
+
+        function viewReportDetail(reportId) {
+            // Sample data for demonstration
+            const sampleData = {
+                1: {
+                    id: 'NCR-2026-001',
+                    date: 'Feb 20, 2026',
+                    severity: 'Critical',
+                    status: 'In Progress',
+                    description: 'Product temperature out of specification range during quality check. Batch temperature recorded at 8°C, specification requires 4°C ± 2°C.',
+                    assignee: 'John Smith'
+                },
+                2: {
+                    id: 'NCR-2026-002',
+                    date: 'Feb 21, 2026',
+                    severity: 'High',
+                    status: 'Open',
+                    description: 'Packaging defect detected in batch. Multiple units found with improper seal integrity.',
+                    assignee: 'Sarah Johnson'
+                },
+                3: {
+                    id: 'NCR-2026-003',
+                    date: 'Feb 19, 2026',
+                    severity: 'Medium',
+                    status: 'Resolved',
+                    description: 'Minor appearance deviation from standard. Product color slightly lighter than specification.',
+                    assignee: 'Mike Wilson'
+                }
+            };
+
+            const data = sampleData[reportId];
+            if (data) {
+                document.getElementById('viewReportId').value = data.id;
+                document.getElementById('viewReportDate').value = data.date;
+                document.getElementById('viewSeverity').value = data.severity;
+                document.getElementById('viewStatus').value = data.status;
+                document.getElementById('viewDescription').value = data.description;
+                document.getElementById('viewAssignee').value = data.assignee;
+
+                new bootstrap.Modal(document.getElementById('reportDetailModal')).show();
+            }
+        }
+
+        function editReport(reportId) {
+            alert('Edit functionality will be implemented in the backend.');
+        }
+    </script>
+}

@@ -141,11 +141,11 @@
             <span><i class="bi bi-shield-check me-2"></i> Quality (QM)</span>
             <i class="bi bi-chevron-down small opacity-50"></i>
         </a>
-        <div class="collapse @(currentController == "Quality" ? "show" : "")" id="qmMenu">
+        <div class="collapse @(currentController == "QM" ? "show" : "")" id="qmMenu">
             <div class="sidebar-submenu">
-                <a class="submenu-link" href="#">Quality Inspections</a>
-                <a class="submenu-link" href="#">Inspection Results</a>
-                <a class="submenu-link" href="#">Non-Conformance Reports</a>
+                <a class="submenu-link" asp-controller="QM" asp-action="Inspections">Quality Inspections</a>
+                <a class="submenu-link" asp-controller="QM" asp-action="Results">Inspection Results</a>
+                <a class="submenu-link" asp-controller="QM" asp-action="NonConformance">Non-Conformance Reports</a>
             </div>
         </div>
 

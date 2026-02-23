@@ -166,13 +166,8 @@
                             <option value="Other">Other</option>
                         </select>
                     </div>
-                    <div class="mb-3">
-                        <label for="createLifecycleStatus" class="form-label fw-semibold">Lifecycle Status</label>
-                        <select class="form-select" id="createLifecycleStatus">
-                            <option value="Active" selected>Active</option>
-                            <option value="Development">Development</option>
-                            <option value="Discontinued">Discontinued</option>
-                        </select>
+                    <div class="alert alert-info mb-0">
+                        <i class="bi bi-info-circle me-2"></i>New products will be set to "Under Review" status automatically.
                     </div>
                 </form>
             </div>
@@ -268,8 +263,7 @@
 
             const data = {
                 productName: document.getElementById('createProductName').value,
-                type: document.getElementById('createProductType').value || null,
-                lifecycleStatus: document.getElementById('createLifecycleStatus').value
+                type: document.getElementById('createProductType').value || null
             };
 
             try {

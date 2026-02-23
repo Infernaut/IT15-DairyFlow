@@ -28,7 +28,7 @@ namespace IT15_DairyFlow.Models
         public virtual ICollection<RawMaterial> RawMaterials { get; set; } = new List<RawMaterial>();
         public virtual ICollection<ProductionBatch> ProductionBatches { get; set; } = new List<ProductionBatch>();
         public virtual ICollection<ProductionCost> ProductionCosts { get; set; } = new List<ProductionCost>();
-        public virtual ICollection<QualityInspection> QualityInspections { get; set; } = new List<QualityInspection>();
+        public virtual ICollection<QualityInspection> QualityInspection { get; set; } = new List<QualityInspection>();
         public virtual ICollection<Budget> Budgets { get; set; } = new List<Budget>();
         public virtual ICollection<BillingInvoice> BillingInvoices { get; set; } = new List<BillingInvoice>();
         public virtual ICollection<JournalEntry> JournalEntries { get; set; } = new List<JournalEntry>();

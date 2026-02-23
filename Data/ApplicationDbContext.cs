@@ -23,7 +23,7 @@ namespace IT15_DairyFlow.Data
         public DbSet<RawMaterial> RawMaterials { get; set; }
         public DbSet<ProductionBatch> ProductionBatch { get; set; }
         public DbSet<ProductionCost> ProductionCosts { get; set; }
-        public DbSet<QualityInspection> QualityInspections { get; set; }
+        public DbSet<QualityInspection> QualityInspection { get; set; }
         public DbSet<Equipment> Equipments { get; set; }
 
         // Financial Entities
@@ -170,13 +170,13 @@ namespace IT15_DairyFlow.Data
             // Configure QualityInspection relationships
             modelBuilder.Entity<QualityInspection>()
                 .HasOne(qi => qi.Company)
-                .WithMany(c => c.QualityInspections)
+                .WithMany(c => c.QualityInspection)
                 .HasForeignKey(qi => qi.CompanyID)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<QualityInspection>()
                 .HasOne(qi => qi.ProductionBatch)
-                .WithMany(pb => pb.QualityInspections)
+                .WithMany(pb => pb.QualityInspection)
                 .HasForeignKey(qi => qi.ProductionBatchID)
                 .OnDelete(DeleteBehavior.Restrict);
 

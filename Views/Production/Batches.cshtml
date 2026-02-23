@@ -105,6 +105,7 @@
                             <option value="In Production" selected>In Production</option>
                             <option value="Scheduled">Scheduled</option>
                             <option value="Paused">Paused</option>
+                            <option value="Completed">Completed</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -127,6 +128,11 @@
                             }
                         </select>
                         <div class="form-text">Only available equipment is shown.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Quantity <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="batchQuantity" min="0" value="0" required>
+                        <div class="form-text">For products under review, quantity is automatically set to 10.</div>
                     </div>
                 </form>
             </div>
@@ -172,7 +178,8 @@
                 endDate: document.getElementById('batchEndDate').value,
                 status: document.getElementById('batchStatus').value,
                 productID: parseInt(document.getElementById('batchProduct').value),
-                equipmentID: parseInt(document.getElementById('batchEquipment').value)
+                equipmentID: parseInt(document.getElementById('batchEquipment').value),
+                quantity: parseInt(document.getElementById('batchQuantity').value)
             };
 
             try {

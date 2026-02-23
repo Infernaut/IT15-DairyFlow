@@ -1,0 +1,362 @@
+@model IT15_DairyFlow.Models.QM.QualityInspectionPageViewModel
+
+@{
+    ViewData["Title"] = "Quality Inspections";
+}
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">Quality Inspections</h2>
+            <p class="text-muted mb-0">Monitor and manage ongoing quality inspections for production batches.</p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="inspectionsTable">
+                <thead class="table-light">
+                    <tr>
+                        <th class="px-4">Batch ID</th>
+                        <th>Product Name</th>
+                        <th>Result</th>
+                        <th>Status</th>
+                        <th>User Assigned</th>
+                        <th class="text-end px-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Inspections.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-5">
+                                <i class="bi bi-clipboard-check display-4 d-block mb-3 opacity-25"></i>
+                                <p class="mb-0">No ongoing inspections found.</p>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var inspection in Model.Inspections)
+                        {
+                            <tr class="inspection-row" data-inspection-id="@inspection.QualityInspectionID" style="cursor: pointer;">
+                                <td class="px-4 fw-semibold">@inspection.BatchCode</td>
+                                <td>@inspection.ProductName</td>
+                                <td>
+                                    @{
+                                        var resultBadge = inspection.Result switch
+                                        {
+                                            "pass" => "bg-success",
+                                            "fail" => "bg-danger",
+                                            _ => "bg-secondary"
+                                        };
+                                    }
+                                    <span class="badge @resultBadge">@inspection.Result</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning">@inspection.Status</span>
+                                </td>
+                                <td>@inspection.UserName</td>
+                                <td class="text-end px-4">
+                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="event.stopPropagation(); viewInspectionDetail(@inspection.QualityInspectionID)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); openInspectModal(@inspection.QualityInspectionID)">
+                                        <i class="bi bi-clipboard-check"></i> Inspect
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Inspection Detail Modal -->
+<div class="modal fade" id="inspectionDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-clipboard-check text-primary me-2"></i>Inspection Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="inspectionDetailForm">
+                    <input type="hidden" id="detailInspectionId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Batch Code</label>
+                            <input type="text" class="form-control" id="detailBatchCode" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Product Name</label>
+                            <input type="text" class="form-control" id="detailProductName" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Result</label>
+                            <input type="text" class="form-control" id="detailResult" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Status</label>
+                            <input type="text" class="form-control" id="detailStatus" readonly>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Assigned Inspector</label>
+                            <select class="form-select" id="detailUserId">
+                                <option value="">Loading...</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="updateInspectionUser()">
+                    <i class="bi bi-check-lg me-1"></i>Save Changes
+                </button>
+                <button type="button" class="btn btn-success" onclick="openInspectModalFromDetail()">
+                    <i class="bi bi-clipboard-check me-1"></i>Inspect
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Perform Inspection Modal -->
+<div class="modal fade" id="performInspectionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-clipboard-check text-success me-2"></i>Perform Inspection
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="performInspectionForm">
+                    <input type="hidden" id="inspectInspectionId">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Test Types</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="taste" id="checkTaste">
+                            <label class="form-check-label" for="checkTaste">Taste</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="temperature" id="checkTemperature">
+                            <label class="form-check-label" for="checkTemperature">Temperature</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="bacteria test" id="checkBacteria">
+                            <label class="form-check-label" for="checkBacteria">Bacteria Test</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="smell" id="checkSmell">
+                            <label class="form-check-label" for="checkSmell">Smell</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="appearance" id="checkAppearance">
+                            <label class="form-check-label" for="checkAppearance">Appearance</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="acidity" id="checkAcidity">
+                            <label class="form-check-label" for="checkAcidity">Acidity</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Result</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="inspectionResult" value="pass" id="resultPass" required>
+                            <label class="form-check-label" for="resultPass">Pass</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="inspectionResult" value="fail" id="resultFail" required>
+                            <label class="form-check-label" for="resultFail">Fail</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="performInspection()">
+                    <i class="bi bi-check-lg me-1"></i>Done
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let qualityCheckers = [];
+        let currentInspectionId = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadQualityCheckers();
+        });
+
+        async function loadQualityCheckers() {
+            try {
+                const response = await fetch('@Url.Action("GetQualityCheckers", "QM")');
+                if (response.ok) {
+                    qualityCheckers = await response.json();
+                }
+            } catch (error) {
+                console.error('Failed to load quality checkers:', error);
+            }
+        }
+
+        // Click on row to view details
+        document.querySelectorAll('.inspection-row').forEach(row => {
+            row.addEventListener('click', function() {
+                const inspectionId = this.dataset.inspectionId;
+                viewInspectionDetail(inspectionId);
+            });
+        });
+
+        async function viewInspectionDetail(inspectionId) {
+            currentInspectionId = inspectionId;
+            try {
+                const response = await fetch(`@Url.Action("GetInspectionDetail", "QM")/${inspectionId}`);
+                if (response.ok) {
+                    const inspection = await response.json();
+                    displayInspectionDetail(inspection);
+                    new bootstrap.Modal(document.getElementById('inspectionDetailModal')).show();
+                }
+            } catch (error) {
+                console.error(error);
+                showToast('error', 'Failed to load inspection details');
+            }
+        }
+
+        function displayInspectionDetail(inspection) {
+            document.getElementById('detailInspectionId').value = inspection.qualityInspectionID;
+            document.getElementById('detailBatchCode').value = inspection.batchCode;
+            document.getElementById('detailProductName').value = inspection.productName;
+            document.getElementById('detailResult').value = inspection.result;
+            document.getElementById('detailStatus').value = inspection.status;
+
+            // Populate user dropdown
+            const userSelect = document.getElementById('detailUserId');
+            userSelect.innerHTML = '<option value="">Select inspector...</option>';
+            qualityCheckers.forEach(checker => {
+                const option = document.createElement('option');
+                option.value = checker.id;
+                option.textContent = checker.name;
+                if (checker.id === inspection.userId) {
+                    option.selected = true;
+                }
+                userSelect.appendChild(option);
+            });
+        }
+
+        async function updateInspectionUser() {
+            const inspectionId = document.getElementById('detailInspectionId').value;
+            const userId = document.getElementById('detailUserId').value;
+
+            if (!userId) {
+                showToast('error', 'Please select an inspector');
+                return;
+            }
+
+            try {
+                const response = await fetch('@Url.Action("UpdateInspectionUser", "QM")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({
+                        inspectionID: parseInt(inspectionId),
+                        userId: userId
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showToast('success', result.message);
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast('error', 'Failed to update inspector');
+                }
+            } catch (error) {
+                showToast('error', 'An error occurred');
+                console.error(error);
+            }
+        }
+
+        function openInspectModal(inspectionId) {
+            currentInspectionId = inspectionId;
+            document.getElementById('inspectInspectionId').value = inspectionId;
+            
+            // Reset form
+            document.getElementById('performInspectionForm').reset();
+            
+            new bootstrap.Modal(document.getElementById('performInspectionModal')).show();
+        }
+
+        function openInspectModalFromDetail() {
+            bootstrap.Modal.getInstance(document.getElementById('inspectionDetailModal')).hide();
+            openInspectModal(currentInspectionId);
+        }
+
+        async function performInspection() {
+            const form = document.getElementById('performInspectionForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            const inspectionId = document.getElementById('inspectInspectionId').value;
+            const testTypes = [];
+            
+            if (document.getElementById('checkTaste').checked) testTypes.push('taste');
+            if (document.getElementById('checkTemperature').checked) testTypes.push('temperature');
+            if (document.getElementById('checkBacteria').checked) testTypes.push('bacteria test');
+            if (document.getElementById('checkSmell').checked) testTypes.push('smell');
+            if (document.getElementById('checkAppearance').checked) testTypes.push('appearance');
+            if (document.getElementById('checkAcidity').checked) testTypes.push('acidity');
+
+            const result = document.querySelector('input[name="inspectionResult"]:checked')?.value;
+
+            if (!result) {
+                showToast('error', 'Please select a result (Pass or Fail)');
+                return;
+            }
+
+            try {
+                const response = await fetch('@Url.Action("PerformInspection", "QM")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({
+                        inspectionID: parseInt(inspectionId),
+                        testTypes: testTypes,
+                        result: result
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showToast('success', data.message);
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast('error', 'Failed to perform inspection');
+                }
+            } catch (error) {
+                showToast('error', 'An error occurred');
+                console.error(error);
+            }
+        }
+
+        function showToast(type, message) {
+            // Implement toast notification
+            alert(message);
+        }
+    </script>
+}

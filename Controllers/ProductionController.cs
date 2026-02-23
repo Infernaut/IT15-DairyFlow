@@ -189,6 +189,16 @@ namespace IT15_DairyFlow.Controllers
                 return BadRequest("Selected equipment is not available.");
             }
 
+            // Store original lifecycle status before updating
+            var isProductUnderReview = product.LifecycleStatus == "underreview";
+
+            // Check if product is under review and status is Completed
+            int batchQuantity = model.Quantity;
+            if (isProductUnderReview && model.Status == "Completed")
+            {
+                batchQuantity = 10; // Force quantity to 10 for products under review
+            }
+
             var batch = new ProductionBatch
             {
                 CompanyID = companyId,
@@ -198,7 +208,8 @@ namespace IT15_DairyFlow.Controllers
                 BatchCode = GenerateBatchCode(),
                 StartDate = model.StartDate,
                 EndDate = model.EndDate,
-                Status = model.Status
+                Status = model.Status,
+                Quantity = batchQuantity
             };
 
             product.LifecycleStatus = "In Production";
@@ -208,6 +219,23 @@ namespace IT15_DairyFlow.Controllers
             _context.Products.Update(product);
             _context.Equipments.Update(equipment);
             await _context.SaveChangesAsync();
+
+            // Auto-create quality inspection for completed batches with products under review
+            if (model.Status == "Completed" && isProductUnderReview)
+            {
+                var qualityInspection = new QualityInspection
+                {
+                    CompanyID = companyId,
+                    ProductionBatchID = batch.ProductionBatchID,
+                    UserId = user.Id,
+                    Type = string.Empty,
+                    Result = "N/A",
+                    Status = "ongoing"
+                };
+
+                _context.QualityInspection.Add(qualityInspection);
+                await _context.SaveChangesAsync();
+            }
 
             return Ok(new { success = true, message = "Production batch created successfully." });
         }

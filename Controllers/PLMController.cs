@@ -147,7 +147,7 @@ namespace IT15_DairyFlow.Controllers
             {
                 ProductName = model.ProductName,
                 Type = model.Type,
-                LifecycleStatus = model.LifecycleStatus ?? "Active",
+                LifecycleStatus = "underreview",
                 CompanyID = companyId,
                 UserID = user.Id
             };

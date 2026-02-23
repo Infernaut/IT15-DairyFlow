@@ -44,10 +44,6 @@ namespace IT15_DairyFlow.Models.PLM
         [Display(Name = "Type")]
         [StringLength(100)]
         public string? Type { get; set; }
-        
-        [Display(Name = "Lifecycle Status")]
-        [StringLength(50)]
-        public string? LifecycleStatus { get; set; } = "Active";
     }
 
     public class EditProductViewModel

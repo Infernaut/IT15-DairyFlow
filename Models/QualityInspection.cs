@@ -14,11 +14,19 @@ namespace IT15_DairyFlow.Models
         [Required]
         public int ProductionBatchID { get; set; }
 
-        [MaxLength(100)]
+        [Required]
+        [MaxLength(450)]
+        public string UserId { get; set; } = string.Empty;
+
+        [MaxLength(500)]
         public string? Type { get; set; }
 
         [MaxLength(100)]
         public string? Result { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string Status { get; set; } = "ongoing";
 
         // Navigation properties
         [ForeignKey("CompanyID")]
@@ -26,5 +34,8 @@ namespace IT15_DairyFlow.Models
 
         [ForeignKey("ProductionBatchID")]
         public virtual ProductionBatch ProductionBatch { get; set; } = null!;
+
+        [ForeignKey("UserId")]
+        public virtual ApplicationUser User { get; set; } = null!;
     }
 }

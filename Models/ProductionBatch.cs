@@ -30,9 +30,14 @@ namespace IT15_DairyFlow.Models
 
         public DateTime? EndDate { get; set; }
 
+        [Required]
+        [Column("quantity")]
+        public int Quantity { get; set; } = 0;
+
+        [Required]
         [MaxLength(50)]
         [Column("status")]
-        public string? Status { get; set; }
+        public string Status { get; set; } = string.Empty;
 
         // Navigation properties
         [ForeignKey("CompanyID")]
@@ -48,6 +53,6 @@ namespace IT15_DairyFlow.Models
         public virtual ApplicationUser User { get; set; } = null!;
 
         public virtual ICollection<ProductionCost> ProductionCosts { get; set; } = new List<ProductionCost>();
-        public virtual ICollection<QualityInspection> QualityInspections { get; set; } = new List<QualityInspection>();
+        public virtual ICollection<QualityInspection> QualityInspection { get; set; } = new List<QualityInspection>();
     }
 }
