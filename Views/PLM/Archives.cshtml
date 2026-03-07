@@ -51,7 +51,7 @@
                                         }
                                         else
                                         {
-                                            <span class="text-muted">—</span>
+                                            <span class="text-muted">â€”</span>
                                         }
                                     </td>
                                     <td>
@@ -138,8 +138,8 @@
                         <div class="alert alert-light border mb-0">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <small class="text-muted d-block">Product ID</small>
-                                    <strong>#${product.productID}</strong>
+                                    <small class="text-muted d-block">Status</small>
+                                    <span class="badge bg-secondary">${product.lifecycleStatus}</span>
                                 </div>
                             </div>
                         </div>
@@ -162,7 +162,7 @@
                     if (response.ok) {
                         const result = await response.json();
                         showToast('success', result.message);
-                        setTimeout(() => window.location.reload(), 1000);
+                        setTimeout(() => window.location.reload(), 300);
                     } else {
                         showToast('error', 'Failed to unarchive product');
                     }

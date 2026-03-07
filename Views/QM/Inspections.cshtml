@@ -17,7 +17,7 @@
             <table class="table table-hover align-middle mb-0" id="inspectionsTable">
                 <thead class="table-light">
                     <tr>
-                        <th class="px-4">Batch ID</th>
+                        <th class="px-4">Batch Code</th>
                         <th>Product Name</th>
                         <th>Result</th>
                         <th>Status</th>
@@ -309,7 +309,7 @@
                 if (response.ok) {
                     const result = await response.json();
                     showToast('success', result.message);
-                    setTimeout(() => window.location.reload(), 1000);
+                    setTimeout(() => window.location.reload(), 300);
                 } else {
                     showToast('error', 'Failed to update inspector');
                 }
@@ -375,7 +375,7 @@
                 if (response.ok) {
                     const data = await response.json();
                     showToast('success', data.message);
-                    setTimeout(() => window.location.reload(), 1000);
+                    setTimeout(() => window.location.reload(), 300);
                 } else {
                     showToast('error', 'Failed to perform inspection');
                 }

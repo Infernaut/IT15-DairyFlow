@@ -36,6 +36,14 @@
             overflow: hidden;
         }
 
+        /* On mobile, let the body scroll naturally */
+        @@media (max-width: 767.98px) {
+            body {
+                overflow: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+
         /* Navbar Styling */
         .navbar-custom {
             height: 70px;
@@ -119,6 +127,13 @@
     </style>
 </head>
 <body class="@(SignInManager.IsSignedIn(User) ? "has-sidebar" : "")">
+    @if (SignInManager.IsSignedIn(User))
+    {
+        <button class="mobile-nav-toggle" id="mobileNavToggle" aria-label="Toggle navigation">
+            <i class="bi bi-list" id="mobileNavIcon"></i>
+        </button>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    }
     <header>
         <nav class="navbar navbar-expand-sm navbar-light bg-white navbar-custom shadow-sm">
             <div class="container-fluid">
@@ -210,8 +225,8 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
-    <script src="~/js/signalr-client.js" asp-append-version="true"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js" defer></script>
+    <script src="~/js/signalr-client.js" asp-append-version="true" defer></script>
     <script>
         // Global confirm modal helper
         function showConfirmModal(message, onConfirm, title) {
@@ -254,6 +269,48 @@
             console.error('Unhandled promise rejection:', event.reason);
             showGlobalToast('error', 'An unexpected error occurred. Please try again.');
         });
+
+        // ─── Debounce utility (available globally) ───
+        function debounce(fn, delay) {
+            let timer;
+            return function (...args) {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn.apply(this, args), delay);
+            };
+        }
+
+        // ─── Mobile sidebar toggle ───
+        (function () {
+            const toggle = document.getElementById('mobileNavToggle');
+            const overlay = document.getElementById('sidebarOverlay');
+            const sidebar = document.querySelector('.sidebar');
+            const icon = document.getElementById('mobileNavIcon');
+            if (!toggle || !sidebar) return;
+
+            function openSidebar() {
+                sidebar.classList.add('mobile-open');
+                overlay?.classList.add('show');
+                if (icon) { icon.className = 'bi bi-x-lg'; }
+            }
+
+            function closeSidebar() {
+                sidebar.classList.remove('mobile-open');
+                overlay?.classList.remove('show');
+                if (icon) { icon.className = 'bi bi-list'; }
+            }
+
+            toggle.addEventListener('click', function () {
+                sidebar.classList.contains('mobile-open') ? closeSidebar() : openSidebar();
+            });
+            overlay?.addEventListener('click', closeSidebar);
+
+            // Close sidebar on nav link click (mobile)
+            sidebar.querySelectorAll('a[href]').forEach(function (link) {
+                link.addEventListener('click', function () {
+                    if (window.innerWidth < 768) closeSidebar();
+                });
+            });
+        })();
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

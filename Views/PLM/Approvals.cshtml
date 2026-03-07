@@ -191,7 +191,8 @@
 @section Scripts {
     <script>
         // ─── Search and Filter ────────────────────────────────
-        document.getElementById('searchInput').addEventListener('input', filterTable);
+        const debouncedFilter = debounce(filterTable, 250);
+        document.getElementById('searchInput').addEventListener('input', debouncedFilter);
         document.getElementById('statusFilter').addEventListener('change', filterTable);
 
         function filterTable() {

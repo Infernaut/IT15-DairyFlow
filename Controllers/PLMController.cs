@@ -34,7 +34,6 @@ namespace IT15_DairyFlow.Controllers
             var companyId = GetUserCompanyId(user);
 
             var query = _context.Product
-                .Include(p => p.User)
                 .Where(p => p.CompanyID == companyId);
 
             // Filter out archived products unless showArchived is true
@@ -54,6 +53,7 @@ namespace IT15_DairyFlow.Controllers
                     CompanyID = p.CompanyID,
                     UserEmail = p.User.Email ?? string.Empty
                 })
+                .AsNoTracking()
                 .ToListAsync();
 
             ViewBag.ShowArchived = showArchived;
@@ -73,7 +73,6 @@ namespace IT15_DairyFlow.Controllers
             var companyId = GetUserCompanyId(user);
 
             var products = await _context.Product
-                .Include(p => p.User)
                 .Where(p => p.CompanyID == companyId &&
                     (p.LifecycleStatus == "Archived" || p.LifecycleStatus == "Archive"))
                 .OrderBy(p => p.ProductName)
@@ -86,6 +85,7 @@ namespace IT15_DairyFlow.Controllers
                     CompanyID = p.CompanyID,
                     UserEmail = p.User.Email ?? string.Empty
                 })
+                .AsNoTracking()
                 .ToListAsync();
 
             return View(products);
@@ -95,32 +95,25 @@ namespace IT15_DairyFlow.Controllers
         [HttpGet]
         public async Task<IActionResult> GetProductDetail(int id)
         {
-            var product = await _context.Product
-                .Include(p => p.User)
-                .FirstOrDefaultAsync(p => p.ProductID == id);
-
-            if (product == null)
-            {
-                return NotFound();
-            }
-
-            // Check if product belongs to user's company
             var companyId = GetUserCompanyId(await _userManager.GetUserAsync(User));
-            if (product.CompanyID != companyId)
-            {
-                return Forbid();
-            }
 
-            var viewModel = new ProductDetailViewModel
-            {
-                ProductID = product.ProductID,
-                ProductName = product.ProductName ?? string.Empty,
-                Type = product.Type,
-                LifecycleStatus = product.LifecycleStatus,
-                CompanyID = product.CompanyID,
-                UserID = product.UserID,
-                UserEmail = product.User.Email ?? string.Empty
-            };
+            var viewModel = await _context.Product
+                .Where(p => p.ProductID == id && p.CompanyID == companyId)
+                .Select(p => new ProductDetailViewModel
+                {
+                    ProductID = p.ProductID,
+                    ProductName = p.ProductName ?? string.Empty,
+                    Type = p.Type,
+                    LifecycleStatus = p.LifecycleStatus,
+                    CompanyID = p.CompanyID,
+                    UserID = p.UserID,
+                    UserEmail = p.User.Email ?? string.Empty
+                })
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
+            if (viewModel == null)
+                return NotFound();
 
             return Json(viewModel);
         }
@@ -253,6 +246,7 @@ namespace IT15_DairyFlow.Controllers
             var companyId = GetUserCompanyId(await _userManager.GetUserAsync(User));
 
             var product = await _context.Product
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.ProductID == productId && p.CompanyID == companyId);
 
             if (product == null)
@@ -261,7 +255,6 @@ namespace IT15_DairyFlow.Controllers
             }
 
             var ingredients = await _context.ProductFormulation
-                .Include(f => f.RawMaterial)
                 .Where(f => f.ProductID == productId && f.CompanyID == companyId && f.IsActive)
                 .OrderBy(f => f.ProcessOrder ?? int.MaxValue)
                 .Select(f => new FormulationIngredientViewModel
@@ -275,6 +268,7 @@ namespace IT15_DairyFlow.Controllers
                     ProcessInstructions = f.ProcessInstructions,
                     UnitCost = f.RawMaterial.UnitCost ?? 0
                 })
+                .AsNoTracking()
                 .ToListAsync();
 
             var availableMaterials = await _context.RawMaterial
@@ -286,6 +280,7 @@ namespace IT15_DairyFlow.Controllers
                     Name = m.MaterialName ?? "Unknown",
                     UnitCost = m.UnitCost ?? 0
                 })
+                .AsNoTracking()
                 .ToListAsync();
 
             var viewModel = new FormulationPageViewModel
@@ -452,26 +447,24 @@ namespace IT15_DairyFlow.Controllers
         {
             var companyId = GetUserCompanyId(await _userManager.GetUserAsync(User));
 
-            var formulation = await _context.ProductFormulation
-                .Include(f => f.RawMaterial)
-                .FirstOrDefaultAsync(f => f.FormulationID == id && f.CompanyID == companyId);
+            var viewModel = await _context.ProductFormulation
+                .Where(f => f.FormulationID == id && f.CompanyID == companyId)
+                .Select(f => new FormulationIngredientViewModel
+                {
+                    FormulationID = f.FormulationID,
+                    RawMaterialID = f.RawMaterialID,
+                    MaterialName = f.RawMaterial.MaterialName ?? "Unknown",
+                    Quantity = f.Quantity,
+                    Unit = f.Unit ?? "kg",
+                    ProcessOrder = f.ProcessOrder,
+                    ProcessInstructions = f.ProcessInstructions,
+                    UnitCost = f.RawMaterial.UnitCost ?? 0
+                })
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
 
-            if (formulation == null)
-            {
+            if (viewModel == null)
                 return NotFound();
-            }
-
-            var viewModel = new FormulationIngredientViewModel
-            {
-                FormulationID = formulation.FormulationID,
-                RawMaterialID = formulation.RawMaterialID,
-                MaterialName = formulation.RawMaterial?.MaterialName ?? "Unknown",
-                Quantity = formulation.Quantity,
-                Unit = formulation.Unit ?? "kg",
-                ProcessOrder = formulation.ProcessOrder,
-                ProcessInstructions = formulation.ProcessInstructions,
-                UnitCost = formulation.RawMaterial?.UnitCost ?? 0
-            };
 
             return Json(viewModel);
         }
@@ -483,7 +476,6 @@ namespace IT15_DairyFlow.Controllers
             var companyId = GetUserCompanyId(await _userManager.GetUserAsync(User));
 
             var ingredients = await _context.ProductFormulation
-                .Include(f => f.RawMaterial)
                 .Where(f => f.ProductID == productId && f.CompanyID == companyId && f.IsActive)
                 .Select(f => new BatchMaterialRequirementViewModel
                 {
@@ -493,6 +485,7 @@ namespace IT15_DairyFlow.Controllers
                     UnitCost = f.RawMaterial.UnitCost ?? 0,
                     TotalCost = (f.Quantity * quantity) * (f.RawMaterial.UnitCost ?? 0)
                 })
+                .AsNoTracking()
                 .ToListAsync();
 
             return Json(new 
@@ -515,8 +508,9 @@ namespace IT15_DairyFlow.Controllers
             var companyId = GetUserCompanyId(user);
 
             var products = await _context.Product
-                .Include(p => p.User)
                 .Where(p => p.CompanyID == companyId && p.LifecycleStatus != "Archived")
+                // Only show products that have at least one active formulation ingredient
+                .Where(p => _context.ProductFormulation.Any(f => f.ProductID == p.ProductID && f.CompanyID == companyId && f.IsActive))
                 .OrderByDescending(p => p.ProductID)
                 .Select(p => new ProductApprovalListViewModel
                 {
@@ -527,6 +521,7 @@ namespace IT15_DairyFlow.Controllers
                     CreatedByUserName = p.User.UserName ?? p.User.Email ?? "Unknown",
                     CreatedByEmail = p.User.Email ?? string.Empty
                 })
+                .AsNoTracking()
                 .ToListAsync();
 
             return View(products);
@@ -544,12 +539,12 @@ namespace IT15_DairyFlow.Controllers
 
             var product = await _context.Product
                 .Include(p => p.User)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.ProductID == id && p.CompanyID == companyId);
 
             if (product == null) return NotFound();
 
             var ingredients = await _context.ProductFormulation
-                .Include(f => f.RawMaterial)
                 .Where(f => f.ProductID == id && f.CompanyID == companyId && f.IsActive)
                 .OrderBy(f => f.ProcessOrder ?? int.MaxValue)
                 .Select(f => new FormulationIngredientViewModel
@@ -563,6 +558,7 @@ namespace IT15_DairyFlow.Controllers
                     ProcessInstructions = f.ProcessInstructions,
                     UnitCost = f.RawMaterial.UnitCost ?? 0
                 })
+                .AsNoTracking()
                 .ToListAsync();
 
             var viewModel = new ProductApprovalDetailViewModel

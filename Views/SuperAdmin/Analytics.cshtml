@@ -9,7 +9,7 @@
 <div class="container-fluid p-4">
     <div class="mb-4">
         <h2 class="mb-1 fw-bold">Usage Analytics</h2>
-        <p class="text-muted mb-0">Per-company adoption, production volume, and financial comparison.</p>
+        <p class="text-muted mb-0">Platform adoption and subscription plan usage across companies.</p>
     </div>
 
     <!-- Charts -->
@@ -27,29 +27,16 @@
         <div class="col-lg-6">
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-transparent border-0 pb-0">
-                    <h6 class="mb-0 fw-semibold"><i class="bi bi-box-seam me-2 text-success"></i>Production Batches per Company</h6>
+                    <h6 class="mb-0 fw-semibold"><i class="bi bi-pie-chart me-2 text-success"></i>Subscription Plan Distribution</h6>
                 </div>
-                <div class="card-body">
-                    <canvas id="batchChart" height="280"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4 mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-transparent border-0 pb-0">
-                    <h6 class="mb-0 fw-semibold"><i class="bi bi-currency-dollar me-2 text-danger"></i>Revenue by Company</h6>
-                </div>
-                <div class="card-body">
-                    <canvas id="revenueChart" height="200"></canvas>
+                <div class="card-body d-flex align-items-center justify-content-center">
+                    <canvas id="planChart" height="280"></canvas>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Data Table -->
+    <!-- Data Table (only non-private info) -->
     <div class="card shadow-sm border-0">
         <div class="card-header bg-transparent border-0 pb-0">
             <h6 class="mb-0 fw-semibold"><i class="bi bi-table me-2 text-primary"></i>Company Breakdown</h6>
@@ -61,26 +48,29 @@
                         <tr>
                             <th class="px-4">Company</th>
                             <th class="text-center">Users</th>
-                            <th class="text-center">Products</th>
-                            <th class="text-center">Batches</th>
-                            <th class="text-center">Inspections</th>
-                            <th class="text-center">Inventory</th>
-                            <th class="text-end">Revenue</th>
-                            <th class="text-end px-4">Expenses</th>
+                            <th>Subscription Plan</th>
+                            <th class="text-end px-4">Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var c in Model.CompanyStats)
                         {
+                            var statusBadge = c.Status switch
+                            {
+                                "Active" => "bg-success",
+                                "Trial" => "bg-warning text-dark",
+                                "Inactive" => "bg-secondary",
+                                _ => "bg-light text-dark"
+                            };
                             <tr>
                                 <td class="px-4 fw-semibold">@c.CompanyName</td>
-                                <td class="text-center">@c.UserCount</td>
-                                <td class="text-center">@c.ProductCount</td>
-                                <td class="text-center">@c.BatchCount</td>
-                                <td class="text-center">@c.InspectionCount</td>
-                                <td class="text-center">@c.InventoryCount</td>
-                                <td class="text-end text-success">₱@c.TotalRevenue.ToString("N0")</td>
-                                <td class="text-end px-4 text-danger">₱@c.TotalExpenses.ToString("N0")</td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary-subtle text-primary">@c.UserCount</span>
+                                </td>
+                                <td>@c.SubscriptionPlan</td>
+                                <td class="text-end px-4">
+                                    <span class="badge @statusBadge">@c.Status</span>
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -96,6 +86,7 @@
         const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CompanyLabels));
         const colors = ['#0d6efd', '#198754', '#dc3545', '#ffc107', '#0dcaf0', '#6f42c1', '#fd7e14', '#20c997'];
 
+        // Users per Company
         new Chart(document.getElementById('userChart'), {
             type: 'bar',
             data: {
@@ -111,34 +102,21 @@
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
         });
 
-        new Chart(document.getElementById('batchChart'), {
-            type: 'bar',
+        // Subscription Plan Distribution
+        const plans = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CompanyStats.Select(c => c.SubscriptionPlan).ToList()));
+        const planCounts = {};
+        plans.forEach(p => { planCounts[p] = (planCounts[p] || 0) + 1; });
+        new Chart(document.getElementById('planChart'), {
+            type: 'doughnut',
             data: {
-                labels: labels,
+                labels: Object.keys(planCounts),
                 datasets: [{
-                    label: 'Batches',
-                    data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CompanyBatchCounts)),
-                    backgroundColor: colors.map(c => c + 'B3'),
-                    borderColor: colors,
-                    borderWidth: 1, borderRadius: 6
+                    data: Object.values(planCounts),
+                    backgroundColor: colors.slice(0, Object.keys(planCounts).length),
+                    borderWidth: 0
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
-        });
-
-        new Chart(document.getElementById('revenueChart'), {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Revenue (₱)',
-                    data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CompanyRevenues)),
-                    backgroundColor: 'rgba(25, 135, 84, 0.7)',
-                    borderColor: '#198754',
-                    borderWidth: 1, borderRadius: 6
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
     </script>
 }

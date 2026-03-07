@@ -97,7 +97,7 @@
                                         }
                                         else
                                         {
-                                            <span class="text-muted">—</span>
+                                            <span class="text-muted">â€”</span>
                                         }
                                     </td>
                                     <td>
@@ -233,7 +233,8 @@
         }
 
         // Search functionality
-        document.getElementById('searchInput').addEventListener('keyup', filterTable);
+        const debouncedFilter = debounce(filterTable, 250);
+        document.getElementById('searchInput').addEventListener('keyup', debouncedFilter);
         document.getElementById('typeFilter').addEventListener('change', filterTable);
         document.getElementById('statusFilter').addEventListener('change', filterTable);
 
@@ -289,7 +290,7 @@
                 if (response.ok) {
                     const result = await response.json();
                     showToast('success', result.message);
-                    setTimeout(() => window.location.reload(), 1000);
+                    setTimeout(() => window.location.reload(), 300);
                 } else {
                     showToast('error', 'Failed to create product');
                 }
@@ -374,10 +375,6 @@
                         <div class="alert alert-light border mb-0">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <small class="text-muted d-block">Product ID</small>
-                                    <strong>#${product.productID}</strong>
-                                </div>
-                                <div>
                                     <small class="text-muted d-block">Status</small>
                                     <span class="badge ${statusBadgeClass}">${product.lifecycleStatus}</span>
                                 </div>
@@ -429,7 +426,7 @@
                 if (response.ok) {
                     const result = await response.json();
                     showToast('success', result.message);
-                    setTimeout(() => window.location.reload(), 1000);
+                    setTimeout(() => window.location.reload(), 300);
                 } else {
                     showToast('error', 'Failed to update product');
                 }
@@ -452,7 +449,7 @@
                     if (response.ok) {
                         const result = await response.json();
                         showToast('success', result.message);
-                        setTimeout(() => window.location.reload(), 1000);
+                        setTimeout(() => window.location.reload(), 300);
                     } else {
                         showToast('error', 'Failed to archive product');
                     }

@@ -168,7 +168,7 @@
 @section Scripts {
     <script>
         // Search functionality
-        document.getElementById('searchInput').addEventListener('keyup', filterTable);
+        document.getElementById('searchInput').addEventListener('keyup', debounce(filterTable, 250));
         document.getElementById('resultFilter').addEventListener('change', filterTable);
 
         function filterTable() {

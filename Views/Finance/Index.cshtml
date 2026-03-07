@@ -32,7 +32,7 @@
                         </div>
                         <div>
                             <h6 class="text-muted mb-1 small text-uppercase">Total Revenue</h6>
-                            <h3 class="mb-0 fw-bold text-success">₱@Model.Summary.TotalRevenue.ToString("N2")</h3>
+                            <h3 class="mb-0 fw-bold text-success">â‚±@Model.Summary.TotalRevenue.ToString("N2")</h3>
                         </div>
                     </div>
                 </div>
@@ -47,7 +47,7 @@
                         </div>
                         <div>
                             <h6 class="text-muted mb-1 small text-uppercase">Total Expenses</h6>
-                            <h3 class="mb-0 fw-bold text-danger">₱@Model.Summary.TotalExpenses.ToString("N2")</h3>
+                            <h3 class="mb-0 fw-bold text-danger">â‚±@Model.Summary.TotalExpenses.ToString("N2")</h3>
                         </div>
                     </div>
                 </div>
@@ -63,7 +63,7 @@
                         <div>
                             <h6 class="text-muted mb-1 small text-uppercase">Net Income</h6>
                             <h3 class="mb-0 fw-bold @(Model.Summary.NetIncome >= 0 ? "text-success" : "text-danger")">
-                                ₱@Model.Summary.NetIncome.ToString("N2")
+                                â‚±@Model.Summary.NetIncome.ToString("N2")
                             </h3>
                         </div>
                     </div>
@@ -79,7 +79,7 @@
                         </div>
                         <div>
                             <h6 class="text-muted mb-1 small text-uppercase">Pending Invoices</h6>
-                            <h3 class="mb-0 fw-bold text-warning">₱@Model.Summary.PendingInvoices.ToString("N2")</h3>
+                            <h3 class="mb-0 fw-bold text-warning">â‚±@Model.Summary.PendingInvoices.ToString("N2")</h3>
                         </div>
                     </div>
                 </div>
@@ -120,7 +120,7 @@
                                         <tr class="expense-row" data-expense-id="@expense.ExpenseID" style="cursor: pointer;">
                                             <td class="px-4">@(expense.ExpenseDate?.ToString("MMM dd, yyyy") ?? "N/A")</td>
                                             <td>@expense.SupplierName</td>
-                                            <td class="fw-semibold text-danger">₱@expense.Amount.ToString("N2")</td>
+                                            <td class="fw-semibold text-danger">â‚±@expense.Amount.ToString("N2")</td>
                                             <td class="text-end px-4">
                                                 <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteExpense(@expense.ExpenseID)">
                                                     <i class="bi bi-trash"></i>
@@ -180,7 +180,7 @@
                                         };
                                         <tr>
                                             <td class="px-4">@(invoice.DueDate?.ToString("MMM dd, yyyy") ?? "N/A")</td>
-                                            <td class="fw-semibold">₱@invoice.Amount.ToString("N2")</td>
+                                            <td class="fw-semibold">â‚±@invoice.Amount.ToString("N2")</td>
                                             <td>
                                                 <span class="badge @statusClass">@invoice.PaymentStatus</span>
                                             </td>
@@ -243,7 +243,7 @@
                                             <td>
                                                 @(cost.StartDate?.ToString("MMM dd") ?? "N/A") - @(cost.EndDate?.ToString("MMM dd, yyyy") ?? "N/A")
                                             </td>
-                                            <td class="fw-semibold text-info">₱@cost.TotalCost.ToString("N2")</td>
+                                            <td class="fw-semibold text-info">â‚±@cost.TotalCost.ToString("N2")</td>
                                         </tr>
                                     }
                                 </tbody>
@@ -278,7 +278,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Amount <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <span class="input-group-text">₱</span>
+                            <span class="input-group-text">â‚±</span>
                             <input type="number" class="form-control" id="expenseAmount" step="0.01" min="0.01" required>
                         </div>
                     </div>
@@ -323,7 +323,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Amount <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <span class="input-group-text">₱</span>
+                            <span class="input-group-text">â‚±</span>
                             <input type="number" class="form-control" id="invoiceAmount" step="0.01" min="0.01" required>
                         </div>
                     </div>
@@ -399,7 +399,7 @@
 
                 if (response.ok) {
                     showToast('success', 'Expense recorded successfully');
-                    setTimeout(() => window.location.reload(), 1000);
+                    setTimeout(() => window.location.reload(), 300);
                 } else {
                     showToast('error', 'Failed to record expense');
                 }
@@ -414,7 +414,7 @@
                 const response = await fetch(`@Url.Action("GetExpenseDetail", "Finance")/${id}`);
                 if (response.ok) {
                     const data = await response.json();
-                    showGlobalToast('success', `Expense: ₱${data.amount.toFixed(2)} | Date: ${data.expenseDate || 'N/A'} | Supplier: ${data.supplierName}`);
+                    showGlobalToast('success', `Expense: â‚±${data.amount.toFixed(2)} | Date: ${data.expenseDate || 'N/A'} | Supplier: ${data.supplierName}`);
                 }
             } catch (error) {
                 showToast('error', 'Failed to load expense details');
@@ -433,7 +433,7 @@
 
                     if (response.ok) {
                         showToast('success', 'Expense deleted');
-                        setTimeout(() => window.location.reload(), 1000);
+                        setTimeout(() => window.location.reload(), 300);
                     } else {
                         showToast('error', 'Failed to delete expense');
                     }
@@ -470,7 +470,7 @@
 
                 if (response.ok) {
                     showToast('success', 'Invoice created');
-                    setTimeout(() => window.location.reload(), 1000);
+                    setTimeout(() => window.location.reload(), 300);
                 } else {
                     showToast('error', 'Failed to create invoice');
                 }
@@ -491,7 +491,7 @@
 
                     if (response.ok) {
                         showToast('success', 'Invoice marked as paid');
-                        setTimeout(() => window.location.reload(), 1000);
+                        setTimeout(() => window.location.reload(), 300);
                     } else {
                         showToast('error', 'Failed to update invoice');
                     }
@@ -513,7 +513,7 @@
 
                     if (response.ok) {
                         showToast('success', 'Invoice deleted');
-                        setTimeout(() => window.location.reload(), 1000);
+                        setTimeout(() => window.location.reload(), 300);
                     } else {
                         showToast('error', 'Failed to delete invoice');
                     }

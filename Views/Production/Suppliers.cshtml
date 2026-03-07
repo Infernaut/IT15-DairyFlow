@@ -191,7 +191,7 @@
                 if (response.ok) {
                     const result = await response.json();
                     showToast('success', result.message);
-                    setTimeout(() => window.location.reload(), 1000);
+                    setTimeout(() => window.location.reload(), 300);
                 } else {
                     const errorText = await response.text();
                     showToast('error', errorText || 'Failed to create supplier');
@@ -244,7 +244,7 @@
                 if (response.ok) {
                     const result = await response.json();
                     showToast('success', result.message);
-                    setTimeout(() => window.location.reload(), 1000);
+                    setTimeout(() => window.location.reload(), 300);
                 } else {
                     const errorText = await response.text();
                     showToast('error', errorText || 'Failed to update supplier');
@@ -268,7 +268,7 @@
                     if (response.ok) {
                         const result = await response.json();
                         showToast('success', result.message);
-                        setTimeout(() => window.location.reload(), 1000);
+                        setTimeout(() => window.location.reload(), 300);
                     } else {
                         showToast('error', 'Failed to toggle status');
                     }
@@ -292,7 +292,7 @@
                     if (response.ok) {
                         const result = await response.json();
                         showToast('success', result.message);
-                        setTimeout(() => window.location.reload(), 1000);
+                        setTimeout(() => window.location.reload(), 300);
                     } else {
                         const errorText = await response.text();
                         showToast('error', errorText || 'Failed to delete supplier');

@@ -576,7 +576,7 @@
                 if (response.ok) {
                     const result = await response.json();
                     showGlobalToast('success', result.message);
-                    setTimeout(() => window.location.reload(), 1000);
+                    setTimeout(() => window.location.reload(), 300);
                 } else {
                     const errorText = await response.text();
                     showGlobalToast('error', errorText || 'Failed to create batch');
