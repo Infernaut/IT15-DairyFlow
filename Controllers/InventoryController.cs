@@ -1,26 +1,30 @@
 using IT15_DairyFlow.Data;
+using IT15_DairyFlow.Hubs;
 using IT15_DairyFlow.Models;
 using IT15_DairyFlow.Models.InventoryVM;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
 namespace IT15_DairyFlow.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin,ProductManager,QualityChecker")]
     public class InventoryController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IHubContext<DairyFlowHub> _hub;
         private const int LowStockThreshold = 10;
         private const int ExpiringSoonDays = 7;
 
-        public InventoryController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public InventoryController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IHubContext<DairyFlowHub> hub)
         {
             _context = context;
             _userManager = userManager;
+            _hub = hub;
         }
 
         private async Task<int> GetCompanyIdAsync()
@@ -244,6 +248,15 @@ namespace IT15_DairyFlow.Controllers
             _context.Inventory.Update(inventory);
             await _context.SaveChangesAsync();
 
+            // SignalR: notify about inventory adjustment
+            var user = await _userManager.GetUserAsync(User);
+            await _hub.NotifyInventoryUpdated(companyId, model.AdjustmentType, $"Item #{model.InventoryID}", user?.UserName ?? "");
+            if (newQuantity < LowStockThreshold)
+            {
+                await _hub.NotifyLowStock(companyId, $"Item #{model.InventoryID}", newQuantity, LowStockThreshold);
+            }
+            await _hub.NotifyDashboardRefresh(companyId, "Inventory");
+
             return Ok(new { 
                 success = true, 
                 message = $"Inventory adjusted successfully. New quantity: {newQuantity}",
@@ -335,6 +348,7 @@ namespace IT15_DairyFlow.Controllers
 
         // GET: Inventory/RawMaterials
         [HttpGet]
+        [Authorize(Roles = "Admin,ProductManager")]
         public async Task<IActionResult> RawMaterials()
         {
             var companyId = await GetCompanyIdAsync();
@@ -406,6 +420,7 @@ namespace IT15_DairyFlow.Controllers
 
         // GET: Inventory/GetRawMaterialDetail/{id}
         [HttpGet]
+        [Authorize(Roles = "Admin,ProductManager")]
         public async Task<IActionResult> GetRawMaterialDetail(int id)
         {
             var companyId = await GetCompanyIdAsync();
@@ -438,6 +453,7 @@ namespace IT15_DairyFlow.Controllers
         // POST: Inventory/CreateRawMaterial
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,ProductManager")]
         public async Task<IActionResult> CreateRawMaterial([FromBody] CreateRawMaterialViewModel model)
         {
             if (!ModelState.IsValid)
@@ -494,6 +510,7 @@ namespace IT15_DairyFlow.Controllers
         // POST: Inventory/UpdateRawMaterial
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,ProductManager")]
         public async Task<IActionResult> UpdateRawMaterial([FromBody] UpdateRawMaterialViewModel model)
         {
             if (!ModelState.IsValid)
@@ -611,6 +628,7 @@ namespace IT15_DairyFlow.Controllers
         // POST: Inventory/DeleteRawMaterial/{id}
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,ProductManager")]
         public async Task<IActionResult> DeleteRawMaterial(int id)
         {
             var companyId = await GetCompanyIdAsync();

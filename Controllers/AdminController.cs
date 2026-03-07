@@ -692,6 +692,54 @@ namespace IT15_DairyFlow.Controllers
             return user.LockoutEnd <= DateTimeOffset.UtcNow;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> Settings()
+        {
+            var currentUserId = _userManager.GetUserId(User) ?? string.Empty;
+            var currentUser = await _userManager.FindByIdAsync(currentUserId);
+
+            if (currentUser?.CompanyID == null)
+                return BadRequest("User does not have a company assigned.");
+
+            var company = await _dbContext.Company.FindAsync(currentUser.CompanyID.Value);
+            if (company == null)
+                return NotFound();
+
+            var model = new CompanySettingsViewModel
+            {
+                CompanyID = company.CompanyID,
+                CompanyName = company.CompanyName
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Settings(CompanySettingsViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var currentUserId = _userManager.GetUserId(User) ?? string.Empty;
+            var currentUser = await _userManager.FindByIdAsync(currentUserId);
+
+            if (currentUser?.CompanyID == null)
+                return BadRequest("User does not have a company assigned.");
+
+            var company = await _dbContext.Company.FindAsync(currentUser.CompanyID.Value);
+            if (company == null)
+                return NotFound();
+
+            company.CompanyName = model.CompanyName;
+            await _dbContext.SaveChangesAsync();
+
+            await LogAuditAsync($"Updated company name to: {model.CompanyName}");
+            TempData["SuccessMessage"] = "Company settings updated successfully.";
+
+            return RedirectToAction(nameof(Settings));
+        }
+
         private async Task LogAuditAsync(string action)
         {
             var currentUserId = _userManager.GetUserId(User) ?? string.Empty;

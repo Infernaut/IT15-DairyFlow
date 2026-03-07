@@ -1,9 +1,15 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @using IT15_DairyFlow.Models
 @inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+@{
+    var layoutUser = SignInManager.IsSignedIn(User) ? await UserManager.GetUserAsync(User) : null;
+    var layoutCompanyId = layoutUser?.CompanyID?.ToString() ?? "";
+}
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-company-id="@layoutCompanyId">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -204,6 +210,8 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="~/js/signalr-client.js" asp-append-version="true"></script>
     <script>
         // Global confirm modal helper
         function showConfirmModal(message, onConfirm, title) {

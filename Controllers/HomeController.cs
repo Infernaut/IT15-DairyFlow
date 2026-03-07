@@ -2,6 +2,7 @@ using System.Diagnostics;
 using IT15_DairyFlow.Data;
 using IT15_DairyFlow.Models;
 using IT15_DairyFlow.Models.Admin;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -26,53 +27,75 @@ namespace IT15_DairyFlow.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var model = new AdminDashboardViewModel();
-
-            if (User.Identity?.IsAuthenticated == true && User.IsInRole("Superadmin"))
-            {
-                var companies = await _dbContext.Company.Include(c => c.Subscription).ToListAsync();
-                model.TotalCompanies = companies.Count;
-                model.ActiveSubscriptions = companies.Count(c => c.SubscriptionID != null);
-                model.TrialCompanies = companies.Count(c => c.Status == "Trial");
-                model.SystemInstances = companies.Count(c => c.Status == "Active");
-                model.MonthlyRecurringRevenue = companies
-                    .Where(c => c.Subscription != null)
-                    .Sum(c => c.Subscription!.Price ?? 0);
-            }
-            else if (User.Identity?.IsAuthenticated == true && User.IsInRole("Admin"))
-            {
-                var currentUser = await _userManager.GetUserAsync(User);
-                var companyId = currentUser?.CompanyID;
-
-                var now = DateTimeOffset.UtcNow;
-                model.TotalUsers = await _userManager.Users.Where(u => u.CompanyID == companyId).CountAsync();
-                model.ActiveUsers = await _userManager.Users.Where(u => u.CompanyID == companyId &&
-                    (!u.LockoutEnd.HasValue || u.LockoutEnd <= now)).CountAsync();
-                model.InactiveUsers = await _userManager.Users.Where(u => u.CompanyID == companyId &&
-                    u.LockoutEnd.HasValue && u.LockoutEnd > now).CountAsync();
-                model.UsersWithRoles = await _dbContext.UserRoles
-                    .Where(ur => _userManager.Users.Where(u => u.CompanyID == companyId).Select(u => u.Id).Contains(ur.UserId))
-                    .Select(ur => ur.UserId)
-                    .Distinct()
-                    .CountAsync();
-
-                var allCompanyUsers = await _userManager.Users.Where(u => u.CompanyID == companyId).ToListAsync();
-                var adminCount = 0;
-                foreach (var u in allCompanyUsers)
-                {
-                    if (await _userManager.IsInRoleAsync(u, "Admin")) adminCount++;
-                }
-                model.AdminUsers = adminCount;
-            }
-
-            // ── Build operational dashboard for all authenticated users ──
+            // ── Redirect authenticated users to their role-specific dashboard ──
             if (User.Identity?.IsAuthenticated == true)
             {
-                var dash = await BuildUserDashboardAsync();
-                ViewBag.UserDashboard = dash;
+                if (User.IsInRole("Superadmin"))
+                    return RedirectToAction("SuperadminDashboard");
+                if (User.IsInRole("Admin"))
+                    return RedirectToAction("Dashboard", "Admin");
+                if (User.IsInRole("ProductManager"))
+                    return RedirectToAction("ProductManagerDashboard");
+                if (User.IsInRole("QualityChecker"))
+                    return RedirectToAction("QualityCheckerDashboard");
+                if (User.IsInRole("Finance"))
+                    return RedirectToAction("FinanceDashboard");
+
+                // Fallback — authenticated user with no recognized role
+                return RedirectToAction("ProductManagerDashboard");
             }
 
+            // Guest landing page
+            return View();
+        }
+
+        // ───────────────────────────────────────────────────────────
+        //  SUPERADMIN DASHBOARD
+        // ───────────────────────────────────────────────────────────
+        [Authorize(Roles = "Superadmin")]
+        public async Task<IActionResult> SuperadminDashboard()
+        {
+            var model = new AdminDashboardViewModel();
+            var companies = await _dbContext.Company.Include(c => c.Subscription).ToListAsync();
+            model.TotalCompanies = companies.Count;
+            model.ActiveSubscriptions = companies.Count(c => c.SubscriptionID != null);
+            model.TrialCompanies = companies.Count(c => c.Status == "Trial");
+            model.SystemInstances = companies.Count(c => c.Status == "Active");
+            model.MonthlyRecurringRevenue = companies
+                .Where(c => c.Subscription != null)
+                .Sum(c => c.Subscription!.Price ?? 0);
+
             return View(model);
+        }
+
+        // ───────────────────────────────────────────────────────────
+        //  PRODUCT MANAGER DASHBOARD
+        // ───────────────────────────────────────────────────────────
+        [Authorize(Roles = "Admin,ProductManager")]
+        public async Task<IActionResult> ProductManagerDashboard()
+        {
+            var dash = await BuildUserDashboardAsync();
+            return View(dash);
+        }
+
+        // ───────────────────────────────────────────────────────────
+        //  QUALITY CHECKER DASHBOARD
+        // ───────────────────────────────────────────────────────────
+        [Authorize(Roles = "Admin,QualityChecker")]
+        public async Task<IActionResult> QualityCheckerDashboard()
+        {
+            var dash = await BuildQualityDashboardAsync();
+            return View(dash);
+        }
+
+        // ───────────────────────────────────────────────────────────
+        //  FINANCE DASHBOARD
+        // ───────────────────────────────────────────────────────────
+        [Authorize(Roles = "Admin,Finance")]
+        public async Task<IActionResult> FinanceDashboard()
+        {
+            var dash = await BuildFinanceDashboardAsync();
+            return View(dash);
         }
 
         /// <summary>
@@ -286,6 +309,228 @@ namespace IT15_DairyFlow.Controllers
             }).ToList();
 
             return vm;
+        }
+
+        // ───────────────────────────────────────────────────────────
+        //  BUILD QUALITY CHECKER DASHBOARD DATA
+        // ───────────────────────────────────────────────────────────
+        private async Task<QualityDashboardViewModel> BuildQualityDashboardAsync()
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var companyId = currentUser?.CompanyID;
+            var vm = new QualityDashboardViewModel();
+            if (companyId == null) return vm;
+
+            var now = DateTime.UtcNow;
+            var sixMonthsAgo = now.AddMonths(-6);
+
+            // ── KPI: Inspections ──────────────────────────────
+            vm.TotalInspections = await _dbContext.QualityInspection
+                .CountAsync(q => q.CompanyID == companyId);
+            vm.PassedInspections = await _dbContext.QualityInspection
+                .CountAsync(q => q.CompanyID == companyId && q.Result == "pass");
+            vm.FailedInspections = await _dbContext.QualityInspection
+                .CountAsync(q => q.CompanyID == companyId && q.Result == "fail");
+            vm.PendingInspections = vm.TotalInspections - vm.PassedInspections - vm.FailedInspections;
+            vm.PassRate = vm.TotalInspections > 0
+                ? Math.Round((decimal)vm.PassedInspections / vm.TotalInspections * 100, 1)
+                : 0;
+
+            // ── KPI: Non-Conformance Reports ──────────────────
+            var ncrs = await _dbContext.NonConformance
+                .Where(n => n.CompanyID == companyId)
+                .ToListAsync();
+            vm.TotalNCRs = ncrs.Count;
+            vm.OpenNCRs = ncrs.Count(n => n.Status == "Open" || n.Status == "In Progress");
+            vm.ClosedNCRs = ncrs.Count(n => n.Status == "Closed");
+            vm.CriticalNCRs = ncrs.Count(n => n.Severity == "Critical" && n.Status != "Closed");
+
+            // ── Inspection Trend (6 months) ───────────────────
+            var inspections = await _dbContext.QualityInspection
+                .Where(q => q.CompanyID == companyId && q.InspectionDate >= sixMonthsAgo)
+                .ToListAsync();
+
+            for (int i = 5; i >= 0; i--)
+            {
+                var month = now.AddMonths(-i);
+                vm.TrendLabels.Add(month.ToString("MMM"));
+                vm.TrendPassed.Add(inspections.Count(q => q.InspectionDate.HasValue
+                    && q.InspectionDate.Value.Year == month.Year
+                    && q.InspectionDate.Value.Month == month.Month
+                    && q.Result == "pass"));
+                vm.TrendFailed.Add(inspections.Count(q => q.InspectionDate.HasValue
+                    && q.InspectionDate.Value.Year == month.Year
+                    && q.InspectionDate.Value.Month == month.Month
+                    && q.Result == "fail"));
+            }
+
+            // ── Finished Goods Inventory ──────────────────────
+            vm.FinishedGoodsCount = await _dbContext.Inventory
+                .CountAsync(i => i.CompanyID == companyId);
+            var expiringItems = await _dbContext.Inventory
+                .Where(i => i.CompanyID == companyId && i.Expiry.HasValue && i.Expiry.Value <= now.AddDays(7) && i.Expiry.Value >= now)
+                .Include(i => i.Product)
+                .OrderBy(i => i.Expiry)
+                .Take(5)
+                .ToListAsync();
+
+            vm.ExpiringItems = expiringItems.Count;
+            vm.ExpiryAlerts = expiringItems.Select(item =>
+            {
+                var hoursLeft = (item.Expiry!.Value - now).TotalHours;
+                return new InventoryAlertItem
+                {
+                    ProductName = item.Product?.ProductName ?? "Unknown",
+                    Detail = $"Qty: {item.Quantity ?? 0}",
+                    AlertType = hoursLeft < 24 ? "danger" : "warning",
+                    AlertMessage = hoursLeft < 24
+                        ? $"Expires in {(int)hoursLeft}h"
+                        : $"Expires in {(int)(hoursLeft / 24)}d"
+                };
+            }).ToList();
+
+            // ── Recent QM Audit Trail ─────────────────────────
+            var recentLogs = await _dbContext.AuditLog
+                .Where(a => a.CompanyID == companyId)
+                .Include(a => a.User)
+                .OrderByDescending(a => a.TimeStamp)
+                .Take(10)
+                .ToListAsync();
+
+            vm.RecentAuditLogs = recentLogs
+                .Where(log =>
+                {
+                    var lower = (log.Action ?? "").ToLower();
+                    return lower.Contains("quality") || lower.Contains("inspection")
+                        || lower.Contains("ncr") || lower.Contains("non-conformance")
+                        || lower.Contains("hold") || lower.Contains("release")
+                        || lower.Contains("inventory");
+                })
+                .Select(log => BuildAuditItem(log, now))
+                .Take(8)
+                .ToList();
+
+            return vm;
+        }
+
+        // ───────────────────────────────────────────────────────────
+        //  BUILD FINANCE DASHBOARD DATA
+        // ───────────────────────────────────────────────────────────
+        private async Task<FinanceDashboardViewModel> BuildFinanceDashboardAsync()
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var companyId = currentUser?.CompanyID;
+            var vm = new FinanceDashboardViewModel();
+            if (companyId == null) return vm;
+
+            var now = DateTime.UtcNow;
+            var startOfMonth = new DateTime(now.Year, now.Month, 1);
+            var sixMonthsAgo = now.AddMonths(-6);
+
+            // ── KPI: Revenue & Expenses ───────────────────────
+            vm.TotalRevenue = await _dbContext.BillingInvoice
+                .Where(b => b.CompanyID == companyId && b.PaymentStatus == "Paid")
+                .SumAsync(b => (decimal?)b.Amount ?? 0);
+
+            var allExpenses = await _dbContext.Expense
+                .Where(e => e.CompanyID == companyId)
+                .ToListAsync();
+            vm.TotalExpenses = allExpenses.Sum(e => e.Amount ?? 0);
+
+            // ── Budget ────────────────────────────────────────
+            vm.TotalBudget = await _dbContext.Budget
+                .Where(b => b.CompanyID == companyId)
+                .SumAsync(b => (decimal?)b.AllocatedAmount ?? 0);
+            vm.ExpensesMTD = await _dbContext.Expense
+                .Where(e => e.CompanyID == companyId && e.ExpenseDate >= startOfMonth)
+                .SumAsync(e => (decimal?)e.Amount ?? 0);
+            vm.BudgetUtilization = vm.TotalBudget > 0
+                ? Math.Round(vm.ExpensesMTD / vm.TotalBudget * 100, 1)
+                : 0;
+
+            // ── Invoices ──────────────────────────────────────
+            var invoices = await _dbContext.BillingInvoice
+                .Where(b => b.CompanyID == companyId)
+                .ToListAsync();
+            vm.TotalInvoices = invoices.Count;
+            vm.PaidInvoices = invoices.Count(i => i.PaymentStatus == "Paid");
+            vm.PendingInvoices = invoices.Count(i => i.PaymentStatus == "Pending");
+            vm.PendingAmount = invoices
+                .Where(i => i.PaymentStatus == "Pending")
+                .Sum(i => i.Amount ?? 0);
+
+            // ── Trend (6 months) ──────────────────────────────
+            var expenses = await _dbContext.Expense
+                .Where(e => e.CompanyID == companyId && e.ExpenseDate >= sixMonthsAgo)
+                .ToListAsync();
+            var revenues = await _dbContext.BillingInvoice
+                .Where(b => b.CompanyID == companyId && b.PaymentStatus == "Paid" && b.InvoiceDate >= sixMonthsAgo)
+                .ToListAsync();
+
+            for (int i = 5; i >= 0; i--)
+            {
+                var month = now.AddMonths(-i);
+                vm.TrendLabels.Add(month.ToString("MMM"));
+                vm.TrendRevenue.Add(revenues
+                    .Where(r => r.InvoiceDate.HasValue && r.InvoiceDate.Value.Year == month.Year && r.InvoiceDate.Value.Month == month.Month)
+                    .Sum(r => r.Amount ?? 0));
+                vm.TrendExpenses.Add(expenses
+                    .Where(e => e.ExpenseDate.HasValue && e.ExpenseDate.Value.Year == month.Year && e.ExpenseDate.Value.Month == month.Month)
+                    .Sum(e => e.Amount ?? 0));
+            }
+
+            // ── Expense Breakdown ─────────────────────────────
+            vm.SupplierExpenses = allExpenses.Where(e => e.SupplierID.HasValue).Sum(e => e.Amount ?? 0);
+            vm.EquipmentCosts = await _dbContext.Equipment
+                .Where(e => e.CompanyID == companyId && e.Cost.HasValue)
+                .SumAsync(e => (decimal?)e.Cost ?? 0);
+            vm.OtherExpenses = vm.TotalExpenses - vm.SupplierExpenses;
+
+            // ── Recent Finance Audit Trail ─────────────────────
+            var recentLogs = await _dbContext.AuditLog
+                .Where(a => a.CompanyID == companyId)
+                .Include(a => a.User)
+                .OrderByDescending(a => a.TimeStamp)
+                .Take(20)
+                .ToListAsync();
+
+            vm.RecentAuditLogs = recentLogs
+                .Where(log =>
+                {
+                    var lower = (log.Action ?? "").ToLower();
+                    return lower.Contains("expense") || lower.Contains("budget")
+                        || lower.Contains("invoice") || lower.Contains("finance")
+                        || lower.Contains("payment");
+                })
+                .Select(log => BuildAuditItem(log, now))
+                .Take(8)
+                .ToList();
+
+            return vm;
+        }
+
+        // ── Shared audit item builder ─────────────────────────────
+        private DashboardAuditItem BuildAuditItem(AuditLog log, DateTime now)
+        {
+            var action = log.Action ?? "";
+            var module = DeriveModule(action);
+            var status = DeriveStatus(action);
+            var elapsed = now - log.TimeStamp;
+            string timeAgo;
+            if (elapsed.TotalMinutes < 1) timeAgo = "Just now";
+            else if (elapsed.TotalMinutes < 60) timeAgo = $"{(int)elapsed.TotalMinutes} min ago";
+            else if (elapsed.TotalHours < 24) timeAgo = $"{(int)elapsed.TotalHours}h ago";
+            else timeAgo = $"{(int)elapsed.TotalDays}d ago";
+
+            return new DashboardAuditItem
+            {
+                Activity = action,
+                Staff = log.User?.UserName ?? "Unknown",
+                Module = module,
+                TimeAgo = timeAgo,
+                StatusLabel = status.Label,
+                StatusClass = status.CssClass
+            };
         }
 
         private static string DeriveModule(string action)

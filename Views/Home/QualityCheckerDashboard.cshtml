@@ -1,0 +1,303 @@
+@model IT15_DairyFlow.Models.Admin.QualityDashboardViewModel
+
+@{
+    ViewData["Title"] = "Quality Dashboard";
+}
+
+<style>
+    .bg-soft-success { background-color: #e6fcf5; }
+    .bg-soft-danger { background-color: #fff5f5; }
+    .bg-soft-warning { background-color: #fff8e1; }
+    .bg-soft-primary { background-color: #f0f7ff; }
+    .bg-soft-info { background-color: #e8f4fd; }
+    .qm-stat {
+        border-radius: 14px; border: 1px solid #dbe7f3;
+        background: #fff; transition: transform 0.2s ease;
+    }
+    .qm-stat:hover { transform: translateY(-3px); }
+    .qm-icon {
+        width: 42px; height: 42px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Quality Assurance Dashboard</h2>
+            <p class="text-muted small mb-0">Inspection results, NCRs, and compliance metrics for @User.Identity?.Name</p>
+        </div>
+        <span class="badge bg-light text-success border border-success px-3 py-2">
+            <i class="bi bi-patch-check me-1"></i> Quality Control
+        </span>
+    </div>
+
+    <!-- KPI Cards Row 1: Inspections -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="qm-stat p-3 shadow-sm" style="border-left: 5px solid #0d6efd;">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Total Inspections</p>
+                        <h2 class="fw-bold text-primary mb-0">@Model.TotalInspections</h2>
+                        <span class="text-muted small">All time</span>
+                    </div>
+                    <div class="qm-icon bg-soft-primary text-primary"><i class="bi bi-clipboard2-pulse"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="qm-stat p-3 shadow-sm" style="border-left: 5px solid #198754;">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Passed</p>
+                        <h2 class="fw-bold text-success mb-0">@Model.PassedInspections</h2>
+                        <span class="text-success small fw-medium">@Model.PassRate% pass rate</span>
+                    </div>
+                    <div class="qm-icon bg-soft-success text-success"><i class="bi bi-check-circle-fill"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="qm-stat p-3 shadow-sm" style="border-left: 5px solid #dc3545;">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Failed</p>
+                        <h2 class="fw-bold text-danger mb-0">@Model.FailedInspections</h2>
+                        <span class="text-muted small">Require follow-up</span>
+                    </div>
+                    <div class="qm-icon bg-soft-danger text-danger"><i class="bi bi-x-circle-fill"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="qm-stat p-3 shadow-sm" style="border-left: 5px solid #ffc107;">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Pending</p>
+                        <h2 class="fw-bold text-warning mb-0">@Model.PendingInspections</h2>
+                        <span class="text-muted small">Awaiting review</span>
+                    </div>
+                    <div class="qm-icon bg-soft-warning text-warning"><i class="bi bi-clock-fill"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Cards Row 2: NCRs -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="qm-stat p-3 shadow-sm" style="border-left: 5px solid #6610f2;">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Total NCRs</p>
+                        <h2 class="fw-bold mb-0" style="color: #6610f2;">@Model.TotalNCRs</h2>
+                        <span class="text-muted small">Non-Conformance Reports</span>
+                    </div>
+                    <div class="qm-icon" style="background: #f3eeff; color: #6610f2;"><i class="bi bi-file-earmark-x"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="qm-stat p-3 shadow-sm" style="border-left: 5px solid #fd7e14;">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Open NCRs</p>
+                        <h2 class="fw-bold mb-0" style="color: #fd7e14;">@Model.OpenNCRs</h2>
+                        <span class="text-muted small">Active investigations</span>
+                    </div>
+                    <div class="qm-icon" style="background: #fff4e6; color: #fd7e14;"><i class="bi bi-exclamation-triangle"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="qm-stat p-3 shadow-sm" style="border-left: 5px solid #20c997;">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Closed NCRs</p>
+                        <h2 class="fw-bold mb-0" style="color: #20c997;">@Model.ClosedNCRs</h2>
+                        <span class="text-muted small">Resolved</span>
+                    </div>
+                    <div class="qm-icon" style="background: #e6fcf5; color: #20c997;"><i class="bi bi-check2-square"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="qm-stat p-3 shadow-sm" style="border-left: 5px solid #dc3545;">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Critical NCRs</p>
+                        <h2 class="fw-bold text-danger mb-0">@Model.CriticalNCRs</h2>
+                        <span class="text-danger small fw-medium">@(Model.CriticalNCRs > 0 ? "Needs immediate action" : "No critical issues")</span>
+                    </div>
+                    <div class="qm-icon bg-soft-danger text-danger"><i class="bi bi-shield-exclamation"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <h6 class="fw-bold mb-3">Inspection Trend (Last 6 Months)</h6>
+                <div style="height: 280px;">
+                    <canvas id="qmTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <h6 class="fw-bold mb-3">Pass/Fail Ratio</h6>
+                <div style="height: 200px;">
+                    <canvas id="qmDoughnutChart"></canvas>
+                </div>
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between mb-1 small">
+                        <span>Pass Rate</span><span class="fw-bold text-success">@Model.PassRate%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" style="width: @Model.PassRate%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Finished Goods & Expiry Alerts -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm p-4 h-100 text-center">
+                <h6 class="fw-bold mb-3">Finished Goods Inventory</h6>
+                <h1 class="fw-bold text-primary">@Model.FinishedGoodsCount</h1>
+                <p class="text-muted small mb-0">Total items in finished goods</p>
+                @if (Model.ExpiringItems > 0)
+                {
+                    <div class="mt-3">
+                        <span class="badge bg-soft-warning text-warning px-3 py-2">
+                            <i class="bi bi-exclamation-triangle me-1"></i> @Model.ExpiringItems items expiring within 7 days
+                        </span>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0">Expiry Alerts</h6>
+                    @if (Model.ExpiryAlerts.Any(a => a.AlertType == "danger"))
+                    { <span class="badge bg-soft-danger text-danger">Critical</span> }
+                    else if (Model.ExpiryAlerts.Any())
+                    { <span class="badge bg-soft-warning text-warning">Attention</span> }
+                    else
+                    { <span class="badge bg-soft-success text-success">All Clear</span> }
+                </div>
+                <div class="p-0">
+                    @if (Model.ExpiryAlerts.Any())
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var alert in Model.ExpiryAlerts)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                    <div>
+                                        <div class="fw-bold mb-0">@alert.ProductName</div>
+                                        <small class="text-muted">@alert.Detail</small>
+                                    </div>
+                                    <span class="@(alert.AlertType == "danger" ? "text-danger" : "text-warning") fw-bold small">@alert.AlertMessage</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-shield-check display-4 d-block mb-3 opacity-25"></i>
+                            <p class="mb-0">No expiring items. All products within shelf life.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QM Audit Trail -->
+    <div class="card border-0 shadow-sm overflow-hidden">
+        <div class="p-4 border-bottom bg-white">
+            <h6 class="fw-bold mb-0">Quality Audit Trail</h6>
+        </div>
+        @if (Model.RecentAuditLogs.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="small text-uppercase text-muted">
+                            <th class="ps-4">Activity</th>
+                            <th>Staff</th>
+                            <th>Module</th>
+                            <th>Time</th>
+                            <th class="text-end pe-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        @foreach (var log in Model.RecentAuditLogs)
+                        {
+                            <tr>
+                                <td class="ps-4 fw-bold">@log.Activity</td>
+                                <td>@log.Staff</td>
+                                <td>@log.Module</td>
+                                <td>@log.TimeAgo</td>
+                                <td class="text-end pe-4"><span class="badge rounded-pill @log.StatusClass px-3">@log.StatusLabel</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-journal display-4 d-block mb-3 opacity-25"></i>
+                <p class="mb-0">No quality-related activity yet.</p>
+            </div>
+        }
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    // Inspection Trend (stacked bar)
+    (function () {
+        const ctx = document.getElementById('qmTrendChart');
+        if (!ctx) return;
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendLabels)),
+                datasets: [
+                    { label: 'Passed', data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendPassed)), backgroundColor: '#198754', borderRadius: 4 },
+                    { label: 'Failed', data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendFailed)), backgroundColor: '#dc3545', borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+                scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+        });
+    })();
+
+    // Pass/Fail Doughnut
+    (function () {
+        const ctx = document.getElementById('qmDoughnutChart');
+        if (!ctx) return;
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Passed', 'Failed', 'Pending'],
+                datasets: [{ data: [@Model.PassedInspections, @Model.FailedInspections, @Model.PendingInspections], backgroundColor: ['#198754','#dc3545','#ffc107'], borderWidth: 0 }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
+        });
+    })();
+</script>

@@ -185,12 +185,24 @@
                     <div asp-validation-summary="ModelOnly" class="text-danger small mb-3" role="alert"></div>
 
                     <div class="form-floating mb-3">
+                        <input asp-for="UserName" class="form-control" placeholder="Your display name" autocomplete="username" />
+                        <label asp-for="UserName" class="text-muted"><i class="bi bi-person me-1"></i> Username</label>
+                        <span asp-validation-for="UserName" class="text-danger small"></span>
+                        <div class="form-text small mt-1">
+                            <i class="bi bi-info-circle me-1"></i> This will be displayed as your name in the system.
+                        </div>
+                    </div>
+
+                    <div class="form-floating mb-3">
                         <input asp-for="Email" class="form-control" placeholder="name@company.com" autocomplete="email" />
                         <label asp-for="Email" class="text-muted"><i class="bi bi-envelope me-1"></i> Email Address</label>
                         <span asp-validation-for="Email" class="text-danger small"></span>
-                        <div class="form-text small mt-1">
-                            <i class="bi bi-info-circle me-1"></i> Your company name will be derived from your email prefix.
-                        </div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input asp-for="CompanyName" class="form-control" placeholder="Your Company" />
+                        <label asp-for="CompanyName" class="text-muted"><i class="bi bi-building me-1"></i> Company Name</label>
+                        <span asp-validation-for="CompanyName" class="text-danger small"></span>
                     </div>
 
                     <div class="form-floating mb-3">

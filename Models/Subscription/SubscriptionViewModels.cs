@@ -4,10 +4,20 @@ namespace IT15_DairyFlow.Models.Sub
 {
     public class SubscriptionRegisterViewModel
     {
+        [Required(ErrorMessage = "Username is required.")]
+        [StringLength(50, ErrorMessage = "Username must be at most {1} characters.")]
+        [Display(Name = "Username")]
+        public string UserName { get; set; } = string.Empty;
+
         [Required(ErrorMessage = "Email is required.")]
         [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
         [Display(Name = "Email")]
         public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Company name is required.")]
+        [StringLength(256, ErrorMessage = "Company name must be at most {1} characters.")]
+        [Display(Name = "Company Name")]
+        public string CompanyName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Password is required.")]
         [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]

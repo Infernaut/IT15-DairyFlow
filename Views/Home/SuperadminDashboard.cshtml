@@ -1,0 +1,143 @@
+@model IT15_DairyFlow.Models.Admin.AdminDashboardViewModel
+
+@{
+    ViewData["Title"] = "Platform Overview";
+}
+
+<style>
+    :root {
+        --superadmin-indigo: #4c6ef5;
+        --superadmin-emerald: #12b886;
+        --superadmin-gold: #f59f00;
+        --superadmin-teal: #1098ad;
+        --superadmin-rose: #e64980;
+        --border-soft: #dbe7f3;
+    }
+    .sa-stat {
+        background: linear-gradient(180deg, #ffffff, #f8fbff);
+        border-radius: 14px;
+        border: 1px solid var(--border-soft);
+        transition: transform 0.2s ease;
+    }
+    .sa-stat:hover { transform: translateY(-3px); }
+    .sa-icon {
+        width: 48px; height: 48px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.4rem; color: #fff;
+    }
+    .sa-module-card {
+        border: 1px solid var(--border-soft);
+        border-radius: 16px;
+        background: #fff;
+        transition: box-shadow 0.2s ease;
+    }
+    .sa-module-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Platform Overview</h2>
+            <p class="text-muted mb-0">Commercial health, customers, and system footprint.</p>
+        </div>
+        <span class="badge bg-light text-primary border border-primary px-3 py-2">
+            <i class="bi bi-stars me-1"></i> SuperAdmin Access
+        </span>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="sa-stat p-4 shadow-sm" style="border-left: 5px solid var(--superadmin-indigo);">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Total Companies</p>
+                        <h2 class="fw-bold mb-1" style="color: var(--superadmin-indigo);">@Model.TotalCompanies</h2>
+                        <span class="text-muted small"><i class="bi bi-building"></i> Paying customers</span>
+                    </div>
+                    <div class="sa-icon" style="background: var(--superadmin-indigo);"><i class="bi bi-buildings"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="sa-stat p-4 shadow-sm" style="border-left: 5px solid var(--superadmin-emerald);">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Active Subscriptions</p>
+                        <h2 class="fw-bold mb-1" style="color: var(--superadmin-emerald);">@Model.ActiveSubscriptions</h2>
+                        <span class="text-muted small"><i class="bi bi-check-circle"></i> Renewing plans</span>
+                    </div>
+                    <div class="sa-icon" style="background: var(--superadmin-emerald);"><i class="bi bi-patch-check"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="sa-stat p-4 shadow-sm" style="border-left: 5px solid var(--superadmin-gold);">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Trials</p>
+                        <h2 class="fw-bold mb-1" style="color: var(--superadmin-gold);">@Model.TrialCompanies</h2>
+                        <span class="text-muted small"><i class="bi bi-hourglass-split"></i> Evaluation stage</span>
+                    </div>
+                    <div class="sa-icon" style="background: var(--superadmin-gold);"><i class="bi bi-hourglass"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="sa-stat p-4 shadow-sm" style="border-left: 5px solid var(--superadmin-rose);">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Monthly Recurring Revenue</p>
+                        <h2 class="fw-bold mb-1" style="color: var(--superadmin-rose);">@Model.MonthlyRecurringRevenue.ToString("C0")</h2>
+                        <span class="text-muted small"><i class="bi bi-cash-stack"></i> Subscription value</span>
+                    </div>
+                    <div class="sa-icon" style="background: var(--superadmin-rose);"><i class="bi bi-currency-dollar"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Instances -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="sa-stat p-4 shadow-sm" style="border-left: 5px solid var(--superadmin-teal);">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">System Instances</p>
+                        <h2 class="fw-bold mb-1" style="color: var(--superadmin-teal);">@Model.SystemInstances</h2>
+                        <span class="text-muted small"><i class="bi bi-hdd-network"></i> Live deployments</span>
+                    </div>
+                    <div class="sa-icon" style="background: var(--superadmin-teal);"><i class="bi bi-hdd-network"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Access Modules -->
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="sa-module-card p-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="sa-icon" style="background: var(--superadmin-indigo);"><i class="bi bi-buildings"></i></div>
+                    <div>
+                        <h5 class="fw-semibold mb-1">Company Portfolio</h5>
+                        <p class="text-muted small mb-0">Manage customer accounts and tenant lifecycle.</p>
+                    </div>
+                    <a href="/SuperAdmin/Companies" class="btn btn-sm btn-outline-primary ms-auto stretched-link">Open</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="sa-module-card p-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="sa-icon" style="background: var(--superadmin-emerald);"><i class="bi bi-bar-chart"></i></div>
+                    <div>
+                        <h5 class="fw-semibold mb-1">Usage Analytics</h5>
+                        <p class="text-muted small mb-0">Track adoption, renewals, and engagement.</p>
+                    </div>
+                    <a href="/SuperAdmin/Analytics" class="btn btn-sm btn-outline-secondary ms-auto stretched-link">Open</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,23 +1,27 @@
 using IT15_DairyFlow.Data;
+using IT15_DairyFlow.Hubs;
 using IT15_DairyFlow.Models;
 using IT15_DairyFlow.Models.Finance;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace IT15_DairyFlow.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin,Finance")]
     public class FinanceController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IHubContext<DairyFlowHub> _hub;
 
-        public FinanceController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public FinanceController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IHubContext<DairyFlowHub> hub)
         {
             _context = context;
             _userManager = userManager;
+            _hub = hub;
         }
 
         private async Task<int> GetCompanyIdAsync()
@@ -191,6 +195,10 @@ namespace IT15_DairyFlow.Controllers
 
             _context.Expense.Add(expense);
             await _context.SaveChangesAsync();
+
+            // SignalR: notify expense created
+            await _hub.NotifyExpenseCreated(companyId, "Expense", model.Amount, user.UserName ?? "");
+            await _hub.NotifyDashboardRefresh(companyId, "Finance");
 
             return Ok(new { success = true, message = "Expense recorded successfully." });
         }
@@ -436,6 +444,10 @@ namespace IT15_DairyFlow.Controllers
 
             _context.BillingInvoice.Update(invoice);
             await _context.SaveChangesAsync();
+
+            // SignalR: notify invoice paid
+            await _hub.NotifyInvoicePaid(companyId, invoice.Amount ?? 0);
+            await _hub.NotifyDashboardRefresh(companyId, "Finance");
 
             return Ok(new { success = true, message = "Invoice marked as paid." });
         }

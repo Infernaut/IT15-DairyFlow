@@ -1,23 +1,27 @@
 using IT15_DairyFlow.Data;
+using IT15_DairyFlow.Hubs;
 using IT15_DairyFlow.Models;
 using IT15_DairyFlow.Models.Production;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace IT15_DairyFlow.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin,ProductManager")]
     public class ProductionController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IHubContext<DairyFlowHub> _hub;
 
-        public ProductionController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public ProductionController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IHubContext<DairyFlowHub> hub)
         {
             _context = context;
             _userManager = userManager;
+            _hub = hub;
         }
 
         // ─── BATCHES ──────────────────────────────────────────────
@@ -58,7 +62,7 @@ namespace IT15_DairyFlow.Controllers
                 .ToListAsync();
 
             var products = await _context.Product
-                .Where(p => p.CompanyID == companyId && p.LifecycleStatus != "Archived")
+                .Where(p => p.CompanyID == companyId && p.LifecycleStatus == "Approved")
                 .OrderBy(p => p.ProductName)
                 .Select(p => new LookupItemViewModel
                 {
@@ -120,7 +124,7 @@ namespace IT15_DairyFlow.Controllers
                 .ToListAsync();
 
             var products = await _context.Product
-                .Where(p => p.CompanyID == companyId && p.LifecycleStatus != "Archived")
+                .Where(p => p.CompanyID == companyId && p.LifecycleStatus == "Approved")
                 .OrderBy(p => p.ProductName)
                 .Select(p => new LookupItemViewModel
                 {
@@ -324,16 +328,6 @@ namespace IT15_DairyFlow.Controllers
                 return BadRequest("Selected equipment is not available.");
             }
 
-            // Store original lifecycle status before updating
-            var isProductUnderReview = product.LifecycleStatus == "underreview";
-
-            // Check if product is under review and status is Completed
-            int batchQuantity = model.Quantity;
-            if (isProductUnderReview && model.Status == "Completed")
-            {
-                batchQuantity = 10; // Force quantity to 10 for products under review
-            }
-
             var batch = new ProductionBatch
             {
                 CompanyID = companyId,
@@ -344,15 +338,8 @@ namespace IT15_DairyFlow.Controllers
                 StartDate = model.StartDate,
                 EndDate = model.EndDate,
                 Status = model.Status,
-                Quantity = batchQuantity
+                Quantity = model.Quantity
             };
-
-            // Only update product lifecycle status if it's not under review
-            if (!isProductUnderReview)
-            {
-                product.LifecycleStatus = "In Production";
-                _context.Product.Update(product);
-            }
 
             equipment.Status = "Busy";
 
@@ -366,7 +353,7 @@ namespace IT15_DairyFlow.Controllers
                 .Where(f => f.ProductID == model.ProductID && f.CompanyID == companyId && f.IsActive)
                 .ToListAsync();
 
-            decimal totalCost = formulations.Sum(f => f.Quantity * (f.RawMaterial?.UnitCost ?? 0)) * batchQuantity;
+            decimal totalCost = formulations.Sum(f => f.Quantity * (f.RawMaterial?.UnitCost ?? 0)) * model.Quantity;
 
             var productionCost = new ProductionCost
             {
@@ -377,8 +364,8 @@ namespace IT15_DairyFlow.Controllers
             _context.ProductionCost.Add(productionCost);
             await _context.SaveChangesAsync();
 
-            // Auto-create quality inspection for completed batches with products under review
-            if (model.Status == "Completed" && isProductUnderReview)
+            // Auto-create quality inspection for completed batches
+            if (model.Status == "Completed")
             {
                 var qualityInspection = new QualityInspection
                 {
@@ -393,6 +380,11 @@ namespace IT15_DairyFlow.Controllers
                 _context.QualityInspection.Add(qualityInspection);
                 await _context.SaveChangesAsync();
             }
+
+            // SignalR: notify company group
+            var productName = (await _context.Product.FindAsync(model.ProductID))?.ProductName ?? "";
+            await _hub.NotifyBatchCreated(companyId, batch.BatchCode, productName, user.UserName ?? "");
+            await _hub.NotifyDashboardRefresh(companyId, "Production");
 
             return Ok(new { success = true, message = "Production batch created successfully.", totalCost });
         }
@@ -418,10 +410,6 @@ namespace IT15_DairyFlow.Controllers
             batch.Status = "Completed";
             batch.EndDate = batch.EndDate ?? DateTime.UtcNow;
             
-            if (batch.Product != null)
-            {
-                batch.Product.LifecycleStatus = "Produced";
-            }
             if (batch.Equipment != null)
             {
                 batch.Equipment.Status = "Available";
@@ -447,6 +435,10 @@ namespace IT15_DairyFlow.Controllers
                 await _context.SaveChangesAsync();
             }
             
+            // SignalR: notify company group
+            await _hub.NotifyBatchCompleted(companyId, batch.BatchCode, batch.Product?.ProductName ?? "");
+            await _hub.NotifyDashboardRefresh(companyId, "Production");
+
             return Ok(new { success = true, message = "Batch finished successfully." });
         }
 
@@ -629,10 +621,6 @@ namespace IT15_DairyFlow.Controllers
             {
                 batch.Status = "Completed";
                 
-                if (batch.Product != null)
-                {
-                    batch.Product.LifecycleStatus = "Produced";
-                }
                 if (batch.Equipment != null)
                 {
                     batch.Equipment.Status = "Available";

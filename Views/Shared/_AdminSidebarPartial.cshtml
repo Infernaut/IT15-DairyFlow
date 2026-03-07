@@ -143,6 +143,10 @@
         </a>
 
         <div class="sidebar-section-label">Operations</div>
+
+        <a class="sidebar-link @(currentController == "PLM" && currentAction == "Approvals" ? "active" : "")" asp-controller="PLM" asp-action="Approvals">
+            <span><i class="bi bi-check2-square me-2"></i> Product Approval</span>
+        </a>
         
         <a class="sidebar-link @(currentController == "Equipment" ? "active" : "")" asp-controller="Equipment" asp-action="Index">
             <span><i class="bi bi-gear-fill me-2"></i> Equipment</span>
@@ -151,6 +155,11 @@
         <div class="sidebar-section-label">Monitoring</div>
         <a class="sidebar-link @(currentController == "Admin" && currentAction == "Logs" ? "active" : "")" asp-controller="Admin" asp-action="Logs">
             <span><i class="bi bi-journal-text me-2"></i> Audit Logs</span>
+        </a>
+
+        <div class="sidebar-section-label">Configuration</div>
+        <a class="sidebar-link @(currentController == "Admin" && currentAction == "Settings" ? "active" : "")" asp-controller="Admin" asp-action="Settings">
+            <span><i class="bi bi-gear me-2"></i> Company Settings</span>
         </a>
     </div>
 </div>

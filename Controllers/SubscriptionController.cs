@@ -120,13 +120,10 @@ namespace IT15_DairyFlow.Controllers
                 return View(model);
             }
 
-            // Extract company name from email (part before @)
-            var companyName = model.Email.Split('@')[0];
-
             // Create Company with SubscriptionID = null initially, Status = Pending
             var company = new Company
             {
-                CompanyName = companyName,
+                CompanyName = model.CompanyName,
                 SubscriptionID = null,
                 Status = "Pending"
             };
@@ -137,7 +134,7 @@ namespace IT15_DairyFlow.Controllers
             // Create ApplicationUser linked to the new company
             var user = new ApplicationUser
             {
-                UserName = model.Email,
+                UserName = model.UserName,
                 Email = model.Email,
                 EmailConfirmed = true, // Auto-confirm since this is subscription registration
                 CompanyID = company.CompanyID

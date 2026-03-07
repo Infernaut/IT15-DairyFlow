@@ -1,25 +1,29 @@
 using IT15_DairyFlow.Data;
+using IT15_DairyFlow.Hubs;
 using IT15_DairyFlow.Models;
 using IT15_DairyFlow.Models.QM;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace IT15_DairyFlow.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin,QualityChecker")]
     public class QMController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IHubContext<DairyFlowHub> _hub;
 
-        public QMController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+        public QMController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IHubContext<DairyFlowHub> hub)
         {
             _context = context;
             _userManager = userManager;
             _roleManager = roleManager;
+            _hub = hub;
         }
 
         private async Task<int> GetCompanyIdAsync()
@@ -355,6 +359,12 @@ namespace IT15_DairyFlow.Controllers
             _context.QualityInspection.Update(inspection);
             await _context.SaveChangesAsync();
 
+            // SignalR: notify inspection completed
+            var user = await _userManager.GetUserAsync(User);
+            var batchCode = inspection.ProductionBatch?.BatchCode ?? "";
+            await _hub.NotifyInspectionCompleted(companyId, batchCode, model.Result, user?.UserName ?? "");
+            await _hub.NotifyDashboardRefresh(companyId, "Quality");
+
             return Ok(new { success = true, message = "Inspection completed successfully." });
         }
 
@@ -376,6 +386,10 @@ namespace IT15_DairyFlow.Controllers
             inspection.Notes = model.Reason;
             _context.QualityInspection.Update(inspection);
             await _context.SaveChangesAsync();
+
+            // SignalR: notify batch on hold
+            await _hub.NotifyBatchOnHold(companyId, $"Inspection #{model.InspectionID}", model.Reason ?? "");
+            await _hub.NotifyDashboardRefresh(companyId, "Quality");
 
             return Ok(new { success = true, message = "Batch placed on hold." });
         }

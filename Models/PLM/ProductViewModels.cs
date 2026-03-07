@@ -146,4 +146,40 @@ namespace IT15_DairyFlow.Models.PLM
         public decimal UnitCost { get; set; }
         public decimal TotalCost { get; set; }
     }
+
+    // ─── PRODUCT APPROVAL VIEW MODELS ─────────────────────────
+    public class ProductApprovalListViewModel
+    {
+        public int ProductID { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string? Type { get; set; }
+        public string? LifecycleStatus { get; set; }
+        public string CreatedByUserName { get; set; } = string.Empty;
+        public string CreatedByEmail { get; set; } = string.Empty;
+        public DateTime? CreatedDate { get; set; }
+    }
+
+    public class ProductApprovalDetailViewModel
+    {
+        public int ProductID { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string? Type { get; set; }
+        public string? LifecycleStatus { get; set; }
+        public string CreatedByUserName { get; set; } = string.Empty;
+        public string CreatedByEmail { get; set; } = string.Empty;
+        public List<FormulationIngredientViewModel> Ingredients { get; set; } = new();
+        public decimal TotalUnitCost { get; set; }
+    }
+
+    public class ProductApprovalActionViewModel
+    {
+        [Required]
+        public int ProductID { get; set; }
+
+        [Required]
+        public string Action { get; set; } = string.Empty; // "Approved" or "Rejected"
+
+        [MaxLength(500)]
+        public string? Reason { get; set; }
+    }
 }

@@ -46,6 +46,70 @@ namespace IT15_DairyFlow.Models.Admin
         public decimal NetProfit => TotalRevenue - TotalExpenses;
     }
 
+    // ── Quality Checker Dashboard ──────────────────────────────────
+    public class QualityDashboardViewModel
+    {
+        // KPI Cards
+        public int TotalInspections { get; set; }
+        public int PassedInspections { get; set; }
+        public int FailedInspections { get; set; }
+        public int PendingInspections { get; set; }
+        public decimal PassRate { get; set; }
+
+        // NCR Stats
+        public int OpenNCRs { get; set; }
+        public int ClosedNCRs { get; set; }
+        public int TotalNCRs { get; set; }
+        public int CriticalNCRs { get; set; }
+
+        // Inspection Trend (6 months)
+        public List<string> TrendLabels { get; set; } = new();
+        public List<int> TrendPassed { get; set; } = new();
+        public List<int> TrendFailed { get; set; } = new();
+
+        // Inventory — Finished Goods only
+        public int FinishedGoodsCount { get; set; }
+        public int ExpiringItems { get; set; }
+        public List<InventoryAlertItem> ExpiryAlerts { get; set; } = new();
+
+        // Recent QM Audit Trail
+        public List<DashboardAuditItem> RecentAuditLogs { get; set; } = new();
+    }
+
+    // ── Finance Dashboard ──────────────────────────────────────────
+    public class FinanceDashboardViewModel
+    {
+        // KPI Cards
+        public decimal TotalRevenue { get; set; }
+        public decimal TotalExpenses { get; set; }
+        public decimal NetProfit => TotalRevenue - TotalExpenses;
+        public decimal BudgetUtilization { get; set; }
+
+        // Monthly Budget
+        public decimal TotalBudget { get; set; }
+        public decimal ExpensesMTD { get; set; }
+        public decimal BudgetRemaining => TotalBudget - ExpensesMTD;
+
+        // Invoice Stats
+        public int TotalInvoices { get; set; }
+        public int PaidInvoices { get; set; }
+        public int PendingInvoices { get; set; }
+        public decimal PendingAmount { get; set; }
+
+        // Revenue vs Expenses Trend (6 months)
+        public List<string> TrendLabels { get; set; } = new();
+        public List<decimal> TrendRevenue { get; set; } = new();
+        public List<decimal> TrendExpenses { get; set; } = new();
+
+        // Expense Breakdown by category
+        public decimal SupplierExpenses { get; set; }
+        public decimal EquipmentCosts { get; set; }
+        public decimal OtherExpenses { get; set; }
+
+        // Recent Finance Audit Trail
+        public List<DashboardAuditItem> RecentAuditLogs { get; set; } = new();
+    }
+
     public class InventoryAlertItem
     {
         public string ProductName { get; set; } = string.Empty;

@@ -1,0 +1,294 @@
+@model IT15_DairyFlow.Models.Admin.UserDashboardViewModel
+
+@{
+    ViewData["Title"] = "Operational Dashboard";
+}
+
+<style>
+    .bg-blue-sky { background-color: #f0f7ff; }
+    .bg-soft-success { background-color: #e6fcf5; }
+    .bg-soft-danger { background-color: #fff5f5; }
+    .bg-soft-primary { background-color: #f0f7ff; }
+    .bg-soft-warning { background-color: #fff8e1; }
+    .bg-soft-info { background-color: #e8f4fd; }
+    .kpi-icon {
+        width: 42px; height: 42px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Operational Overview</h2>
+            <p class="text-muted small mb-0">Real-time metrics for @User.Identity?.Name's facility</p>
+        </div>
+        <div>
+            <span class="badge bg-light text-muted border px-3 py-2">
+                <i class="bi bi-clock me-1"></i> @DateTime.Now.ToString("MMM dd, yyyy HH:mm")
+            </span>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 bg-white h-100">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Active Products</p>
+                        <h2 class="fw-bold mb-0">@Model.ActiveProducts</h2>
+                        <span class="text-success small fw-medium"><i class="bi bi-arrow-up-short"></i>@Model.ActiveProductGrowth% active</span>
+                    </div>
+                    <div class="kpi-icon bg-blue-sky text-primary"><i class="bi bi-droplet"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 bg-white h-100">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Ongoing Batches</p>
+                        <h2 class="fw-bold mb-0">@Model.OngoingBatches</h2>
+                        <span class="text-primary small fw-medium">
+                            @if (Model.BatchesEndingToday > 0)
+                            {
+                                @:@Model.BatchesEndingToday Ending Today
+                            }
+                            else
+                            {
+                                @:No batches ending today
+                            }
+                        </span>
+                    </div>
+                    <div class="kpi-icon bg-blue-sky text-primary"><i class="bi bi-layers"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 bg-white h-100">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Stock Status</p>
+                        <h2 class="fw-bold mb-0 @(Model.StockHealthLabel == "Healthy" ? "text-success" : Model.StockHealthLabel == "Fair" ? "text-warning" : "text-danger")">@Model.StockHealthLabel</h2>
+                        @if (Model.LowStockItems > 0)
+                        { <span class="text-danger small fw-medium"><i class="bi bi-exclamation-triangle"></i> @Model.LowStockItems Low Items</span> }
+                        else
+                        { <span class="text-success small fw-medium"><i class="bi bi-check-circle"></i> @Model.TotalInventoryItems Items</span> }
+                    </div>
+                    <div class="kpi-icon bg-blue-sky text-primary"><i class="bi bi-box-seam"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm p-3 bg-white h-100">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <p class="text-muted small fw-bold text-uppercase mb-1">Expenses (MTD)</p>
+                        <h2 class="fw-bold mb-0">₱@Model.ProductionCostMTD.ToString("N0")</h2>
+                        @if (Model.BudgetVarianceMTD != 0)
+                        {
+                            <span class="@(Model.BudgetVarianceMTD < 0 ? "text-success" : "text-danger") small fw-medium">
+                                @(Model.BudgetVarianceMTD < 0 ? "₱" + Math.Abs(Model.BudgetVarianceMTD).ToString("N0") + " under budget" : "₱" + Model.BudgetVarianceMTD.ToString("N0") + " over budget")
+                            </span>
+                        }
+                        else { <span class="text-muted small fw-medium">No budget set</span> }
+                    </div>
+                    <div class="kpi-icon bg-blue-sky text-primary"><i class="bi bi-currency-dollar"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <h6 class="fw-bold mb-3">Production Volume (Last 6 Months)</h6>
+                <div style="height: 250px;">
+                    <canvas id="pmProductionChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <h6 class="fw-bold mb-3">Quality Assurance</h6>
+                <div style="height: 180px;">
+                    <canvas id="pmQualityChart"></canvas>
+                </div>
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between mb-1 small">
+                        <span>Pass Rate</span><span class="fw-bold text-success">@Model.QualityPassRate%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-success" style="width: @Model.QualityPassRate%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2 small text-muted">
+                        <span><i class="bi bi-check-circle-fill text-success"></i> @Model.QualityPassed</span>
+                        <span><i class="bi bi-x-circle-fill text-danger"></i> @Model.QualityFailed</span>
+                        <span><i class="bi bi-clock-fill text-warning"></i> @Model.QualityPending</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Alerts & Cost Breakdown -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0">Inventory & Stock Alerts</h6>
+                    @if (Model.InventoryAlerts.Any(a => a.AlertType == "danger"))
+                    { <span class="badge bg-soft-danger text-danger">High Priority</span> }
+                    else if (Model.InventoryAlerts.Any())
+                    { <span class="badge bg-soft-warning text-warning">Attention</span> }
+                    else
+                    { <span class="badge bg-soft-success text-success">All Clear</span> }
+                </div>
+                <div class="p-0">
+                    @if (Model.InventoryAlerts.Any())
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var alert in Model.InventoryAlerts)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                    <div>
+                                        <div class="fw-bold mb-0">@alert.ProductName</div>
+                                        <small class="text-muted">@alert.Detail</small>
+                                    </div>
+                                    <span class="@(alert.AlertType == "danger" ? "text-danger" : "text-warning") fw-bold small">@alert.AlertMessage</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-box-seam display-4 d-block mb-3 opacity-25"></i>
+                            <p class="mb-0">No alerts. All stock levels are normal.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm p-4 h-100">
+                <h6 class="fw-bold mb-3">Cost Breakdown</h6>
+                <div class="d-flex align-items-center h-100">
+                    <div class="flex-grow-1">
+                        <div class="mb-3">
+                            <small class="text-muted d-block">Raw Materials (@Model.CostRawMaterialsPct%)</small>
+                            <div class="progress" style="height: 8px;"><div class="progress-bar bg-primary" style="width: @Model.CostRawMaterialsPct%"></div></div>
+                        </div>
+                        <div class="mb-3">
+                            <small class="text-muted d-block">Equipment (@Model.CostEquipmentPct%)</small>
+                            <div class="progress" style="height: 8px;"><div class="progress-bar bg-info" style="width: @Model.CostEquipmentPct%"></div></div>
+                        </div>
+                        <div>
+                            <small class="text-muted d-block">Other (@Model.CostOtherPct%)</small>
+                            <div class="progress" style="height: 8px;"><div class="progress-bar bg-secondary" style="width: @Model.CostOtherPct%"></div></div>
+                        </div>
+                    </div>
+                    <div class="ps-4 text-center">
+                        <h3 class="fw-bold text-primary mb-0">₱@Model.CostTotal.ToString("N0")</h3>
+                        <small class="text-muted">Total Cost</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3 bg-white text-center">
+                <p class="text-muted small fw-bold text-uppercase mb-1">Total Revenue</p>
+                <h3 class="fw-bold text-success mb-0">₱@Model.TotalRevenue.ToString("N0")</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3 bg-white text-center">
+                <p class="text-muted small fw-bold text-uppercase mb-1">Total Expenses</p>
+                <h3 class="fw-bold text-danger mb-0">₱@Model.TotalExpenses.ToString("N0")</h3>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm p-3 bg-white text-center">
+                <p class="text-muted small fw-bold text-uppercase mb-1">Net Profit</p>
+                <h3 class="fw-bold @(Model.NetProfit >= 0 ? "text-success" : "text-danger") mb-0">₱@Model.NetProfit.ToString("N0")</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Audit Trail -->
+    <div class="card border-0 shadow-sm overflow-hidden">
+        <div class="p-4 border-bottom bg-white">
+            <h6 class="fw-bold mb-0">Live Audit Trail</h6>
+        </div>
+        @if (Model.RecentAuditLogs.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="small text-uppercase text-muted">
+                            <th class="ps-4">Activity</th>
+                            <th>Staff</th>
+                            <th>Module</th>
+                            <th>Time</th>
+                            <th class="text-end pe-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        @foreach (var log in Model.RecentAuditLogs)
+                        {
+                            <tr>
+                                <td class="ps-4 fw-bold">@log.Activity</td>
+                                <td>@log.Staff</td>
+                                <td>@log.Module</td>
+                                <td>@log.TimeAgo</td>
+                                <td class="text-end pe-4"><span class="badge rounded-pill @log.StatusClass px-3">@log.StatusLabel</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-journal display-4 d-block mb-3 opacity-25"></i>
+                <p class="mb-0">No activity yet. Actions will appear here as you use the system.</p>
+            </div>
+        }
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    (function () {
+        const ctx = document.getElementById('pmProductionChart');
+        if (!ctx) return;
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ProductionLabels)),
+                datasets: [
+                    { label: 'Actual Batches', data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ProductionActual)), backgroundColor: 'rgba(13,110,253,0.7)', borderColor: '#0d6efd', borderWidth: 1, borderRadius: 6 },
+                    { label: 'Average', data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ProductionTarget)), type: 'line', borderColor: '#dc3545', borderDash: [5,5], borderWidth: 2, pointRadius: 0, fill: false }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        });
+    })();
+    (function () {
+        const ctx = document.getElementById('pmQualityChart');
+        if (!ctx) return;
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: ['Passed','Failed','Pending'], datasets: [{ data: [@Model.QualityPassed, @Model.QualityFailed, @Model.QualityPending], backgroundColor: ['#198754','#dc3545','#ffc107'], borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { display: false } } }
+        });
+    })();
+</script>

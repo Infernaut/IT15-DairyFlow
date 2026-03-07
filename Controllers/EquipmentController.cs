@@ -8,7 +8,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace IT15_DairyFlow.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin,ProductManager")]
     public class EquipmentController : Controller
     {
         private readonly ApplicationDbContext _context;

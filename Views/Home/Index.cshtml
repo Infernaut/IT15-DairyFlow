@@ -1,13 +1,6 @@
-﻿@using Microsoft.AspNetCore.Identity
-@using IT15_DairyFlow.Models
-@inject SignInManager<ApplicationUser> SignInManager
-@model IT15_DairyFlow.Models.Admin.AdminDashboardViewModel
-
-@{
+﻿@{
     ViewData["Title"] = "DairyFlow ERP | Integrated Dairy Manufacturing System";
 }
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
 <style>
     :root {
@@ -16,31 +9,10 @@
         --blue-sky: #e7f3ff;
         --blue-deep: #0b5ed7;
         --border-soft: #dbe7f3;
-        --text-muted: #6c757d;
-        --admin-purple: #6610f2;
-        --admin-orange: #fd7e14;
-        --superadmin-indigo: #4c6ef5;
-        --superadmin-emerald: #12b886;
-        --superadmin-gold: #f59f00;
-        --superadmin-teal: #1098ad;
-        --superadmin-rose: #e64980;
     }
 
-    /* Hide scrollbars but allow scrolling */
-    main[role="main"]::-webkit-scrollbar {
-        display: none;
-    }
+    body { background: linear-gradient(180deg, #f8fbff, #eef6ff); }
 
-    main[role="main"] {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-    }
-
-    body {
-        background: linear-gradient(180deg, #f8fbff, #eef6ff);
-    }
-
-    /* GUEST & SHARED STYLES */
     .erp-header {
         background: linear-gradient(135deg, #ffffff, var(--blue-sky));
         border-radius: 24px;
@@ -49,10 +21,7 @@
         overflow: hidden;
     }
 
-    .float-soft {
-        animation: floatSoft 5s ease-in-out infinite;
-    }
-
+    .float-soft { animation: floatSoft 5s ease-in-out infinite; }
     @@keyframes floatSoft {
         0%, 100% { transform: translateY(0); }
         50% { transform: translateY(6px); }
@@ -62,14 +31,9 @@
         background: linear-gradient(180deg, #ffffff, #f4f9ff);
         border-left: 5px solid var(--blue-soft);
         border-radius: 14px;
-        position: relative;
-        overflow: hidden;
         transition: transform 0.2s ease;
     }
-
-    .erp-stat:hover {
-        transform: translateY(-3px);
-    }
+    .erp-stat:hover { transform: translateY(-3px); }
 
     .module-card {
         border: 1px solid var(--border-soft);
@@ -81,291 +45,94 @@
     }
 
     .module-icon {
-        width: 58px;
-        height: 58px;
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        width: 58px; height: 58px; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
         font-size: 1.8rem;
         background: linear-gradient(135deg, var(--blue-soft), var(--blue-main));
         color: white !important;
     }
 
     .module-watermark {
-        position: absolute;
-        bottom: -12px;
-        right: -12px;
-        font-size: 7rem;
-        opacity: 0.06;
-        pointer-events: none;
+        position: absolute; bottom: -12px; right: -12px;
+        font-size: 7rem; opacity: 0.06; pointer-events: none;
     }
-
-    /* Admin Specific Accents */
-    .stat-admin-users { border-left-color: var(--blue-main); }
-    .stat-admin-active { border-left-color: #20c997; }
-    .stat-admin-inactive { border-left-color: #6c757d; }
-    .stat-admin-admins { border-left-color: var(--admin-purple); }
-    .stat-superadmin-companies { border-left-color: var(--superadmin-indigo); }
-    .stat-superadmin-subs { border-left-color: var(--superadmin-emerald); }
-    .stat-superadmin-trial { border-left-color: var(--superadmin-gold); }
-    .stat-superadmin-mrr { border-left-color: var(--superadmin-rose); }
-    .stat-superadmin-instances { border-left-color: var(--superadmin-teal); }
 </style>
 
 <div class="container py-5">
-    @if (SignInManager.IsSignedIn(User))
-    {
-        @if (User.IsInRole("Superadmin"))
-        {
-            <div class="mb-5">
-                <div class="d-flex align-items-center mb-4">
-                    <div>
-                        <h2 class="fw-bold text-primary mb-0">Platform Overview</h2>
-                        <p class="text-muted">Commercial health, customers, and system footprint.</p>
-                    </div>
-                    <div class="ms-auto">
-                        <span class="badge bg-light text-primary border border-primary px-3 py-2">
-                            <i class="bi bi-stars me-1"></i> SuperAdmin Access
-                        </span>
-                    </div>
-                </div>
-
-                <div class="row g-4 mb-4">
-                    <div class="col-md-3">
-                        <div class="erp-stat stat-superadmin-companies p-4 shadow-sm">
-                            <h6 class="text-muted small text-uppercase fw-bold">Total Companies</h6>
-                            <p class="fw-bold fs-3 mb-0" style="color: var(--superadmin-indigo);">@Model.TotalCompanies</p>
-                            <div class="small text-muted"><i class="bi bi-building"></i> Paying customers</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="erp-stat stat-superadmin-subs p-4 shadow-sm">
-                            <h6 class="text-muted small text-uppercase fw-bold">Active Subscriptions</h6>
-                            <p class="fw-bold fs-3 mb-0" style="color: var(--superadmin-emerald);">@Model.ActiveSubscriptions</p>
-                            <div class="small text-muted"><i class="bi bi-check-circle"></i> Renewing plans</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="erp-stat stat-superadmin-trial p-4 shadow-sm">
-                            <h6 class="text-muted small text-uppercase fw-bold">Trials</h6>
-                            <p class="fw-bold fs-3 mb-0" style="color: var(--superadmin-gold);">@Model.TrialCompanies</p>
-                            <div class="small text-muted"><i class="bi bi-hourglass-split"></i> Evaluation stage</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="erp-stat stat-superadmin-mrr p-4 shadow-sm">
-                            <h6 class="text-muted small text-uppercase fw-bold">Monthly Recurring Revenue</h6>
-                            <p class="fw-bold fs-3 mb-0" style="color: var(--superadmin-rose);">@Model.MonthlyRecurringRevenue.ToString("C0")</p>
-                            <div class="small text-muted"><i class="bi bi-cash-stack"></i> Subscription value</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row g-4 mb-4">
-                    <div class="col-md-4">
-                        <div class="erp-stat stat-superadmin-instances p-4 shadow-sm">
-                            <h6 class="text-muted small text-uppercase fw-bold">System Instances</h6>
-                            <p class="fw-bold fs-3 mb-0" style="color: var(--superadmin-teal);">@Model.SystemInstances</p>
-                            <div class="small text-muted"><i class="bi bi-hdd-network"></i> Live deployments</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <div class="module-card p-4">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="module-icon" style="background: var(--superadmin-indigo);"><i class="bi bi-buildings"></i></div>
-                                <div>
-                                    <h5 class="fw-semibold mb-1">Company Portfolio</h5>
-                                    <p class="text-muted small mb-0">Manage customer accounts and tenant lifecycle.</p>
-                                </div>
-                                <a href="/SuperAdmin/Companies" class="btn btn-sm btn-outline-primary ms-auto stretched-link">Open</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="module-card p-4">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="module-icon" style="background: var(--superadmin-emerald);"><i class="bi bi-bar-chart"></i></div>
-                                <div>
-                                    <h5 class="fw-semibold mb-1">Usage Analytics</h5>
-                                    <p class="text-muted small mb-0">Track adoption, renewals, and engagement.</p>
-                                </div>
-                                <a href="/SuperAdmin/Analytics" class="btn btn-sm btn-outline-secondary ms-auto stretched-link">Open</a>
-                            </div>
-                        </div>
-                    </div>
+    <div class="erp-header p-5 mb-5 shadow-sm">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <span class="badge bg-primary mb-3 px-3 py-2 rounded-pill text-white">
+                    Enterprise Resource Planning v3.0
+                </span>
+                <h1 class="fw-bold display-5 text-primary mb-3">DairyFlow ERP</h1>
+                <p class="fs-5 text-muted mb-4">
+                    A centralized ERP platform for dairy manufacturers integrating
+                    lifecycle management, quality assurance, and financial control
+                    with full batch traceability.
+                </p>
+                <div class="d-flex gap-3 flex-wrap">
+                    <a href="#modules" class="btn btn-primary btn-lg px-4">Explore Modules</a>
+                    <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-primary btn-lg px-4">Login to System</a>
+                    <a asp-controller="Subscription" asp-action="Register" class="btn btn-lg px-4" style="background: linear-gradient(135deg, #20c997, #0ca678); color: white; font-weight: 600; border: none;"><i class="bi bi-building-add me-2"></i>Get Started</a>
                 </div>
             </div>
-            <hr class="my-5" style="opacity: 0.1;" />
-        }
-        else if (User.IsInRole("Admin"))
-        {
-            <div class="mb-5">
-                <div class="d-flex align-items-center mb-4">
-                    <div>
-                        <h2 class="fw-bold text-primary mb-0">User Administration</h2>
-                        <p class="text-muted">Account activity, role coverage, and access control.</p>
-                    </div>
-                    <div class="ms-auto">
-                        <span class="badge bg-light text-primary border border-primary px-3 py-2">
-                            <i class="bi bi-shield-check me-1"></i> Admin Access
-                        </span>
-                    </div>
-                </div>
-
-                <div class="row g-4 mb-4">
-                    <div class="col-md-3">
-                        <div class="erp-stat stat-admin-users p-4 shadow-sm">
-                            <h6 class="text-muted small text-uppercase fw-bold">Total Users</h6>
-                            <p class="fw-bold fs-3 mb-0 text-primary">@Model.TotalUsers</p>
-                            <div class="small text-muted"><i class="bi bi-people"></i> Registered accounts</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="erp-stat stat-admin-active p-4 shadow-sm">
-                            <h6 class="text-muted small text-uppercase fw-bold">Active Users</h6>
-                            <p class="fw-bold fs-3 mb-0" style="color: #20c997;">@Model.ActiveUsers</p>
-                            <div class="small text-muted"><i class="bi bi-check-circle"></i> Allowed to sign in</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="erp-stat stat-admin-inactive p-4 shadow-sm">
-                            <h6 class="text-muted small text-uppercase fw-bold">Deactivated</h6>
-                            <p class="fw-bold fs-3 mb-0" style="color: #6c757d;">@Model.InactiveUsers</p>
-                            <div class="small text-muted"><i class="bi bi-slash-circle"></i> Locked accounts</div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="erp-stat stat-admin-admins p-4 shadow-sm">
-                            <h6 class="text-muted small text-uppercase fw-bold">Admin Accounts</h6>
-                            <p class="fw-bold fs-3 mb-0" style="color: var(--admin-purple);">@Model.AdminUsers</p>
-                            <div class="small text-muted"><i class="bi bi-shield-lock"></i> Elevated access</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row g-4 mb-4">
-                    <div class="col-md-4">
-                        <div class="erp-stat p-4 shadow-sm" style="border-left-color: var(--admin-orange);">
-                            <h6 class="text-muted small text-uppercase fw-bold">Users With Roles</h6>
-                            <p class="fw-bold fs-3 mb-0" style="color: var(--admin-orange);">@Model.UsersWithRoles</p>
-                            <div class="small text-muted"><i class="bi bi-person-badge"></i> Assigned permissions</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row g-4">
-                    <div class="col-md-6">
-                        <div class="module-card p-4">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="module-icon" style="background: var(--admin-purple);"><i class="bi bi-people-fill"></i></div>
-                                <div>
-                                    <h5 class="fw-semibold mb-1">User Management</h5>
-                                    <p class="text-muted small mb-0">Activate/deactivate accounts and manage access.</p>
-                                </div>
-                                <a href="/Admin/Users" class="btn btn-sm btn-outline-primary ms-auto stretched-link">Manage</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="module-card p-4">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="module-icon bg-dark"><i class="bi bi-person-gear"></i></div>
-                                <div>
-                                    <h5 class="fw-semibold mb-1">Role Management</h5>
-                                    <p class="text-muted small mb-0">Create roles and assign them to users.</p>
-                                </div>
-                                <a href="/Admin/Roles" class="btn btn-sm btn-outline-secondary ms-auto stretched-link">Manage</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <hr class="my-5" style="opacity: 0.1;" />
-        }
-
-        <partial name="_DashboardPartial" />
-    }
-    else
-    {
-        <div class="erp-header p-5 mb-5 shadow-sm">
-            <div class="row align-items-center">
-                <div class="col-lg-8">
-                    <span class="badge bg-primary mb-3 px-3 py-2 rounded-pill text-white">
-                        Enterprise Resource Planning v3.0
-                    </span>
-                    <h1 class="fw-bold display-5 text-primary mb-3">DairyFlow ERP</h1>
-                    <p class="fs-5 text-muted mb-4">
-                        A centralized ERP platform for dairy manufacturers integrating
-                        lifecycle management, quality assurance, and financial control
-                        with full batch traceability.
-                    </p>
-                    <div class="d-flex gap-3 flex-wrap">
-                        <a href="#modules" class="btn btn-primary btn-lg px-4">Explore Modules</a>
-                        <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-primary btn-lg px-4">Login to System</a>
-                        <a asp-controller="Subscription" asp-action="Register" class="btn btn-lg px-4" style="background: linear-gradient(135deg, #20c997, #0ca678); color: white; font-weight: 600; border: none;"><i class="bi bi-building-add me-2"></i>Get Started</a>
-                    </div>
-                </div>
-                <div class="col-lg-4 text-center mt-4 mt-lg-0">
-                    <div class="float-soft">
-                        <i class="bi bi-diagram-3-fill text-primary" style="font-size:7.5rem;"></i>
-                    </div>
+            <div class="col-lg-4 text-center mt-4 mt-lg-0">
+                <div class="float-soft">
+                    <i class="bi bi-diagram-3-fill text-primary" style="font-size:7.5rem;"></i>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="row g-4 mb-5">
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="erp-stat p-4 shadow-sm">
+                <h6 class="text-muted">Production Control</h6>
+                <p class="fw-semibold mb-0 text-primary">End-to-End Batch Tracking</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="erp-stat p-4 shadow-sm">
+                <h6 class="text-muted">Quality Compliance</h6>
+                <p class="fw-semibold mb-0 text-primary">Inspection Workflows</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="erp-stat p-4 shadow-sm">
+                <h6 class="text-muted">Financial Transparency</h6>
+                <p class="fw-semibold mb-0 text-primary">Cost & Yield Monitoring</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="modules">
+        <h2 class="fw-bold text-primary mb-4">Core ERP Modules</h2>
+        <div class="row g-4">
             <div class="col-md-4">
-                <div class="erp-stat p-4 shadow-sm">
-                    <h6 class="text-muted">Production Control</h6>
-                    <p class="fw-semibold mb-0 text-primary">End-to-End Batch Tracking</p>
+                <div class="module-card h-100 p-4">
+                    <div class="module-icon mb-3"><i class="bi bi-droplet-half"></i></div>
+                    <h5 class="fw-semibold">Product Lifecycle</h5>
+                    <p class="text-muted small">Product records and BOM structures.</p>
+                    <i class="bi bi-arrow-left-right module-watermark"></i>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="erp-stat p-4 shadow-sm">
-                    <h6 class="text-muted">Quality Compliance</h6>
-                    <p class="fw-semibold mb-0 text-primary">Inspection Workflows</p>
+                <div class="module-card h-100 p-4">
+                    <div class="module-icon mb-3"><i class="bi bi-clipboard2-pulse-fill"></i></div>
+                    <h5 class="fw-semibold">Quality</h5>
+                    <p class="text-muted small">Batch approvals and compliance.</p>
+                    <i class="bi bi-patch-check-fill module-watermark"></i>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="erp-stat p-4 shadow-sm">
-                    <h6 class="text-muted">Financial Transparency</h6>
-                    <p class="fw-semibold mb-0 text-primary">Cost & Yield Monitoring</p>
+                <div class="module-card h-100 p-4">
+                    <div class="module-icon mb-3"><i class="bi bi-calculator-fill"></i></div>
+                    <h5 class="fw-semibold">Finance</h5>
+                    <p class="text-muted small">Costing and performance reporting.</p>
+                    <i class="bi bi-pie-chart-fill module-watermark"></i>
                 </div>
             </div>
         </div>
-
-        <div id="modules">
-            <h2 class="fw-bold text-primary mb-4">Core ERP Modules</h2>
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="module-card h-100 p-4">
-                        <div class="module-icon mb-3"><i class="bi bi-droplet-half"></i></div>
-                        <h5 class="fw-semibold">PLM</h5>
-                        <p class="text-muted small">Product records and BOM structures.</p>
-                        <i class="bi bi-arrow-left-right module-watermark"></i>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="module-card h-100 p-4">
-                        <div class="module-icon mb-3"><i class="bi bi-clipboard2-pulse-fill"></i></div>
-                        <h5 class="fw-semibold">Quality</h5>
-                        <p class="text-muted small">Batch approvals and compliance.</p>
-                        <i class="bi bi-patch-check-fill module-watermark"></i>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="module-card h-100 p-4">
-                        <div class="module-icon mb-3"><i class="bi bi-calculator-fill"></i></div>
-                        <h5 class="fw-semibold">Finance</h5>
-                        <p class="text-muted small">Costing and performance reporting.</p>
-                        <i class="bi bi-pie-chart-fill module-watermark"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
+    </div>
 </div>

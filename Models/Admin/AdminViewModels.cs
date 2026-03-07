@@ -187,4 +187,14 @@ namespace IT15_DairyFlow.Models.Admin
         public List<AuditLogViewModel> AuditLogs { get; set; } = new();
         public int TotalRecords { get; set; }
     }
+
+    public class CompanySettingsViewModel
+    {
+        public int CompanyID { get; set; }
+
+        [Required(ErrorMessage = "Company name is required.")]
+        [MaxLength(256)]
+        [Display(Name = "Company Name")]
+        public string CompanyName { get; set; } = string.Empty;
+    }
 }
