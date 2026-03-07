@@ -50,17 +50,39 @@
                                             "fail" => "bg-danger",
                                             _ => "bg-secondary"
                                         };
+                                        var resultLabel = inspection.Result switch
+                                        {
+                                            "pass" => "Passed",
+                                            "fail" => "Failed",
+                                            "N/A" => "N/A",
+                                            _ => inspection.Result
+                                        };
+                                        var statusBadge = inspection.Status switch
+                                        {
+                                            "ongoing" => "bg-warning text-dark",
+                                            "on-hold" => "bg-secondary",
+                                            "released" => "bg-success",
+                                            "rejected" => "bg-danger",
+                                            "completed" => "bg-info",
+                                            _ => "bg-warning"
+                                        };
+                                        var statusLabel = inspection.Status switch
+                                        {
+                                            "ongoing" => "On-Going",
+                                            "on-hold" => "On Hold",
+                                            "released" => "Released",
+                                            "rejected" => "Rejected",
+                                            "completed" => "Completed",
+                                            _ => inspection.Status
+                                        };
                                     }
-                                    <span class="badge @resultBadge">@inspection.Result</span>
+                                    <span class="badge @resultBadge">@resultLabel</span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-warning">@inspection.Status</span>
+                                    <span class="badge @statusBadge">@statusLabel</span>
                                 </td>
                                 <td>@inspection.UserName</td>
                                 <td class="text-end px-4">
-                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="event.stopPropagation(); viewInspectionDetail(@inspection.QualityInspectionID)">
-                                        <i class="bi bi-eye"></i>
-                                    </button>
                                     <button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); openInspectModal(@inspection.QualityInspectionID)">
                                         <i class="bi bi-clipboard-check"></i> Inspect
                                     </button>
@@ -170,11 +192,11 @@
                         <label class="form-label fw-semibold">Result</label>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="inspectionResult" value="pass" id="resultPass" required>
-                            <label class="form-check-label" for="resultPass">Pass</label>
+                            <label class="form-check-label" for="resultPass">Passed</label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="inspectionResult" value="fail" id="resultFail" required>
-                            <label class="form-check-label" for="resultFail">Fail</label>
+                            <label class="form-check-label" for="resultFail">Failed</label>
                         </div>
                     </div>
                 </form>
@@ -232,12 +254,21 @@
             }
         }
 
+        function formatResult(val) {
+            const map = { 'pass': 'Passed', 'fail': 'Failed', 'N/A': 'N/A', 'Pending': 'Pending' };
+            return map[val] || val;
+        }
+        function formatStatus(val) {
+            const map = { 'ongoing': 'On-Going', 'on-hold': 'On Hold', 'released': 'Released', 'rejected': 'Rejected', 'completed': 'Completed' };
+            return map[val] || val;
+        }
+
         function displayInspectionDetail(inspection) {
             document.getElementById('detailInspectionId').value = inspection.qualityInspectionID;
             document.getElementById('detailBatchCode').value = inspection.batchCode;
             document.getElementById('detailProductName').value = inspection.productName;
-            document.getElementById('detailResult').value = inspection.result;
-            document.getElementById('detailStatus').value = inspection.status;
+            document.getElementById('detailResult').value = formatResult(inspection.result);
+            document.getElementById('detailStatus').value = formatStatus(inspection.status);
 
             // Populate user dropdown
             const userSelect = document.getElementById('detailUserId');
@@ -355,8 +386,7 @@
         }
 
         function showToast(type, message) {
-            // Implement toast notification
-            alert(message);
+            showGlobalToast(type, message);
         }
     </script>
 }

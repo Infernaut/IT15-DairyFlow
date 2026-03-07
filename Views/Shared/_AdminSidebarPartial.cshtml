@@ -9,13 +9,54 @@
         max-width: 280px;
         background: #ffffff;
         border-right: 1px solid #eef2f7;
-        height: calc(100vh - 70px);
-        position: sticky;
-        top: 70px;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: 0;
         display: flex;
         flex-direction: column;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 1020;
+        z-index: 1040;
+        box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+    }
+
+    .sidebar-brand {
+        display: flex;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #eef2f7;
+        min-height: 70px;
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    }
+
+    .sidebar-brand-icon {
+        width: 40px;
+        height: 40px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+    }
+
+    .sidebar-brand-icon i {
+        font-size: 1.5rem;
+        color: #fff;
+    }
+
+    .sidebar-brand-text {
+        color: #fff;
+        font-weight: 700;
+        font-size: 1.25rem;
+        letter-spacing: -0.5px;
+    }
+
+    .sidebar-brand-subtitle {
+        color: rgba(255,255,255,0.7);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
 
     .sidebar-scroll-container {
@@ -76,10 +117,21 @@
 </style>
 
 <div class="sidebar d-none d-md-flex">
+    <!-- Brand / Logo -->
+    <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">
+            <i class="bi bi-droplet-half"></i>
+        </div>
+        <div>
+            <div class="sidebar-brand-text">DairyFlow</div>
+            <div class="sidebar-brand-subtitle">Admin Panel</div>
+        </div>
+    </div>
+
     <div class="sidebar-scroll-container">
         <div class="sidebar-section-label">Administration</div>
 
-        <a class="sidebar-link @(currentController == "Home" && currentAction == "Index" ? "active" : "")" asp-controller="Home" asp-action="Index">
+        <a class="sidebar-link @(currentController == "Admin" && currentAction == "Dashboard" ? "active" : "")" asp-controller="Admin" asp-action="Dashboard">
             <span><i class="bi bi-speedometer2 me-2"></i> Dashboard</span>
         </a>
 
@@ -89,8 +141,11 @@
         <a class="sidebar-link @(currentController == "Admin" && (currentAction == "Roles" || currentAction == "CreateRole" || currentAction == "EditRole") ? "active" : "")" asp-controller="Admin" asp-action="Roles">
             <span><i class="bi bi-shield-lock me-2"></i> Role Management</span>
         </a>
-        <a class="sidebar-link @(currentController == "Admin" && currentAction == "UserRoles" ? "active" : "")" asp-controller="Admin" asp-action="Users">
-            <span><i class="bi bi-person-gear me-2"></i> User Roles</span>
+
+        <div class="sidebar-section-label">Operations</div>
+        
+        <a class="sidebar-link @(currentController == "Equipment" ? "active" : "")" asp-controller="Equipment" asp-action="Index">
+            <span><i class="bi bi-gear-fill me-2"></i> Equipment</span>
         </a>
 
         <div class="sidebar-section-label">Monitoring</div>

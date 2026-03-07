@@ -1,0 +1,100 @@
+@{
+    ViewData["Title"] = "Payment Cancelled — DairyFlow ERP";
+    var email = ViewBag.Email as string ?? "";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<style>
+    :root {
+        --blue-main: #0d6efd;
+        --blue-soft: #4dabf7;
+        --blue-sky: #e7f3ff;
+        --border-soft: #dbe7f3;
+    }
+
+    body {
+        background: linear-gradient(180deg, #f8fbff, #eef6ff);
+        min-height: 100vh;
+    }
+
+    .failed-container {
+        max-width: 550px;
+        margin: 5rem auto;
+    }
+
+    .failed-card {
+        background: #ffffff;
+        border-radius: 24px;
+        border: 1px solid var(--border-soft);
+        box-shadow: 0 20px 40px rgba(13, 110, 253, 0.08);
+        overflow: hidden;
+    }
+
+    .failed-header {
+        background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+        padding: 40px 32px;
+        text-align: center;
+        color: white;
+    }
+
+    .failed-icon {
+        width: 80px;
+        height: 80px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        margin-bottom: 16px;
+    }
+
+    .btn-retry {
+        background: linear-gradient(135deg, var(--blue-soft), var(--blue-main));
+        border: none;
+        padding: 0.8rem;
+        font-weight: 600;
+        border-radius: 12px;
+        color: white;
+        transition: all 0.2s ease;
+    }
+
+    .btn-retry:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(13, 110, 253, 0.3);
+        color: white;
+    }
+
+    .bi {
+        display: inline-block !important;
+        line-height: 1;
+    }
+</style>
+
+<div class="container failed-container">
+    <div class="failed-card">
+        <div class="failed-header">
+            <div class="failed-icon">
+                <i class="bi bi-x-lg"></i>
+            </div>
+            <h2 class="fw-bold mb-2">Payment Cancelled</h2>
+            <p class="opacity-85 mb-0">Your payment was not completed. No charges were made.</p>
+        </div>
+
+        <div class="p-4 text-center">
+            <p class="text-muted mb-4">
+                Your account has been created but no subscription plan is active.
+                You can try again or contact support.
+            </p>
+
+            <a asp-controller="Subscription" asp-action="Register" class="btn btn-retry w-100 mb-3">
+                <i class="bi bi-arrow-repeat me-2"></i> Try Again
+            </a>
+
+            <a asp-controller="Home" asp-action="Index" class="text-muted small text-decoration-none">
+                <i class="bi bi-house me-1"></i> Return to Home
+            </a>
+        </div>
+    </div>
+</div>

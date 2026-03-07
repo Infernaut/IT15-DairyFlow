@@ -1,0 +1,282 @@
+================================================================================
+ DAIRYFLOW — API & LIBRARY REFERENCE GUIDE
+================================================================================
+ Project:    IT15 DairyFlow (ASP.NET Core MVC · .NET 9.0)
+ Purpose:    Dairy Manufacturing ERP System
+ Updated:    2025
+================================================================================
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ ALREADY IMPLEMENTED APIs & LIBRARIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. PayMongo API (Payment Processing)
+   ─────────────────────────────────
+   Status:     ✅ Implemented
+   File:       Services/PayMongoService.cs
+   Type:       External REST API (server-side)
+   Endpoint:   https://api.paymongo.com/v1/checkout_sessions
+   Auth:       Basic Auth (SecretKey in appsettings.json)
+   Usage:      Creates checkout sessions for subscription payments.
+               Sends line items (price, quantity, description) and
+               redirect URLs (success/cancel) to PayMongo.
+   Dependency: IHttpClientFactory (built-in .NET)
+   Config:     appsettings.json → PayMongo:SecretKey
+
+2. SMTP Email Service (Subscription Emails)
+   ────────────────────────────────────────
+   Status:     ✅ Implemented
+   File:       Services/SubscriptionEmailService.cs
+   Type:       Protocol-based service (SMTP)
+   Usage:      Sends subscription confirmation emails with invoice
+               details, company info, plan name, and amount.
+               Gracefully falls back to logging when SMTP is not configured.
+   Dependency: System.Net.Mail (built-in .NET)
+   Config:     appsettings.json → Smtp:Host, Smtp:Port, Smtp:User,
+               Smtp:Password, Smtp:From
+
+3. Chart.js (Data Visualization)
+   ─────────────────────────────
+   Status:     ✅ Implemented
+   Version:    4.4.1 (CDN)
+   Type:       Frontend JavaScript library
+   CDN:        https://cdn.jsdelivr.net/npm/chart.js
+   Usage:      - SuperAdmin Dashboard: Revenue charts, subscription stats
+               - Admin Dashboard: Production metrics, inventory levels,
+                 financial summaries, equipment status
+               - Finance Module: Budget vs actual, expense breakdowns
+               - Production Costs: Cost analysis and trends
+   Features:   Bar, Line, Pie, Doughnut chart types with responsive config,
+               custom tooltips, and real-time data binding from Razor models.
+
+4. FullCalendar.js (Calendar/Scheduling)
+   ─────────────────────────────────────
+   Status:     ✅ Implemented
+   Version:    6.1.15 (CDN)
+   Type:       Frontend JavaScript library
+   CDN:        https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js
+   File:       Views/Production/Schedule.cshtml
+   Usage:      Production schedule calendar with month/week/list views.
+               Events are color-coded by status (In Production, Scheduled,
+               Completed, Paused). Supports date-click for batch creation,
+               event-click for batch detail viewing, and "+more" popover
+               for days with many events.
+   Features:   dayGridMonth, dayGridWeek, listWeek views; multi-day events;
+               custom event rendering with batch code & product name;
+               interactive date click and event click handlers.
+
+5. Entity Framework Core (ORM / Data Access)
+   ──────────────────────────────────────────
+   Status:     ✅ Implemented
+   Version:    9.0.12
+   Type:       NuGet Package (server-side ORM)
+   Packages:   Microsoft.EntityFrameworkCore.SqlServer
+               Microsoft.EntityFrameworkCore.Sqlite
+               Microsoft.EntityFrameworkCore.Design
+               Microsoft.EntityFrameworkCore.Tools
+   File:       Data/ApplicationDbContext.cs
+   Usage:      17+ DbSets covering all business entities:
+               Company, Subscription, Product, Inventory, Expense,
+               Supplier, RawMaterial, ProductionBatch, ProductionCost,
+               QualityInspection, NonConformance, Equipment, Budget,
+               BillingInvoice, JournalEntry, ProductFormulation, AuditLog
+   Features:   Code-first migrations, LINQ queries, navigation properties,
+               company-scoped multi-tenant data filtering.
+
+6. ASP.NET Core Identity (Authentication & Authorization)
+   ──────────────────────────────────────────────────────
+   Status:     ✅ Implemented
+   Version:    9.0.12
+   Type:       NuGet Package (server-side auth)
+   Packages:   Microsoft.AspNetCore.Identity.EntityFrameworkCore
+               Microsoft.AspNetCore.Identity.UI
+               Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore
+   File:       Models/ApplicationUser.cs, Areas/Identity/
+   Usage:      User registration, login, role-based authorization
+               (SuperAdmin, Admin, User). Company-scoped user management.
+   Features:   Role management, Identity UI scaffolding, custom
+               ApplicationUser with CompanyId, FirstName, LastName.
+
+7. Bootstrap 5 (UI Framework)
+   ──────────────────────────
+   Status:     ✅ Implemented
+   Type:       Frontend CSS/JS framework (local lib)
+   Path:       wwwroot/lib/bootstrap/
+   Usage:      System-wide responsive layout, modals, forms, tables,
+               buttons, alerts, badges, navigation, toasts, cards.
+   Features:   Grid system, responsive utilities, modal dialogs,
+               form validation styling, custom confirm modals
+               (showConfirmModal), global toast system (showGlobalToast).
+
+8. Bootstrap Icons (Icon Library)
+   ──────────────────────────────
+   Status:     ✅ Implemented
+   Type:       Frontend icon font (local lib)
+   Path:       wwwroot/lib/bootstrap-icons/
+   Usage:      Icons throughout the UI — sidebar navigation, buttons,
+               form labels, status indicators, modal headers.
+
+9. jQuery (DOM Manipulation)
+   ─────────────────────────
+   Status:     ✅ Implemented
+   Type:       Frontend JavaScript library (local lib)
+   Path:       wwwroot/lib/jquery/
+   Usage:      Form handling, AJAX requests, DOM manipulation.
+               Used alongside vanilla JS for legacy compatibility.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ RECOMMENDED APIs & LIBRARIES (Not Yet Implemented)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+10. SignalR (Real-Time Communication)
+    ─────────────────────────────────
+    Status:     💡 Recommended
+    Type:       Built-in ASP.NET Core library
+    Package:    Microsoft.AspNetCore.SignalR (included in framework)
+    Purpose:    Real-time push notifications and live data updates.
+    Use Cases:  - Live dashboard updates (new orders, production changes)
+                - Real-time inventory alerts (low stock warnings)
+                - Equipment status change notifications
+                - Quality inspection result broadcasts
+                - Multi-user collaboration (see who's editing what)
+    Effort:     Medium — requires Hub classes, JS client setup, and
+                integration into existing views.
+
+11. ClosedXML / EPPlus (Excel Export/Import)
+    ────────────────────────────────────────
+    Status:     💡 Recommended
+    Type:       NuGet Package (server-side)
+    Package:    ClosedXML (free, MIT license)
+                — OR EPPlus (free for non-commercial, paid for commercial)
+    Purpose:    Generate and read Excel (.xlsx) files.
+    Use Cases:  - Export production reports to Excel
+                - Export inventory lists, financial reports
+                - Import bulk supplier/product data from spreadsheets
+                - Budget templates and cost analysis exports
+    Effort:     Low — straightforward API, add export buttons to views.
+
+12. QuestPDF (PDF Generation)
+    ─────────────────────────
+    Status:     💡 Recommended
+    Type:       NuGet Package (server-side)
+    Package:    QuestPDF (free for small companies)
+    Purpose:    Generate professional PDF documents with code-first API.
+    Use Cases:  - Invoice PDFs for billing
+                - Production batch reports
+                - Quality inspection certificates
+                - Financial statements and budget reports
+                - Equipment maintenance logs
+    Effort:     Medium — fluent API for layout, but needs template design.
+
+13. ZXing.NET (Barcode/QR Code)
+    ────────────────────────────
+    Status:     💡 Recommended
+    Type:       NuGet Package (server-side + client-side decoding)
+    Package:    ZXing.Net
+    Purpose:    Generate and scan barcodes/QR codes.
+    Use Cases:  - Inventory item barcode labels
+                - Production batch QR codes for tracking
+                - Equipment asset tags
+                - Raw material tracking during receiving
+                - Quick product lookup via barcode scanning
+    Effort:     Low-Medium — generation is simple, scanning needs
+                camera access (JS library for frontend).
+
+14. Hangfire (Background Job Scheduling)
+    ────────────────────────────────────
+    Status:     💡 Recommended
+    Type:       NuGet Package (server-side)
+    Package:    Hangfire
+    Purpose:    Schedule and manage background/recurring jobs.
+    Use Cases:  - Automatic subscription renewal checks
+                - Scheduled report generation (daily, weekly, monthly)
+                - Email reminders (expiring subscriptions, overdue tasks)
+                - Periodic inventory stock level checks
+                - Equipment maintenance schedule reminders
+                - Data cleanup and archival jobs
+    Effort:     Medium — requires SQL storage, dashboard setup, and
+                job definition classes.
+
+15. Serilog (Structured Logging)
+    ────────────────────────────
+    Status:     💡 Recommended
+    Type:       NuGet Package (server-side)
+    Package:    Serilog.AspNetCore, Serilog.Sinks.File, Serilog.Sinks.Seq
+    Purpose:    Structured, queryable application logging.
+    Use Cases:  - Audit trail for user actions (beyond AuditLog table)
+                - Error tracking and diagnostics
+                - Performance monitoring (request duration logging)
+                - Financial transaction logging for compliance
+                - Debug logging with context (user, company, module)
+    Effort:     Low — drop-in replacement for built-in logging,
+                add to Program.cs with minimal config changes.
+
+16. FluentValidation (Server-Side Validation)
+    ──────────────────────────────────────────
+    Status:     💡 Recommended
+    Type:       NuGet Package (server-side)
+    Package:    FluentValidation.AspNetCore
+    Purpose:    Fluent, testable server-side validation rules.
+    Use Cases:  - Product creation/update validation
+                - Production batch validation (date ranges, quantities)
+                - Financial entry validation (balanced journals)
+                - Equipment maintenance record validation
+                - Subscription payment validation
+    Effort:     Low-Medium — create validator classes per model,
+                register in DI, replaces scattered if-checks.
+
+17. AutoMapper (Object Mapping)
+    ────────────────────────────
+    Status:     💡 Recommended
+    Type:       NuGet Package (server-side)
+    Package:    AutoMapper
+    Purpose:    Automatic mapping between models and view models.
+    Use Cases:  - Map Entity → ViewModel (e.g., ProductionBatch → BatchVM)
+                - Map form inputs → domain models
+                - Reduce boilerplate code in controllers
+                - Consistent mapping rules across modules
+    Effort:     Low — create mapping profiles, register in DI,
+                replace manual property assignments.
+
+18. MiniExcel (Lightweight Excel)
+    ─────────────────────────────
+    Status:     💡 Recommended (alternative to ClosedXML)
+    Type:       NuGet Package (server-side)
+    Package:    MiniExcel
+    Purpose:    Fast, low-memory Excel read/write.
+    Use Cases:  - Same as ClosedXML but optimized for large datasets
+                - Streaming export for large inventory/production reports
+                - Template-based Excel generation
+    Effort:     Low — minimal API, ideal for simple export scenarios.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ SUMMARY TABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ #   API/Library             Category           Status
+ ──  ──────────────────────  ─────────────────  ──────────────
+  1  PayMongo API            Payment            ✅ Implemented
+  2  SMTP Email              Notifications      ✅ Implemented
+  3  Chart.js 4.4.1          Data Visualization ✅ Implemented
+  4  FullCalendar.js 6.1.15  Calendar/Schedule  ✅ Implemented
+  5  Entity Framework Core   ORM / Data Access  ✅ Implemented
+  6  ASP.NET Core Identity   Authentication     ✅ Implemented
+  7  Bootstrap 5             UI Framework       ✅ Implemented
+  8  Bootstrap Icons         Icons              ✅ Implemented
+  9  jQuery                  DOM/AJAX           ✅ Implemented
+ 10  SignalR                 Real-Time          💡 Recommended
+ 11  ClosedXML / EPPlus      Excel Export       💡 Recommended
+ 12  QuestPDF                PDF Generation     💡 Recommended
+ 13  ZXing.NET               Barcode/QR Code    💡 Recommended
+ 14  Hangfire                Job Scheduling     💡 Recommended
+ 15  Serilog                 Structured Logging 💡 Recommended
+ 16  FluentValidation        Validation         💡 Recommended
+ 17  AutoMapper              Object Mapping     💡 Recommended
+ 18  MiniExcel               Lightweight Excel  💡 Recommended
+
+================================================================================
+ END OF DOCUMENT
+================================================================================

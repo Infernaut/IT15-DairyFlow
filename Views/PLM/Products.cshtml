@@ -105,19 +105,29 @@
                                             var badgeClass = product.LifecycleStatus switch
                                             {
                                                 "Active" => "bg-success",
+                                                "approved" => "bg-success",
                                                 "Development" => "bg-info",
+                                                "underreview" => "bg-warning text-dark",
+                                                "In Production" => "bg-primary",
+                                                "Produced" => "bg-info",
                                                 "Discontinued" => "bg-warning",
                                                 "Archived" => "bg-secondary",
                                                 _ => "bg-secondary"
                                             };
+                                            var badgeLabel = product.LifecycleStatus switch
+                                            {
+                                                "approved" => "Approved",
+                                                "underreview" => "Under Review",
+                                                _ => product.LifecycleStatus ?? "Unknown"
+                                            };
                                         }
-                                        <span class="badge @badgeClass">@(product.LifecycleStatus ?? "Unknown")</span>
+                                        <span class="badge @badgeClass">@badgeLabel</span>
                                     </td>
                                     <td class="text-muted">@product.UserEmail</td>
                                     <td class="text-end px-4">
-                                        <button class="btn btn-sm btn-outline-primary me-1" onclick="event.stopPropagation(); viewProductDetail(@product.ProductID)">
-                                            <i class="bi bi-eye"></i>
-                                        </button>
+                                        <a class="btn btn-sm btn-outline-success me-1" href="@Url.Action("Formulation", "PLM", new { productId = product.ProductID })" onclick="event.stopPropagation();" title="Formulation">
+                                            <i class="bi bi-list-check"></i>
+                                        </a>
                                         <button class="btn btn-sm btn-outline-secondary me-1" onclick="event.stopPropagation(); editProduct(@product.ProductID)">
                                             <i class="bi bi-pencil"></i>
                                         </button>
@@ -430,39 +440,31 @@
         }
 
         async function archiveProduct(productId, productName) {
-            if (!confirm(`Are you sure you want to archive "${productName}"?`)) {
-                return;
-            }
+            showConfirmModal(`Are you sure you want to archive "${productName}"?`, async () => {
+                try {
+                    const response = await fetch(`@Url.Action("ArchiveProduct", "PLM")/${productId}`, {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        }
+                    });
 
-            try {
-                const response = await fetch(`@Url.Action("ArchiveProduct", "PLM")/${productId}`, {
-                    method: 'POST',
-                    headers: {
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    if (response.ok) {
+                        const result = await response.json();
+                        showToast('success', result.message);
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        showToast('error', 'Failed to archive product');
                     }
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    showToast('success', result.message);
-                    setTimeout(() => window.location.reload(), 1000);
-                } else {
-                    showToast('error', 'Failed to archive product');
+                } catch (error) {
+                    showToast('error', 'An error occurred');
+                    console.error(error);
                 }
-            } catch (error) {
-                showToast('error', 'An error occurred');
-                console.error(error);
-            }
+            });
         }
 
         function showToast(type, message) {
-            // Simple toast notification
-            const toast = document.createElement('div');
-            toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed top-0 end-0 m-3`;
-            toast.style.zIndex = '9999';
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+            showGlobalToast(type, message);
         }
     </script>
 }

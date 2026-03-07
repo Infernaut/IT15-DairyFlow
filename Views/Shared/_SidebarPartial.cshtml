@@ -6,6 +6,7 @@
 @{
     // Helper to check current controller for auto-expanding menus
     string currentController = ViewContext.RouteData.Values["Controller"]?.ToString() ?? "";
+    string currentAction = ViewContext.RouteData.Values["Action"]?.ToString() ?? "";
 }
 
 <style>
@@ -14,13 +15,54 @@
         max-width: 280px;
         background: #ffffff;
         border-right: 1px solid #eef2f7;
-        height: calc(100vh - 70px);
-        position: sticky;
-        top: 70px;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: 0;
         display: flex;
         flex-direction: column;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 1020;
+        z-index: 1040;
+        box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+    }
+
+    .sidebar-brand {
+        display: flex;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #eef2f7;
+        min-height: 70px;
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    }
+
+    .sidebar-brand-icon {
+        width: 40px;
+        height: 40px;
+        background: rgba(255,255,255,0.2);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+    }
+
+    .sidebar-brand-icon i {
+        font-size: 1.5rem;
+        color: #fff;
+    }
+
+    .sidebar-brand-text {
+        color: #fff;
+        font-weight: 700;
+        font-size: 1.25rem;
+        letter-spacing: -0.5px;
+    }
+
+    .sidebar-brand-subtitle {
+        color: rgba(255,255,255,0.7);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
 
     .sidebar-scroll-container {
@@ -99,11 +141,26 @@
         .submenu-link:hover {
             color: #0d6efd;
         }
+
+        .submenu-link.active {
+            color: #0d6efd;
+            font-weight: 600;
+        }
 </style>
 
 <div class="sidebar d-none d-md-flex">
-    <div class="sidebar-scroll-container">
+    <!-- Brand / Logo -->
+    <div class="sidebar-brand">
+        <div class="sidebar-brand-icon">
+            <i class="bi bi-droplet-half"></i>
+        </div>
+        <div>
+            <div class="sidebar-brand-text">DairyFlow</div>
+            <div class="sidebar-brand-subtitle">ERP System</div>
+        </div>
+    </div>
 
+    <div class="sidebar-scroll-container">
         <a class="sidebar-link @(currentController == "Home" ? "active" : "")" asp-controller="Home" asp-action="Index">
             <span><i class="bi bi-grid-1x2-fill me-2"></i> Dashboard</span>
         </a>
@@ -115,11 +172,9 @@
         </a>
         <div class="collapse @(currentController == "PLM" ? "show" : "")" id="plmMenu">
             <div class="sidebar-submenu">
-                <a class="submenu-link" asp-controller="PLM" asp-action="Products">Products</a>
-                <a class="submenu-link" asp-controller="PLM" asp-action="Archives">Archives</a>
-                <a class="submenu-link" href="#">Product Versions</a>
-                <a class="submenu-link" href="#">Formulations</a>
-                <a class="submenu-link" href="#">Lifecycle Status</a>
+                <a class="submenu-link @(currentAction == "Products" ? "active" : "")" asp-controller="PLM" asp-action="Products">Products</a>
+                <a class="submenu-link @(currentAction == "Archives" ? "active" : "")" asp-controller="PLM" asp-action="Archives">Archives</a>
+                <a class="submenu-link @(currentAction == "Formulation" ? "active" : "")" asp-controller="PLM" asp-action="Products">Formulations</a>
             </div>
         </div>
 
@@ -130,11 +185,17 @@
         </a>
         <div class="collapse @(currentController == "Production" ? "show" : "")" id="prodMenu">
             <div class="sidebar-submenu">
-                <a class="submenu-link" asp-controller="Production" asp-action="Batches">Production Batches</a>
-                <a class="submenu-link" asp-controller="Production" asp-action="Schedule">Production Schedule</a>
-                <a class="submenu-link" asp-controller="Production" asp-action="Costs">Production Cost</a>
+                <a class="submenu-link @(currentAction == "Batches" ? "active" : "")" asp-controller="Production" asp-action="Batches">Production Batches</a>
+                <a class="submenu-link @(currentAction == "Schedule" ? "active" : "")" asp-controller="Production" asp-action="Schedule">Production Schedule</a>
+                <a class="submenu-link @(currentAction == "Costs" ? "active" : "")" asp-controller="Production" asp-action="Costs">Production Costs</a>
+                <a class="submenu-link @(currentAction == "History" ? "active" : "")" asp-controller="Production" asp-action="History">Production History</a>
+                <a class="submenu-link @(currentAction == "Suppliers" ? "active" : "")" asp-controller="Production" asp-action="Suppliers">Suppliers</a>
             </div>
         </div>
+
+        <a class="sidebar-link @(currentController == "Equipment" ? "active" : "")" asp-controller="Equipment" asp-action="Index">
+            <span><i class="bi bi-gear-fill me-2"></i> Equipment</span>
+        </a>
 
         <div class="sidebar-section-label">Quality & Compliance</div>
         <a class="sidebar-link" data-bs-toggle="collapse" href="#qmMenu">
@@ -143,9 +204,9 @@
         </a>
         <div class="collapse @(currentController == "QM" ? "show" : "")" id="qmMenu">
             <div class="sidebar-submenu">
-                <a class="submenu-link" asp-controller="QM" asp-action="Inspections">Quality Inspections</a>
-                <a class="submenu-link" asp-controller="QM" asp-action="Results">Inspection Results</a>
-                <a class="submenu-link" asp-controller="QM" asp-action="NonConformance">Non-Conformance Reports</a>
+                <a class="submenu-link @(currentAction == "Inspections" ? "active" : "")" asp-controller="QM" asp-action="Inspections">Quality Inspections</a>
+                <a class="submenu-link @(currentAction == "Results" ? "active" : "")" asp-controller="QM" asp-action="Results">Inspection Results</a>
+                <a class="submenu-link @(currentAction == "NonConformance" ? "active" : "")" asp-controller="QM" asp-action="NonConformance">Non-Conformance Reports</a>
             </div>
         </div>
 
@@ -156,26 +217,15 @@
         </a>
         <div class="collapse @(currentController == "Inventory" ? "show" : "")" id="invMenu">
             <div class="sidebar-submenu">
-                <a class="submenu-link" href="#">Raw Materials</a>
-                <a class="submenu-link" href="#">Finished Goods</a>
-                <a class="submenu-link" href="#">Stock Levels</a>
-                <a class="submenu-link" href="#">Expiry Alerts</a>
+                <a class="submenu-link @(currentAction == "Index" && currentController == "Inventory" ? "active" : "")" asp-controller="Inventory" asp-action="Index">Finished Goods</a>
+                <a class="submenu-link @(currentAction == "RawMaterials" ? "active" : "")" asp-controller="Inventory" asp-action="RawMaterials">Raw Materials</a>
             </div>
         </div>
 
         <div class="sidebar-section-label">Enterprise</div>
-        <a class="sidebar-link" data-bs-toggle="collapse" href="#finMenu">
+        <a class="sidebar-link @(currentController == "Finance" ? "active" : "")" asp-controller="Finance" asp-action="Index">
             <span><i class="bi bi-calculator me-2"></i> Finance</span>
-            <i class="bi bi-chevron-down small opacity-50"></i>
         </a>
-        <div class="collapse @(currentController == "Finance" ? "show" : "")" id="finMenu">
-            <div class="sidebar-submenu">
-                <a class="submenu-link" href="#">Expenses</a>
-                <a class="submenu-link" href="#">Budgets</a>
-                <a class="submenu-link" href="#">Journal Entries</a>
-                <a class="submenu-link" href="#">Financial Reports</a>
-            </div>
-        </div>
 
         <div class="sidebar-section-label">Support</div>
         <a class="sidebar-link" href="#">

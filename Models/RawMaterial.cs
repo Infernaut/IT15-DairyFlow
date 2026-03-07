@@ -20,6 +20,17 @@ namespace IT15_DairyFlow.Models
         [Column(TypeName = "decimal(18, 2)")]
         public decimal? UnitCost { get; set; }
 
+        [MaxLength(50)]
+        public string? Unit { get; set; } = "kg";
+
+        public int? CurrentStock { get; set; } = 0;
+
+        public int? MinimumStock { get; set; } = 10;
+
+        public DateTime? LastRestockDate { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
         // Navigation properties
         [ForeignKey("SupplierID")]
         public virtual Supplier Supplier { get; set; } = null!;

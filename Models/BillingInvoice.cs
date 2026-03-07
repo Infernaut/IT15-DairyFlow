@@ -14,6 +14,8 @@ namespace IT15_DairyFlow.Models
         [Column(TypeName = "decimal(18, 2)")]
         public decimal? Amount { get; set; }
 
+        public DateTime? InvoiceDate { get; set; }
+
         public DateTime? DueDate { get; set; }
 
         [MaxLength(50)]

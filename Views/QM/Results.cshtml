@@ -25,8 +25,8 @@
                 <div class="col-md-4">
                     <select class="form-select" id="resultFilter">
                         <option value="">All Results</option>
-                        <option value="pass">Pass</option>
-                        <option value="fail">Fail</option>
+                        <option value="pass">Passed</option>
+                        <option value="fail">Failed</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -47,14 +47,13 @@
                         <th>Result</th>
                         <th>Inspector</th>
                         <th>Tests Performed</th>
-                        <th class="text-end px-4">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (!Model.Results.Any())
                     {
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-5">
+                            <td colspan="4" class="text-center text-muted py-5">
                                 <i class="bi bi-file-earmark-check display-4 d-block mb-3 opacity-25"></i>
                                 <p class="mb-0">No inspection results found.</p>
                             </td>
@@ -74,8 +73,15 @@
                                             "fail" => "bg-danger",
                                             _ => "bg-secondary"
                                         };
+                                        var resultLabel = result.Result switch
+                                        {
+                                            "pass" => "Passed",
+                                            "fail" => "Failed",
+                                            "N/A" => "N/A",
+                                            _ => result.Result
+                                        };
                                     }
-                                    <span class="badge @resultBadge">@result.Result</span>
+                                    <span class="badge @resultBadge">@resultLabel</span>
                                 </td>
                                 <td>@result.UserName</td>
                                 <td>
@@ -87,11 +93,6 @@
                                     {
                                         <span class="text-muted">—</span>
                                     }
-                                </td>
-                                <td class="text-end px-4">
-                                    <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); viewResultDetail(@result.QualityInspectionID)">
-                                        <i class="bi bi-eye"></i> View
-                                    </button>
                                 </td>
                             </tr>
                         }
@@ -214,9 +215,14 @@
             }
         }
 
+        function formatResult(val) {
+            const map = { 'pass': 'Passed', 'fail': 'Failed', 'N/A': 'N/A', 'Pending': 'Pending' };
+            return map[val] || val;
+        }
+
         function displayResultDetail(result) {
             document.getElementById('resultProductName').value = result.productName;
-            document.getElementById('resultValue').value = result.result;
+            document.getElementById('resultValue').value = formatResult(result.result);
             document.getElementById('resultInspector').value = result.userName;
 
             // Reset all checkboxes
@@ -240,8 +246,7 @@
         }
 
         function showToast(type, message) {
-            // Implement toast notification
-            alert(message);
+            showGlobalToast(type, message);
         }
     </script>
 }

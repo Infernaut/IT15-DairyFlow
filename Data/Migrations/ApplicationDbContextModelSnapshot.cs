@@ -120,7 +120,7 @@ namespace IT15_DairyFlow.Data.Migrations
 
                     b.HasIndex("UserID");
 
-                    b.ToTable("AuditLogs");
+                    b.ToTable("AuditLog");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.BillingInvoice", b =>
@@ -140,6 +140,9 @@ namespace IT15_DairyFlow.Data.Migrations
                     b.Property<DateTime?>("DueDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("InvoiceDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("PaymentStatus")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -148,7 +151,7 @@ namespace IT15_DairyFlow.Data.Migrations
 
                     b.HasIndex("CompanyID");
 
-                    b.ToTable("BillingInvoices");
+                    b.ToTable("BillingInvoice");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.Budget", b =>
@@ -173,7 +176,7 @@ namespace IT15_DairyFlow.Data.Migrations
 
                     b.HasIndex("CompanyID");
 
-                    b.ToTable("Budgets");
+                    b.ToTable("Budget");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.Company", b =>
@@ -200,7 +203,7 @@ namespace IT15_DairyFlow.Data.Migrations
 
                     b.HasIndex("SubscriptionID");
 
-                    b.ToTable("Companies");
+                    b.ToTable("Company");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.Equipment", b =>
@@ -213,6 +216,9 @@ namespace IT15_DairyFlow.Data.Migrations
 
                     b.Property<int>("CompanyID")
                         .HasColumnType("int");
+
+                    b.Property<decimal?>("Cost")
+                        .HasColumnType("decimal(18, 2)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -277,7 +283,7 @@ namespace IT15_DairyFlow.Data.Migrations
 
                     b.HasIndex("UserID");
 
-                    b.ToTable("Expenses");
+                    b.ToTable("Expense");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.Inventory", b =>
@@ -313,7 +319,7 @@ namespace IT15_DairyFlow.Data.Migrations
 
                     b.HasIndex("UserID");
 
-                    b.ToTable("Inventories");
+                    b.ToTable("Inventory");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.JournalEntry", b =>
@@ -340,7 +346,122 @@ namespace IT15_DairyFlow.Data.Migrations
 
                     b.HasIndex("CompanyID");
 
-                    b.ToTable("JournalEntries");
+                    b.ToTable("JournalEntry");
+                });
+
+            modelBuilder.Entity("IT15_DairyFlow.Models.NonConformance", b =>
+                {
+                    b.Property<int>("NonConformanceID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("NonConformanceID"));
+
+                    b.Property<int?>("AffectedQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AssignedToUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("ClosedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CompanyID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CorrectiveAction")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<decimal?>("CostImpact")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Disposition")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ImmediateAction")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("NCRNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("PreventiveAction")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int?>("ProductionBatchID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("QualityInspectionID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReportedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("ReportedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RootCause")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("VerifiedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("VerifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("NonConformanceID");
+
+                    b.HasIndex("AssignedToUserId");
+
+                    b.HasIndex("CompanyID");
+
+                    b.HasIndex("ProductionBatchID");
+
+                    b.HasIndex("QualityInspectionID");
+
+                    b.HasIndex("ReportedByUserId");
+
+                    b.HasIndex("VerifiedByUserId");
+
+                    b.ToTable("NonConformance");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.Product", b =>
@@ -384,6 +505,57 @@ namespace IT15_DairyFlow.Data.Migrations
                     b.HasIndex("UserID");
 
                     b.ToTable("Product");
+                });
+
+            modelBuilder.Entity("IT15_DairyFlow.Models.ProductFormulation", b =>
+                {
+                    b.Property<int>("FormulationID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FormulationID"));
+
+                    b.Property<int>("CompanyID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ProcessInstructions")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("ProcessOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18, 4)");
+
+                    b.Property<int>("RawMaterialID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("FormulationID");
+
+                    b.HasIndex("CompanyID");
+
+                    b.HasIndex("ProductID");
+
+                    b.HasIndex("RawMaterialID");
+
+                    b.ToTable("ProductFormulation");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.ProductionBatch", b =>
@@ -465,7 +637,7 @@ namespace IT15_DairyFlow.Data.Migrations
 
                     b.HasIndex("ProductionBatchID");
 
-                    b.ToTable("ProductionCosts");
+                    b.ToTable("ProductionCost");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.QualityInspection", b =>
@@ -476,20 +648,82 @@ namespace IT15_DairyFlow.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("QualityInspectionID"));
 
+                    b.Property<string>("AcceptableRanges")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal?>("Acidity")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<bool?>("AntibioticTest")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("BacterialCount")
+                        .HasColumnType("int");
+
                     b.Property<int>("CompanyID")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("CompletedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CorrectiveAction")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal?>("FatContent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime?>("InspectionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("InspectionType")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal?>("MoistureContent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<decimal?>("PHLevel")
+                        .HasPrecision(4, 2)
+                        .HasColumnType("decimal(4,2)");
+
                     b.Property<int>("ProductionBatchID")
                         .HasColumnType("int");
+
+                    b.Property<decimal?>("ProteinContent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<string>("Result")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("SampleLot")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("SampleSize")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SomaticCellCount")
+                        .HasColumnType("int");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal?>("Temperature")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<string>("Type")
                         .HasMaxLength(500)
@@ -508,7 +742,7 @@ namespace IT15_DairyFlow.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("QualityInspections");
+                    b.ToTable("QualityInspection");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.RawMaterial", b =>
@@ -522,12 +756,28 @@ namespace IT15_DairyFlow.Data.Migrations
                     b.Property<int>("CompanyID")
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CurrentStock")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("LastRestockDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("MaterialName")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.Property<int?>("MinimumStock")
+                        .HasColumnType("int");
+
                     b.Property<int>("SupplierID")
                         .HasColumnType("int");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<decimal?>("UnitCost")
                         .HasColumnType("decimal(18, 2)");
@@ -538,7 +788,7 @@ namespace IT15_DairyFlow.Data.Migrations
 
                     b.HasIndex("SupplierID");
 
-                    b.ToTable("RawMaterials");
+                    b.ToTable("RawMaterial");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.Subscription", b =>
@@ -562,7 +812,7 @@ namespace IT15_DairyFlow.Data.Migrations
 
                     b.HasKey("SubscriptionID");
 
-                    b.ToTable("Subscriptions");
+                    b.ToTable("Subscription");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.Supplier", b =>
@@ -579,19 +829,20 @@ namespace IT15_DairyFlow.Data.Migrations
                     b.Property<string>("ContactInfo")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Name")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
                     b.Property<string>("Status")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("SupplierName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)")
+                        .HasColumnName("Name");
 
                     b.HasKey("SupplierID");
 
                     b.HasIndex("CompanyID");
 
-                    b.ToTable("Suppliers");
+                    b.ToTable("Supplier");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -867,6 +1118,52 @@ namespace IT15_DairyFlow.Data.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("IT15_DairyFlow.Models.NonConformance", b =>
+                {
+                    b.HasOne("IT15_DairyFlow.Models.ApplicationUser", "AssignedToUser")
+                        .WithMany()
+                        .HasForeignKey("AssignedToUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("IT15_DairyFlow.Models.Company", "Company")
+                        .WithMany("NonConformances")
+                        .HasForeignKey("CompanyID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IT15_DairyFlow.Models.ProductionBatch", "ProductionBatch")
+                        .WithMany()
+                        .HasForeignKey("ProductionBatchID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("IT15_DairyFlow.Models.QualityInspection", "QualityInspection")
+                        .WithMany("NonConformances")
+                        .HasForeignKey("QualityInspectionID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("IT15_DairyFlow.Models.ApplicationUser", "ReportedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReportedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IT15_DairyFlow.Models.ApplicationUser", "VerifiedByUser")
+                        .WithMany()
+                        .HasForeignKey("VerifiedByUserId");
+
+                    b.Navigation("AssignedToUser");
+
+                    b.Navigation("Company");
+
+                    b.Navigation("ProductionBatch");
+
+                    b.Navigation("QualityInspection");
+
+                    b.Navigation("ReportedByUser");
+
+                    b.Navigation("VerifiedByUser");
+                });
+
             modelBuilder.Entity("IT15_DairyFlow.Models.Product", b =>
                 {
                     b.HasOne("IT15_DairyFlow.Models.Company", "Company")
@@ -884,6 +1181,33 @@ namespace IT15_DairyFlow.Data.Migrations
                     b.Navigation("Company");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("IT15_DairyFlow.Models.ProductFormulation", b =>
+                {
+                    b.HasOne("IT15_DairyFlow.Models.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IT15_DairyFlow.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IT15_DairyFlow.Models.RawMaterial", "RawMaterial")
+                        .WithMany()
+                        .HasForeignKey("RawMaterialID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("RawMaterial");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.ProductionBatch", b =>
@@ -943,13 +1267,13 @@ namespace IT15_DairyFlow.Data.Migrations
             modelBuilder.Entity("IT15_DairyFlow.Models.QualityInspection", b =>
                 {
                     b.HasOne("IT15_DairyFlow.Models.Company", "Company")
-                        .WithMany("QualityInspections")
+                        .WithMany("QualityInspection")
                         .HasForeignKey("CompanyID")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("IT15_DairyFlow.Models.ProductionBatch", "ProductionBatch")
-                        .WithMany("QualityInspections")
+                        .WithMany("QualityInspection")
                         .HasForeignKey("ProductionBatchID")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -1064,13 +1388,15 @@ namespace IT15_DairyFlow.Data.Migrations
 
                     b.Navigation("JournalEntries");
 
+                    b.Navigation("NonConformances");
+
                     b.Navigation("ProductionBatches");
 
                     b.Navigation("ProductionCosts");
 
                     b.Navigation("Products");
 
-                    b.Navigation("QualityInspections");
+                    b.Navigation("QualityInspection");
 
                     b.Navigation("RawMaterials");
 
@@ -1093,7 +1419,12 @@ namespace IT15_DairyFlow.Data.Migrations
                 {
                     b.Navigation("ProductionCosts");
 
-                    b.Navigation("QualityInspections");
+                    b.Navigation("QualityInspection");
+                });
+
+            modelBuilder.Entity("IT15_DairyFlow.Models.QualityInspection", b =>
+                {
+                    b.Navigation("NonConformances");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.Subscription", b =>

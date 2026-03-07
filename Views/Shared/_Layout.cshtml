@@ -18,6 +18,7 @@
     <style>
         :root {
             --blue-main: #0d6efd;
+            --sidebar-width: 280px;
         }
 
         body {
@@ -34,17 +35,63 @@
             height: 70px;
             border-bottom: 1px solid #eef2f7 !important;
             z-index: 1030;
+            margin-left: 0;
         }
 
-        /* Hide Scrollbars while allowing functionality */
-        main[role="main"], .sidebar-scroll-container {
+        /* When sidebar is present, push content */
+        .has-sidebar .navbar-custom {
+            margin-left: var(--sidebar-width);
+        }
+
+        /* Visible navbar borderline matching sidebar brand width */
+        .has-sidebar .navbar-custom::before {
+            content: '';
+            position: absolute;
+            left: calc(var(--sidebar-width) * -1);
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100%;
+            background: linear-gradient(135deg, #0d6efd, #0a58ca);
+            border-bottom: 3px solid #0a58ca;
+            z-index: -1;
+        }
+
+        .has-sidebar .main-wrapper {
+            margin-left: var(--sidebar-width);
+        }
+
+        /* Right-side scrollbar for main content area */
+        main[role="main"] {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0,0,0,0.18) transparent;
+        }
+
+        main[role="main"]::-webkit-scrollbar {
+            width: 7px;
+        }
+
+        main[role="main"]::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        main[role="main"]::-webkit-scrollbar-thumb {
+            background-color: rgba(0,0,0,0.18);
+            border-radius: 6px;
+        }
+
+        main[role="main"]::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(0,0,0,0.3);
+        }
+
+        /* Hide Scrollbars on sidebar while allowing functionality */
+        .sidebar-scroll-container {
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
 
-            main[role="main"]::-webkit-scrollbar, .sidebar-scroll-container::-webkit-scrollbar {
-                display: none;
-            }
+        .sidebar-scroll-container::-webkit-scrollbar {
+            display: none;
+        }
 
         .main-wrapper {
             display: flex;
@@ -65,13 +112,16 @@
         }
     </style>
 </head>
-<body>
+<body class="@(SignInManager.IsSignedIn(User) ? "has-sidebar" : "")">
     <header>
         <nav class="navbar navbar-expand-sm navbar-light bg-white navbar-custom shadow-sm">
             <div class="container-fluid">
-                <a class="navbar-brand fw-bold text-primary" asp-controller="Home" asp-action="Index">
-                    <i class="bi bi-droplet-half me-2"></i>DairyFlow
-                </a>
+                @if (!SignInManager.IsSignedIn(User))
+                {
+                    <a class="navbar-brand fw-bold text-primary" asp-controller="Home" asp-action="Index">
+                        <i class="bi bi-droplet-half me-2"></i>DairyFlow
+                    </a>
+                }
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         @* LOGIC: Only show Home/Privacy when NOT logged in *@
@@ -128,8 +178,75 @@
         </main>
     </div>
 
+    <!-- Global Confirm Modal -->
+    <div class="modal fade" id="globalConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title fw-bold" id="globalConfirmTitle">
+                        <i class="bi bi-exclamation-triangle text-warning me-2"></i>Confirm Action
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <p class="mb-0 text-muted" id="globalConfirmMessage">Are you sure?</p>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="globalConfirmBtn">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Error Toast Container -->
+    <div id="globalToastContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global confirm modal helper
+        function showConfirmModal(message, onConfirm, title) {
+            const modalEl = document.getElementById('globalConfirmModal');
+            document.getElementById('globalConfirmMessage').textContent = message;
+            if (title) {
+                document.getElementById('globalConfirmTitle').innerHTML =
+                    '<i class="bi bi-exclamation-triangle text-warning me-2"></i>' + title;
+            }
+            const confirmBtn = document.getElementById('globalConfirmBtn');
+            const newBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
+            newBtn.addEventListener('click', function () {
+                bootstrap.Modal.getInstance(modalEl).hide();
+                onConfirm();
+            });
+            new bootstrap.Modal(modalEl).show();
+        }
+
+        // Global showToast helper
+        function showGlobalToast(type, message) {
+            const container = document.getElementById('globalToastContainer');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            const icon = type === 'success' ? 'bi-check-circle' : 'bi-exclamation-circle';
+            const toast = document.createElement('div');
+            toast.className = `alert ${alertClass} d-flex align-items-center shadow-sm mb-2 py-2 px-3`;
+            toast.style.minWidth = '250px';
+            toast.style.animation = 'fadeIn 0.3s ease';
+            toast.innerHTML = `<i class="bi ${icon} me-2"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.transition = 'opacity 0.3s ease';
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Global unhandled error handlers
+        window.addEventListener('unhandledrejection', function (event) {
+            console.error('Unhandled promise rejection:', event.reason);
+            showGlobalToast('error', 'An unexpected error occurred. Please try again.');
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -1,0 +1,118 @@
+@model IEnumerable<IT15_DairyFlow.Models.Production.ProductionHistoryItemViewModel>
+
+@{
+    ViewData["Title"] = "Production History";
+}
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">Production History</h2>
+            <p class="text-muted mb-0">View all completed production batches and their details.</p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-container">
+            <table class="table table-hover align-middle mb-0" id="historyTable">
+                <thead class="table-light">
+                    <tr>
+                        <th class="px-4 sortable" data-col="0" data-type="string">Batch Code <i class="bi bi-chevron-expand small opacity-50"></i></th>
+                        <th class="sortable" data-col="1" data-type="string">Product <i class="bi bi-chevron-expand small opacity-50"></i></th>
+                        <th class="sortable" data-col="2" data-type="string">Equipment <i class="bi bi-chevron-expand small opacity-50"></i></th>
+                        <th class="sortable" data-col="3" data-type="string">Operator <i class="bi bi-chevron-expand small opacity-50"></i></th>
+                        <th class="sortable" data-col="4" data-type="number">Quantity <i class="bi bi-chevron-expand small opacity-50"></i></th>
+                        <th class="sortable" data-col="5" data-type="date">Start Date <i class="bi bi-chevron-expand small opacity-50"></i></th>
+                        <th class="sortable" data-col="6" data-type="date">End Date <i class="bi bi-chevron-expand small opacity-50"></i></th>
+                        <th class="sortable" data-col="7" data-type="number">Total Cost <i class="bi bi-chevron-expand small opacity-50"></i></th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    @if (!Model.Any())
+                    {
+                        <tr class="empty-row">
+                            <td colspan="9" class="text-center text-muted py-5">
+                                <i class="bi bi-inbox display-4 d-block mb-3 opacity-25"></i>
+                                <p class="mb-0">No completed production batches found.</p>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var batch in Model)
+                        {
+                            <tr>
+                                <td class="px-4 fw-semibold">@batch.BatchCode</td>
+                                <td>@batch.ProductName</td>
+                                <td>@batch.EquipmentName</td>
+                                <td>@batch.UserName</td>
+                                <td>@batch.Quantity</td>
+                                <td data-sort="@(batch.StartDate?.ToString("yyyy-MM-dd") ?? "")">@(batch.StartDate?.ToString("MMM dd, yyyy") ?? "-")</td>
+                                <td data-sort="@(batch.EndDate?.ToString("yyyy-MM-dd") ?? "")">@(batch.EndDate?.ToString("MMM dd, yyyy") ?? "-")</td>
+                                <td data-sort="@(batch.TotalCost?.ToString("F2") ?? "0")">@(batch.TotalCost?.ToString("C") ?? "-")</td>
+                                <td><span class="badge bg-success">@batch.Status</span></td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const table = document.getElementById('historyTable');
+            const tbody = document.getElementById('historyTableBody');
+            const headers = table.querySelectorAll('th.sortable');
+            let currentSort = { col: -1, asc: true };
+
+            headers.forEach(th => {
+                th.style.cursor = 'pointer';
+                th.style.userSelect = 'none';
+                th.addEventListener('click', function () {
+                    const col = parseInt(this.dataset.col);
+                    const type = this.dataset.type;
+                    const asc = currentSort.col === col ? !currentSort.asc : true;
+                    currentSort = { col, asc };
+
+                    // Update header icons
+                    headers.forEach(h => {
+                        const icon = h.querySelector('i');
+                        icon.className = 'bi bi-chevron-expand small opacity-50';
+                    });
+                    const icon = this.querySelector('i');
+                    icon.className = asc ? 'bi bi-chevron-up small' : 'bi bi-chevron-down small';
+
+                    // Get rows (skip empty-row)
+                    const rows = Array.from(tbody.querySelectorAll('tr:not(.empty-row)'));
+                    if (rows.length === 0) return;
+
+                    rows.sort((a, b) => {
+                        const cellA = a.cells[col];
+                        const cellB = b.cells[col];
+                        let valA, valB;
+
+                        if (type === 'date') {
+                            valA = cellA.dataset.sort || '';
+                            valB = cellB.dataset.sort || '';
+                            return asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                        } else if (type === 'number') {
+                            valA = parseFloat((cellA.dataset.sort || cellA.textContent).replace(/[^\d.-]/g, '')) || 0;
+                            valB = parseFloat((cellB.dataset.sort || cellB.textContent).replace(/[^\d.-]/g, '')) || 0;
+                            return asc ? valA - valB : valB - valA;
+                        } else {
+                            valA = cellA.textContent.trim().toLowerCase();
+                            valB = cellB.textContent.trim().toLowerCase();
+                            return asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                        }
+                    });
+
+                    rows.forEach(row => tbody.appendChild(row));
+                });
+            });
+        })();
+    </script>
+}

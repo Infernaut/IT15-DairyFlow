@@ -1,0 +1,257 @@
+@model IT15_DairyFlow.Models.Sub.SubscriptionPlansViewModel
+@{
+    ViewData["Title"] = "Choose Your Plan — DairyFlow ERP";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<style>
+    :root {
+        --blue-main: #0d6efd;
+        --blue-soft: #4dabf7;
+        --blue-sky: #e7f3ff;
+        --blue-deep: #0b5ed7;
+        --green-accent: #20c997;
+        --border-soft: #dbe7f3;
+    }
+
+    body {
+        background: linear-gradient(180deg, #f8fbff, #eef6ff);
+        min-height: 100vh;
+    }
+
+    .plans-container {
+        max-width: 1000px;
+        margin: 3rem auto;
+    }
+
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .step-dot {
+        width: 32px;
+        height: 4px;
+        border-radius: 2px;
+        background: #dee2e6;
+    }
+
+    .step-dot.active {
+        background: linear-gradient(135deg, var(--green-accent), var(--blue-main));
+    }
+
+    .plan-card {
+        background: #ffffff;
+        border: 2px solid var(--border-soft);
+        border-radius: 20px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        height: 100%;
+    }
+
+    .plan-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 16px 40px rgba(13, 110, 253, 0.12);
+        border-color: var(--blue-soft);
+    }
+
+    .plan-card.popular {
+        border-color: var(--blue-main);
+        box-shadow: 0 8px 30px rgba(13, 110, 253, 0.15);
+    }
+
+    .plan-badge {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    .plan-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 16px;
+    }
+
+    .plan-icon.trial { background: linear-gradient(135deg, #ffeaa7, #fdcb6e); color: #d35400; }
+    .plan-icon.monthly { background: linear-gradient(135deg, var(--blue-soft), var(--blue-main)); color: white; }
+    .plan-icon.annual { background: linear-gradient(135deg, var(--green-accent), #0ca678); color: white; }
+
+    .plan-price {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: #212529;
+        line-height: 1;
+    }
+
+    .plan-price .currency {
+        font-size: 1.2rem;
+        font-weight: 600;
+        vertical-align: top;
+        margin-right: 2px;
+    }
+
+    .plan-price .cycle {
+        font-size: 0.85rem;
+        font-weight: 400;
+        color: #6c757d;
+    }
+
+    .plan-features {
+        list-style: none;
+        padding: 0;
+        margin: 20px 0;
+    }
+
+    .plan-features li {
+        padding: 6px 0;
+        font-size: 0.88rem;
+        color: #495057;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .plan-features li i {
+        color: var(--green-accent);
+        font-size: 0.85rem;
+    }
+
+    .btn-plan {
+        width: 100%;
+        padding: 0.75rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+    }
+
+    .btn-plan-primary {
+        background: linear-gradient(135deg, var(--blue-soft), var(--blue-main));
+        border: none;
+        color: white;
+    }
+
+    .btn-plan-primary:hover {
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.35);
+        color: white;
+    }
+
+    .btn-plan-outline {
+        background: transparent;
+        border: 2px solid var(--blue-main);
+        color: var(--blue-main);
+    }
+
+    .btn-plan-outline:hover {
+        background: var(--blue-main);
+        color: white;
+    }
+
+    .btn-plan-success {
+        background: linear-gradient(135deg, var(--green-accent), #0ca678);
+        border: none;
+        color: white;
+    }
+
+    .btn-plan-success:hover {
+        box-shadow: 0 4px 12px rgba(32, 201, 151, 0.35);
+        color: white;
+    }
+
+    .bi {
+        display: inline-block !important;
+        line-height: 1;
+    }
+</style>
+
+<div class="container plans-container">
+    <div class="text-center mb-5">
+        <div class="step-indicator">
+            <div class="step-dot active"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+        </div>
+        <h2 class="fw-bold text-primary mb-2">Choose Your Plan</h2>
+        <p class="text-muted">Step 2 of 3 — Select the subscription that fits your dairy operations.</p>
+        <p class="text-muted small">
+            Registering as <strong class="text-primary">@Model.Email</strong>
+        </p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        @foreach (var plan in Model.Plans)
+        {
+            <div class="col-md-4">
+                <div class="plan-card @(plan.IsPopular ? "popular" : "") p-4 d-flex flex-column">
+                    @if (!string.IsNullOrEmpty(plan.BadgeText))
+                    {
+                        var badgeClass = plan.IsFreeTrial ? "bg-warning text-dark" : plan.IsPopular ? "bg-primary text-white" : "bg-success text-white";
+                        <span class="plan-badge badge @badgeClass rounded-pill px-3 py-1">@plan.BadgeText</span>
+                    }
+
+                    <div class="plan-icon @(plan.IsFreeTrial ? "trial" : plan.PlanId == "monthly" ? "monthly" : "annual")">
+                        <i class="bi @plan.Icon"></i>
+                    </div>
+
+                    <h5 class="fw-bold mb-1">@plan.PlanName</h5>
+                    <p class="text-muted small mb-3">@plan.Description</p>
+
+                    <div class="plan-price mb-1">
+                        @if (plan.IsFreeTrial)
+                        {
+                            <span>Free</span>
+                        }
+                        else
+                        {
+                            <span class="currency">₱</span>@plan.Price.ToString("N0")<span class="cycle"> / @plan.BillingCycle.ToLower()</span>
+                        }
+                    </div>
+
+                    <ul class="plan-features flex-grow-1">
+                        @foreach (var feature in plan.Features)
+                        {
+                            <li><i class="bi bi-check-circle-fill"></i> @feature</li>
+                        }
+                    </ul>
+
+                    <form asp-action="SelectPlan" asp-controller="Subscription" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="userId" value="@Model.UserId" />
+                        <input type="hidden" name="email" value="@Model.Email" />
+                        <input type="hidden" name="planId" value="@plan.PlanId" />
+
+                        @{
+                            var btnClass = plan.IsFreeTrial ? "btn-plan-outline" : plan.IsPopular ? "btn-plan-primary" : "btn-plan-success";
+                            var btnText = plan.IsFreeTrial ? "Start Free Trial" : "Select Plan";
+                            var btnIcon = plan.IsFreeTrial ? "bi-play-circle" : "bi-credit-card";
+                        }
+
+                        <button type="submit" class="btn btn-plan @btnClass">
+                            <i class="bi @btnIcon me-2"></i> @btnText
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="text-center mt-4">
+        <p class="text-muted small">
+            <i class="bi bi-shield-lock me-1"></i> All transactions are secured with PayMongo payment processing.
+        </p>
+    </div>
+</div>

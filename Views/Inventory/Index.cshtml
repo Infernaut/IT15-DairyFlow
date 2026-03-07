@@ -1,0 +1,579 @@
+@model IT15_DairyFlow.Models.InventoryVM.InventoryPageViewModel
+
+@{
+    ViewData["Title"] = "Inventory Management";
+}
+
+<div class="container-fluid p-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">Inventory Management</h2>
+            <p class="text-muted mb-0">Track stock levels, expiration dates, and inventory movements.</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
+            <i class="bi bi-plus-lg me-1"></i> Add Stock
+        </button>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-box-seam-fill text-primary fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1 small text-uppercase">Total Items</h6>
+                            <h3 class="mb-0 fw-bold">@Model.Summary.TotalItems</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-boxes text-success fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1 small text-uppercase">Total Quantity</h6>
+                            <h3 class="mb-0 fw-bold">@Model.Summary.TotalQuantity</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-exclamation-triangle-fill text-warning fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1 small text-uppercase">Low Stock</h6>
+                            <h3 class="mb-0 fw-bold">@Model.Summary.LowStockItems</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-clock-history text-danger fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1 small text-uppercase">Expiring Soon</h6>
+                            <h3 class="mb-0 fw-bold">@Model.Summary.ExpiringSoonItems</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search products...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="typeFilter">
+                        <option value="">All Types</option>
+                        <option value="Dairy">Dairy</option>
+                        <option value="Beverage">Beverage</option>
+                        <option value="Cheese">Cheese</option>
+                        <option value="Yogurt">Yogurt</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="stockFilter">
+                        <option value="">All Stock Levels</option>
+                        <option value="instock">In Stock</option>
+                        <option value="lowstock">Low Stock</option>
+                        <option value="outofstock">Out of Stock</option>
+                        <option value="expiring">Expiring Soon</option>
+                        <option value="expired">Expired</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                        <i class="bi bi-x-circle me-1"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Table -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="inventoryTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="px-4">Product</th>
+                            <th>Type</th>
+                            <th>Quantity</th>
+                            <th>Stock Status</th>
+                            <th>Expiry Date</th>
+                            <th class="text-end px-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Items.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-5">
+                                    <i class="bi bi-inbox display-4 d-block mb-3 opacity-25"></i>
+                                    <p class="mb-0">No inventory items found. Add your first item to get started!</p>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var item in Model.Items)
+                            {
+                                var stockBadgeClass = item.StockStatus switch
+                                {
+                                    "In Stock" => "bg-success",
+                                    "Low Stock" => "bg-warning",
+                                    "Out of Stock" => "bg-danger",
+                                    _ => "bg-secondary"
+                                };
+                                var expiryBadgeClass = item.IsExpired ? "bg-danger" : (item.IsExpiringSoon ? "bg-warning" : "bg-light text-dark");
+                                <tr class="inventory-row" 
+                                    data-inventory-id="@item.InventoryID"
+                                    data-product-type="@item.ProductType"
+                                    data-stock-status="@item.StockStatus.ToLower().Replace(" ", "")"
+                                    data-is-expiring="@item.IsExpiringSoon.ToString().ToLower()"
+                                    data-is-expired="@item.IsExpired.ToString().ToLower()">
+                                    <td class="px-4">
+                                        <div class="fw-semibold">@item.ProductName</div>
+                                        <small class="text-muted">ID: @item.ProductID</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">@item.ProductType</span>
+                                    </td>
+                                    <td>
+                                        <span class="fw-semibold">@item.Quantity</span>
+                                        <span class="text-muted">units</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @stockBadgeClass">@item.StockStatus</span>
+                                    </td>
+                                    <td>
+                                        @if (item.Expiry.HasValue)
+                                        {
+                                            <span class="badge @expiryBadgeClass">
+                                                @item.Expiry.Value.ToString("MMM dd, yyyy")
+                                                @if (item.IsExpired)
+                                                {
+                                                    <text> (Expired)</text>
+                                                }
+                                                else if (item.IsExpiringSoon)
+                                                {
+                                                    <text> (@item.DaysUntilExpiry days)</text>
+                                                }
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td class="text-end px-4">
+                                        <button class="btn btn-sm btn-outline-success me-1" onclick="event.stopPropagation(); openAdjustModal(@item.InventoryID, '@item.ProductName', @item.Quantity)">
+                                            <i class="bi bi-plus-slash-minus"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteInventory(@item.InventoryID, '@item.ProductName')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Inventory Modal -->
+<div class="modal fade" id="addInventoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-plus-circle text-primary me-2"></i>Add Stock
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addInventoryForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Product <span class="text-danger">*</span></label>
+                        <select class="form-select" id="addProductId" required>
+                            <option value="">Select product...</option>
+                            @foreach (var product in Model.Products)
+                            {
+                                <option value="@product.Id">@product.Name (@product.Type)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Quantity <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="addQuantity" min="1" value="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Expiry Date</label>
+                        <input type="date" class="form-control" id="addExpiry">
+                        <div class="form-text">Leave blank if product doesn't expire</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addInventory()">
+                    <i class="bi bi-check-lg me-1"></i>Add Stock
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View/Edit Inventory Modal -->
+<div class="modal fade" id="inventoryDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-box-seam text-primary me-2"></i>Inventory Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editInventoryForm">
+                    <input type="hidden" id="editInventoryId">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Product</label>
+                        <input type="text" class="form-control" id="editProductName" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Product Type</label>
+                        <input type="text" class="form-control" id="editProductType" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Quantity <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="editQuantity" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Expiry Date</label>
+                        <input type="date" class="form-control" id="editExpiry">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Last Updated By</label>
+                        <input type="text" class="form-control" id="editUserName" readonly>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateInventory()">
+                    <i class="bi bi-check-lg me-1"></i>Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Adjust Inventory Modal -->
+<div class="modal fade" id="adjustInventoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-plus-slash-minus text-success me-2"></i>Adjust Stock
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="adjustInventoryForm">
+                    <input type="hidden" id="adjustInventoryId">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Product</label>
+                        <input type="text" class="form-control" id="adjustProductName" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Current Quantity</label>
+                        <input type="text" class="form-control" id="adjustCurrentQuantity" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Adjustment Type <span class="text-danger">*</span></label>
+                        <select class="form-select" id="adjustType" required>
+                            <option value="Add">Add Stock</option>
+                            <option value="Remove">Remove Stock</option>
+                            <option value="Damaged">Write off (Damaged)</option>
+                            <option value="Expired">Write off (Expired)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Quantity <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="adjustQuantity" min="1" value="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Notes</label>
+                        <textarea class="form-control" id="adjustNotes" rows="2" placeholder="Reason for adjustment..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="adjustInventory()">
+                    <i class="bi bi-check-lg me-1"></i>Apply Adjustment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Filter functionality
+        document.getElementById('searchInput').addEventListener('input', filterTable);
+        document.getElementById('typeFilter').addEventListener('change', filterTable);
+        document.getElementById('stockFilter').addEventListener('change', filterTable);
+
+        function filterTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('typeFilter').value.toLowerCase();
+            const stockFilter = document.getElementById('stockFilter').value.toLowerCase();
+
+            document.querySelectorAll('.inventory-row').forEach(row => {
+                const productName = row.querySelector('td:first-child').textContent.toLowerCase();
+                const productType = row.dataset.productType.toLowerCase();
+                const stockStatus = row.dataset.stockStatus;
+                const isExpiring = row.dataset.isExpiring === 'true';
+                const isExpired = row.dataset.isExpired === 'true';
+
+                let show = true;
+
+                if (searchTerm && !productName.includes(searchTerm)) show = false;
+                if (typeFilter && productType !== typeFilter) show = false;
+                if (stockFilter) {
+                    if (stockFilter === 'expiring' && !isExpiring) show = false;
+                    if (stockFilter === 'expired' && !isExpired) show = false;
+                    if (stockFilter === 'instock' && stockStatus !== 'instock') show = false;
+                    if (stockFilter === 'lowstock' && stockStatus !== 'lowstock') show = false;
+                    if (stockFilter === 'outofstock' && stockStatus !== 'outofstock') show = false;
+                }
+
+                row.style.display = show ? '' : 'none';
+            });
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('typeFilter').value = '';
+            document.getElementById('stockFilter').value = '';
+            filterTable();
+        }
+
+        // Add inventory
+        async function addInventory() {
+            const form = document.getElementById('addInventoryForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            const data = {
+                productID: parseInt(document.getElementById('addProductId').value),
+                quantity: parseInt(document.getElementById('addQuantity').value),
+                expiry: document.getElementById('addExpiry').value || null
+            };
+
+            try {
+                const response = await fetch('@Url.Action("Create", "Inventory")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showToast('success', result.message);
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    const error = await response.text();
+                    showToast('error', error || 'Failed to add inventory');
+                }
+            } catch (error) {
+                showToast('error', 'An error occurred');
+                console.error(error);
+            }
+        }
+
+        // View inventory detail
+        async function viewInventoryDetail(id) {
+            try {
+                const response = await fetch(`@Url.Action("GetDetail", "Inventory")/${id}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('editInventoryId').value = data.inventoryID;
+                    document.getElementById('editProductName').value = data.productName;
+                    document.getElementById('editProductType').value = data.productType;
+                    document.getElementById('editQuantity').value = data.quantity;
+                    document.getElementById('editExpiry').value = data.expiry ? data.expiry.split('T')[0] : '';
+                    document.getElementById('editUserName').value = data.userName;
+                    new bootstrap.Modal(document.getElementById('inventoryDetailModal')).show();
+                }
+            } catch (error) {
+                showToast('error', 'Failed to load inventory details');
+                console.error(error);
+            }
+        }
+
+        // Update inventory
+        async function updateInventory() {
+            const form = document.getElementById('editInventoryForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            const data = {
+                inventoryID: parseInt(document.getElementById('editInventoryId').value),
+                quantity: parseInt(document.getElementById('editQuantity').value),
+                expiry: document.getElementById('editExpiry').value || null
+            };
+
+            try {
+                const response = await fetch('@Url.Action("Update", "Inventory")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showToast('success', result.message);
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast('error', 'Failed to update inventory');
+                }
+            } catch (error) {
+                showToast('error', 'An error occurred');
+                console.error(error);
+            }
+        }
+
+        // Open adjust modal
+        function openAdjustModal(id, productName, currentQuantity) {
+            document.getElementById('adjustInventoryId').value = id;
+            document.getElementById('adjustProductName').value = productName;
+            document.getElementById('adjustCurrentQuantity').value = currentQuantity + ' units';
+            document.getElementById('adjustType').value = 'Add';
+            document.getElementById('adjustQuantity').value = 1;
+            document.getElementById('adjustNotes').value = '';
+            new bootstrap.Modal(document.getElementById('adjustInventoryModal')).show();
+        }
+
+        // Adjust inventory
+        async function adjustInventory() {
+            const form = document.getElementById('adjustInventoryForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            const data = {
+                inventoryID: parseInt(document.getElementById('adjustInventoryId').value),
+                adjustmentQuantity: parseInt(document.getElementById('adjustQuantity').value),
+                adjustmentType: document.getElementById('adjustType').value,
+                notes: document.getElementById('adjustNotes').value || null
+            };
+
+            try {
+                const response = await fetch('@Url.Action("Adjust", "Inventory")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showToast('success', result.message);
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast('error', 'Failed to adjust inventory');
+                }
+            } catch (error) {
+                showToast('error', 'An error occurred');
+                console.error(error);
+            }
+        }
+
+        // Delete inventory
+        async function deleteInventory(id, productName) {
+            showConfirmModal(`Are you sure you want to delete inventory for "${productName}"?`, async () => {
+                try {
+                    const response = await fetch(`@Url.Action("Delete", "Inventory")/${id}`, {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        }
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        showToast('success', result.message);
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        showToast('error', 'Failed to delete inventory');
+                    }
+                } catch (error) {
+                    showToast('error', 'An error occurred');
+                    console.error(error);
+                }
+            });
+        }
+
+        // Row click to view inventory detail
+        document.querySelectorAll('.inventory-row').forEach(row => {
+            row.style.cursor = 'pointer';
+            row.addEventListener('click', function () {
+                const inventoryId = this.dataset.inventoryId;
+                viewInventoryDetail(inventoryId);
+            });
+        });
+
+        function showToast(type, message) {
+            showGlobalToast(type, message);
+        }
+    </script>
+}

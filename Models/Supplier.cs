@@ -12,7 +12,8 @@ namespace IT15_DairyFlow.Models
         public int CompanyID { get; set; }
 
         [MaxLength(256)]
-        public string? Name { get; set; }
+        [Column("Name")]
+        public string? SupplierName { get; set; }
 
         public string? ContactInfo { get; set; }
 

@@ -1,0 +1,931 @@
+================================================================================
+               IT15 DAIRYFLOW - COMPREHENSIVE MODULE GUIDE
+================================================================================
+
+Table of Contents:
+  1. System Overview
+  2. Finance Module
+  3. Product Lifecycle Management (PLM) Module
+  4. Inventory Module
+  5. Equipment Module
+  6. Quality Management (QM) Module
+  7. Production Module
+  8. Module Interconnections & Workflow
+
+================================================================================
+1. SYSTEM OVERVIEW
+================================================================================
+
+IT15 DairyFlow is a multi-tenant dairy management web application built with
+ASP.NET Core 9.0 using Entity Framework Core and ASP.NET Identity for
+authentication. The system is organized around a Company entity — every record
+(products, batches, equipment, etc.) is scoped to a CompanyID so that each
+company's data is isolated. All modules require user authentication
+([Authorize] attribute).
+
+Key Entities Shared Across Modules:
+  - Company        — The tenant/organization
+  - ApplicationUser — Users with a CompanyID foreign key
+  - Supplier       — Shared between Finance (expenses) and Inventory (raw materials)
+
+================================================================================
+2. FINANCE MODULE
+================================================================================
+
+Controller: FinanceController.cs
+Route Prefix: /Finance
+
+PURPOSE:
+The Finance module manages the monetary aspects of the dairy operation,
+including expense tracking, budget planning, billing/invoicing, and production
+cost monitoring. It provides a centralized financial dashboard with summary
+metrics.
+
+--------------------------------------------------------------------------------
+2.1 FINANCIAL DASHBOARD (Index)
+--------------------------------------------------------------------------------
+Route: GET /Finance/Index
+
+The main dashboard aggregates and displays:
+  - Financial Summary:
+      * Total Revenue — Sum of all "Paid" billing invoices
+      * Total Expenses — Sum of all recorded expenses
+      * Net Income — Revenue minus Expenses
+      * Total Budget — Sum of all budget allocations
+      * Budget Utilization — Percentage of budget spent (capped at 100%)
+      * Production Costs — Sum of all production cost records
+      * Pending Invoices — Sum of unpaid invoice amounts
+      * Expense Count & Invoice Count
+
+  - Recent Expenses (last 10) with supplier name, amount, date, and user
+  - Budget List with allocated amount, spent amount, remaining, and utilization %
+  - Recent Invoices (last 10) with amount, dates, and payment status
+  - Production Costs (last 10) linked to production batches
+  - Supplier Lookup for the expense creation form
+
+--------------------------------------------------------------------------------
+2.2 EXPENSE MANAGEMENT
+--------------------------------------------------------------------------------
+
+Expenses track monetary outflows, optionally linked to a supplier.
+
+Data Model (Expense):
+  - ExpenseID (PK)
+  - CompanyID (FK to Company)
+  - SupplierID (FK to Supplier, nullable)
+  - UserID (FK to ApplicationUser)
+  - Amount (decimal)
+  - ExpenseDate (DateTime)
+
+Operations:
+  a) Create Expense
+     Route: POST /Finance/CreateExpense
+     Input: Amount, ExpenseDate (defaults to UTC now), SupplierID (optional)
+     - Records a new expense for the user's company
+     - Automatically assigns the logged-in user as the recorder
+
+  b) Update Expense
+     Route: POST /Finance/UpdateExpense
+     Input: ExpenseID, Amount, ExpenseDate, SupplierID
+     - Modifies an existing expense (must belong to user's company)
+
+  c) Delete Expense
+     Route: POST /Finance/DeleteExpense/{id}
+     - Permanently deletes the expense record
+
+  d) Get Expense Detail
+     Route: GET /Finance/GetExpenseDetail/{id}
+     - Returns JSON with expense details including supplier name and user info
+
+NOTE: Expenses are also auto-created by the Inventory module when restocking
+raw materials (if the "CreateExpense" flag is set during restock).
+
+--------------------------------------------------------------------------------
+2.3 BUDGET MANAGEMENT
+--------------------------------------------------------------------------------
+
+Budgets define financial allocations for specific periods.
+
+Data Model (Budget):
+  - BudgetID (PK)
+  - CompanyID (FK to Company)
+  - Period (string, e.g., "Q1 2026", "March 2026")
+  - AllocatedAmount (decimal)
+
+Operations:
+  a) Create Budget
+     Route: POST /Finance/CreateBudget
+     Input: Period, AllocatedAmount
+     - Creates a new budget period
+     - Validates that no budget already exists for the same period
+
+  b) Update Budget
+     Route: POST /Finance/UpdateBudget
+     Input: BudgetID, Period, AllocatedAmount
+     - Modifies budget allocation
+
+  c) Delete Budget
+     Route: POST /Finance/DeleteBudget/{id}
+     - Permanently removes the budget record
+
+Budget Utilization Calculation:
+  - Total expenses are distributed proportionally across all budgets
+  - SpentAmount = TotalExpenses / NumberOfBudgets
+  - RemainingAmount = AllocatedAmount - SpentAmount (minimum 0)
+  - UtilizationPercentage = (SpentAmount / AllocatedAmount) * 100 (capped at 100%)
+
+--------------------------------------------------------------------------------
+2.4 BILLING INVOICE MANAGEMENT
+--------------------------------------------------------------------------------
+
+Invoices represent revenue or billing records with payment tracking.
+
+Data Model (BillingInvoice):
+  - BillingInvoiceID (PK)
+  - CompanyID (FK to Company)
+  - Amount (decimal)
+  - InvoiceDate (DateTime)
+  - DueDate (DateTime, nullable)
+  - PaymentStatus (string: "Pending", "Paid")
+
+Operations:
+  a) Create Invoice
+     Route: POST /Finance/CreateInvoice
+     Input: Amount, InvoiceDate (defaults to UTC now), DueDate, PaymentStatus
+     - Default status is "Pending"
+
+  b) Update Invoice
+     Route: POST /Finance/UpdateInvoice
+     Input: BillingInvoiceID, Amount, DueDate, PaymentStatus
+     - Modifies invoice details (note: InvoiceDate is not editable after creation)
+
+  c) Mark Invoice Paid
+     Route: POST /Finance/MarkInvoicePaid/{id}
+     - Convenience endpoint to set PaymentStatus to "Paid"
+
+  d) Delete Invoice
+     Route: POST /Finance/DeleteInvoice/{id}
+     - Permanently removes the invoice
+
+  e) Get Invoice Detail
+     Route: GET /Finance/GetInvoiceDetail/{id}
+     - Returns JSON with full invoice details
+
+--------------------------------------------------------------------------------
+2.5 PRODUCTION COST TRACKING
+--------------------------------------------------------------------------------
+
+Production costs are linked to production batches and displayed on the
+finance dashboard. They are read-only from the finance perspective.
+
+Data Model (ProductionCost):
+  - ProductionCostID (PK)
+  - ProductionBatchID (FK to ProductionBatch)
+  - TotalCost (decimal)
+  - CompanyID (FK to Company)
+
+The dashboard shows the last 10 production costs with batch code and dates.
+
+
+================================================================================
+3. PRODUCT LIFECYCLE MANAGEMENT (PLM) MODULE
+================================================================================
+
+Controller: PLMController.cs
+Route Prefix: /PLM
+
+PURPOSE:
+The PLM module manages the entire lifecycle of dairy products — from creation
+and formulation through production to archiving. It handles product registration,
+lifecycle status tracking, recipe/formulation management with raw material
+ingredients, and batch cost estimation.
+
+--------------------------------------------------------------------------------
+3.1 PRODUCT MANAGEMENT
+--------------------------------------------------------------------------------
+
+Data Model (Product):
+  - ProductID (PK)
+  - CompanyID (FK to Company)
+  - UserID (FK to ApplicationUser — the creator)
+  - ProductName (string, max 256 chars)
+  - Type (string, max 100 chars — e.g., "Cheese", "Milk", "Yogurt")
+  - LifecycleStatus (string, max 50 chars)
+
+Lifecycle Statuses:
+  - "underreview"   — Newly created product, pending quality approval
+  - "Active"        — Approved and available for production
+  - "approved"      — Passed quality inspection
+  - "In Production" — Currently being manufactured in a batch
+  - "Produced"      — Batch completed (for non-review products)
+  - "Archived"      — Retired/discontinued product
+
+Operations:
+  a) List Products
+     Route: GET /PLM/Products?showArchived=false
+     - Lists all products for the company (excluding archived by default)
+     - Toggle showArchived=true to include archived products
+     - Shows product name, type, lifecycle status, and creator email
+
+  b) View Archives
+     Route: GET /PLM/Archives
+     - Dedicated view showing only archived products
+
+  c) Get Product Detail
+     Route: GET /PLM/GetProductDetail/{id}
+     - Returns JSON with full product details
+     - Validates company ownership
+
+  d) Create Product
+     Route: POST /PLM/CreateProduct
+     Input: ProductName, Type
+     - New products always start with LifecycleStatus = "underreview"
+     - Assigned to the logged-in user and their company
+
+  e) Update Product
+     Route: POST /PLM/UpdateProduct
+     Input: ProductID, ProductName, Type, LifecycleStatus
+     - Can update name, type, and lifecycle status
+     - Must belong to user's company
+
+  f) Archive Product
+     Route: POST /PLM/ArchiveProduct/{id}
+     - Sets LifecycleStatus to "Archived"
+     - Soft removal — product still exists in database
+
+  g) Unarchive Product
+     Route: POST /PLM/UnarchiveProduct/{id}
+     - Restores product to "Active" status
+
+--------------------------------------------------------------------------------
+3.2 PRODUCT FORMULATION (Recipe Management)
+--------------------------------------------------------------------------------
+
+Formulations define the recipe/ingredients for each product using raw materials.
+
+Data Model (ProductFormulation):
+  - FormulationID (PK)
+  - ProductID (FK to Product)
+  - CompanyID (FK to Company)
+  - RawMaterialID (FK to RawMaterial)
+  - Quantity (decimal, precision 18,4)
+  - Unit (string, default "kg")
+  - ProcessOrder (int, nullable — defines ingredient processing sequence)
+  - ProcessInstructions (string, max 500 — how to process this ingredient)
+  - IsActive (bool — soft delete flag)
+  - CreatedAt, UpdatedAt (timestamps)
+
+Operations:
+  a) View Formulation
+     Route: GET /PLM/Formulation/{productId}
+     - Displays the product's recipe with all active ingredients
+     - Shows ingredient name, quantity, unit, process order, instructions
+     - Calculates per-ingredient cost (Quantity * UnitCost) and total cost
+     - Lists available raw materials for adding new ingredients
+
+  b) Add Ingredient
+     Route: POST /PLM/AddIngredient
+     Input: ProductID, RawMaterialID, Quantity, Unit, ProcessOrder,
+            ProcessInstructions
+     - If the same raw material already exists in the formulation, it adds
+       to the existing quantity instead of creating a duplicate
+     - Validates product and raw material belong to the company
+
+  c) Update Ingredient
+     Route: POST /PLM/UpdateIngredient
+     Input: FormulationID, Quantity, Unit, ProcessOrder, ProcessInstructions
+     - Modifies ingredient details in the recipe
+
+  d) Remove Ingredient
+     Route: POST /PLM/RemoveIngredient/{id}
+     - Performs a SOFT DELETE (sets IsActive = false)
+     - Ingredient is hidden but preserved in history
+
+  e) Get Formulation Detail
+     Route: GET /PLM/GetFormulationDetail/{id}
+     - Returns JSON with ingredient details including unit cost
+
+  f) Calculate Batch Requirements
+     Route: GET /PLM/CalculateBatchRequirements/{productId}/{quantity}
+     - Scales the recipe by a given production quantity
+     - Returns each material's required quantity and total cost
+     - Useful for pre-production planning and cost estimation
+
+
+================================================================================
+4. INVENTORY MODULE
+================================================================================
+
+Controller: InventoryController.cs
+Route Prefix: /Inventory
+
+PURPOSE:
+The Inventory module has two main sections: Finished Goods (products ready
+for sale/distribution) and Raw Materials (ingredients used in production).
+It tracks stock levels, expiration dates, and provides alerts for low stock
+and expiring items.
+
+--------------------------------------------------------------------------------
+4.1 FINISHED GOODS INVENTORY
+--------------------------------------------------------------------------------
+
+Data Model (Inventory):
+  - InventoryID (PK)
+  - ProductID (FK to Product)
+  - CompanyID (FK to Company)
+  - UserID (FK to ApplicationUser)
+  - Quantity (int, nullable)
+  - Expiry (DateTime, nullable)
+
+Constants:
+  - LowStockThreshold = 10 units
+  - ExpiringSoonDays = 7 days
+
+Stock Status Logic:
+  - "Out of Stock" — Quantity <= 0
+  - "Low Stock" — Quantity > 0 but < 10
+  - "In Stock" — Quantity >= 10
+  - "Expiring Soon" — Expiry date is within 7 days from today
+  - "Expired" — Expiry date has passed
+
+Operations:
+  a) List Inventory (Index)
+     Route: GET /Inventory/Index
+     - Lists all finished goods with product name, type, quantity, expiry
+     - Provides summary: total items, total quantity, low stock count,
+       expiring soon count, expired count
+     - Only shows products with "Active", "approved", or "Produced" status
+       for the product dropdown
+
+  b) Get Detail
+     Route: GET /Inventory/GetDetail/{id}
+     - Returns JSON with inventory item details
+
+  c) Create Inventory
+     Route: POST /Inventory/Create
+     Input: ProductID, Quantity, Expiry (optional)
+     - If inventory already exists for the same product, ADDS to existing
+       quantity instead of creating a duplicate record
+     - Updates expiry date if provided
+     - Validates product exists and belongs to company
+
+  d) Update Inventory
+     Route: POST /Inventory/Update
+     Input: InventoryID, Quantity, Expiry
+     - Directly sets new quantity and expiry values
+
+  e) Adjust Inventory
+     Route: POST /Inventory/Adjust
+     Input: InventoryID, AdjustmentType, AdjustmentQuantity
+     - Adjustment Types:
+         "Add"     — Increases quantity
+         "Remove"  — Decreases quantity (minimum 0)
+         "Damaged" — Decreases quantity (minimum 0, same as remove)
+         "Expired" — Decreases quantity (minimum 0, same as remove)
+     - Returns the new quantity after adjustment
+
+  f) Delete Inventory
+     Route: POST /Inventory/Delete/{id}
+     - Permanently removes the inventory record
+
+  g) Low Stock Report
+     Route: GET /Inventory/LowStock
+     - Returns JSON list of items with quantity below threshold (10)
+
+  h) Expiring Soon Report
+     Route: GET /Inventory/ExpiringSoon
+     - Returns JSON list of items expiring within 7 days
+
+--------------------------------------------------------------------------------
+4.2 RAW MATERIALS MANAGEMENT
+--------------------------------------------------------------------------------
+
+Raw materials are the ingredients/supplies used in production, linked to
+suppliers and used in product formulations.
+
+Data Model (RawMaterial):
+  - RawMaterialID (PK)
+  - SupplierID (FK to Supplier)
+  - CompanyID (FK to Company)
+  - MaterialName (string, max 256)
+  - UnitCost (decimal)
+  - Unit (string, default "kg")
+  - CurrentStock (int, default 0)
+  - MinimumStock (int, default 10)
+  - LastRestockDate (DateTime, nullable)
+  - CreatedAt (DateTime)
+
+Stock Status Logic:
+  - "Out of Stock" — CurrentStock <= 0
+  - "Low Stock" — CurrentStock > 0 but < MinimumStock
+  - "In Stock" — CurrentStock >= MinimumStock
+
+Operations:
+  a) List Raw Materials
+     Route: GET /Inventory/RawMaterials
+     - Lists all raw materials with supplier, cost, stock levels
+     - Shows "Used In Product Count" — how many active formulations use
+       each material
+     - Summary: total materials, low stock count, out of stock count,
+       total value (stock * unit cost)
+
+  b) Get Raw Material Detail
+     Route: GET /Inventory/GetRawMaterialDetail/{id}
+     - Returns JSON with material details
+
+  c) Create Raw Material
+     Route: POST /Inventory/CreateRawMaterial
+     Input: MaterialName, SupplierID, UnitCost, Unit, CurrentStock,
+            MinimumStock
+     - Validates supplier exists and belongs to company
+     - Sets LastRestockDate if initial stock > 0
+
+  d) Update Raw Material
+     Route: POST /Inventory/UpdateRawMaterial
+     Input: RawMaterialID, MaterialName, SupplierID, UnitCost, Unit,
+            MinimumStock
+     - Updates material properties (does NOT change current stock)
+
+  e) Restock Raw Material
+     Route: POST /Inventory/RestockRawMaterial
+     Input: RawMaterialID, Quantity, CreateExpense (bool, default true)
+     - Adds quantity to current stock
+     - Updates LastRestockDate
+     - If CreateExpense is true, automatically creates a Finance expense
+       record: Amount = Quantity * UnitCost, linked to the material's supplier
+     - This is a KEY INTEGRATION POINT between Inventory and Finance
+
+  f) Consume Raw Material
+     Route: POST /Inventory/ConsumeRawMaterial
+     Input: RawMaterialID, Quantity, Reason (optional)
+     - Subtracts quantity from current stock
+     - Returns error if insufficient stock
+     - Returns new stock level
+
+  g) Delete Raw Material
+     Route: POST /Inventory/DeleteRawMaterial/{id}
+     - Cannot delete if material is used in any active product formulation
+     - Permanently removes the material record
+
+
+================================================================================
+5. EQUIPMENT MODULE
+================================================================================
+
+Controller: EquipmentController.cs
+Route Prefix: /Equipment
+
+PURPOSE:
+The Equipment module tracks all dairy equipment/machinery used in production.
+It manages equipment registration, location tracking, status monitoring, and
+maintenance scheduling.
+
+--------------------------------------------------------------------------------
+5.1 EQUIPMENT MANAGEMENT
+--------------------------------------------------------------------------------
+
+Data Model (Equipment):
+  - EquipmentID (PK)
+  - CompanyID (FK to Company)
+  - EquipmentName (string, max 200, required)
+  - EquipmentType (string, max 100 — e.g., "Pasteurizer", "Separator")
+  - Location (string, max 200 — physical location)
+  - Status (string, max 50)
+  - LastMaintenanceDate (DateTime, nullable)
+  - CreatedAt (DateTime)
+
+Equipment Statuses:
+  - "Operational" — Working and ready for use
+  - "Available"   — Available for assignment to production batches
+  - "Busy"        — Currently assigned to a production batch
+  - "Under Maintenance" — Being serviced/repaired
+  - "Out of Service"    — Not usable
+
+Maintenance Tracking:
+  - Days Since Last Maintenance is calculated on the dashboard
+  - Equipment needing maintenance: > 30 days since last maintenance
+
+Operations:
+  a) Equipment Dashboard (Index)
+     Route: GET /Equipment/Index
+     - Lists all equipment with name, type, location, status, maintenance date
+     - Summary: total count, operational count, maintenance count,
+       out of service count, needs maintenance count (>30 days)
+
+  b) Get Equipment Detail
+     Route: GET /Equipment/GetDetail/{id}
+     - Returns JSON with full equipment details
+
+  c) Create Equipment
+     Route: POST /Equipment/Create
+     Input: EquipmentName, EquipmentType, Location, Status (default
+            "Operational"), LastMaintenanceDate
+     - Registers new equipment for the company
+
+  d) Update Equipment
+     Route: POST /Equipment/Update
+     Input: EquipmentID, EquipmentName, EquipmentType, Location, Status,
+            LastMaintenanceDate
+     - Modifies equipment properties
+
+  e) Delete Equipment
+     Route: POST /Equipment/Delete/{id}
+     - Cannot delete if equipment is assigned to any production batch
+     - Permanently removes the equipment record
+
+  f) Update Status
+     Route: POST /Equipment/UpdateStatus
+     Input: EquipmentID, Status
+     - Quick status change
+     - If changing from "Under Maintenance" to "Operational", auto-updates
+       LastMaintenanceDate to current time
+
+  g) Record Maintenance
+     Route: POST /Equipment/RecordMaintenance
+     Input: EquipmentID, MaintenanceDate (defaults to now), Notes
+     - Updates LastMaintenanceDate
+     - Sets status to "Operational"
+
+INTEGRATION WITH PRODUCTION:
+  - When a production batch is created, the assigned equipment is set to "Busy"
+  - When a batch finishes/completes, the equipment is set back to "Available"
+  - Only equipment with "Available" status appears in the production batch
+    creation dropdown
+
+
+================================================================================
+6. QUALITY MANAGEMENT (QM) MODULE
+================================================================================
+
+Controller: QMController.cs
+Route Prefix: /QM
+
+PURPOSE:
+The QM module handles quality inspections of production batches and manages
+non-conformance reports (NCRs). It is specifically designed for dairy quality
+control with parameters like temperature, pH, fat content, bacterial count, etc.
+
+--------------------------------------------------------------------------------
+6.1 QUALITY INSPECTIONS
+--------------------------------------------------------------------------------
+
+Data Model (QualityInspection):
+  - QualityInspectionID (PK)
+  - CompanyID (FK to Company)
+  - ProductionBatchID (FK to ProductionBatch)
+  - UserId (FK to ApplicationUser — the inspector)
+  - InspectionType: "Incoming", "InProcess", "FinalProduct", "Environmental"
+  - Type (string — comma-separated test types performed)
+  - Result: "pass", "fail", "Pending", "N/A"
+  - Status: "ongoing", "completed", "on-hold", "released", "rejected"
+  - SampleLot, SampleSize — sample identification
+  - Dairy-Specific Test Parameters:
+      * Temperature (°C)
+      * PHLevel (pH scale)
+      * FatContent (percentage)
+      * ProteinContent (percentage)
+      * MoistureContent (percentage)
+      * Acidity (percentage)
+      * BacterialCount (CFU/ml)
+      * SomaticCellCount (cells/ml)
+      * AntibioticTest (bool — true = positive/fail, false = negative/pass)
+  - AcceptableRanges (string — JSON or simple values)
+  - InspectionDate, CompletedDate
+  - Notes, CorrectiveAction
+
+Inspection Status Flow:
+  ongoing → on-hold (hold) or completed/released/rejected (perform inspection)
+  on-hold → released (release batch)
+  completed → (terminal)
+  released → (terminal, batch passed)
+  rejected → (terminal, batch failed)
+
+Operations:
+  a) Inspections Dashboard
+     Route: GET /QM/Inspections
+     - Lists all "ongoing" and "on-hold" inspections (active work queue)
+     - Shows batch code, product name, inspection type, result, status,
+       inspector name, and inspection date
+     - Summary: total pending, total on-hold, passed today, failed today,
+       open NCR count
+     - Lists available quality checkers for reassignment
+
+  b) Results Page
+     Route: GET /QM/Results
+     - Lists all "completed", "released", and "rejected" inspections
+     - Shows historical inspection results with dates
+
+  c) Get Inspection Detail
+     Route: GET /QM/GetInspectionDetail/{id}
+     - Returns JSON with ALL inspection fields including test parameters
+
+  d) Get Quality Checkers
+     Route: GET /QM/GetQualityCheckers
+     - Returns list of users with the "QualityChecker" role in the company
+
+  e) Update Inspection User (Assign Inspector)
+     Route: POST /QM/UpdateInspectionUser
+     Input: InspectionID, UserId
+     - Reassigns the inspector for a pending inspection
+
+  f) Perform Inspection
+     Route: POST /QM/PerformInspection
+     Input: InspectionID, TestTypes (array), Result ("pass"/"fail"),
+            SampleLot, SampleSize, Notes, and all dairy test parameters
+            (Temperature, PHLevel, FatContent, ProteinContent, MoistureContent,
+             Acidity, BacterialCount, SomaticCellCount, AntibioticTest)
+     - Records all test results and completes the inspection
+     - Sets CompletedDate to now
+     - STATUS LOGIC:
+         * If Result = "pass" → Status = "released", and product's
+           LifecycleStatus is updated to "approved"
+         * If Result = "fail" → Status = "rejected"
+         * Otherwise → Status = "completed"
+
+  g) Hold Batch
+     Route: POST /QM/HoldBatch
+     Input: InspectionID, Reason
+     - Places inspection on hold (status = "on-hold")
+     - Records the hold reason in Notes
+
+  h) Release Batch
+     Route: POST /QM/ReleaseBatch
+     Input: InspectionID, Notes
+     - Releases a held batch (status = "released", result = "pass")
+     - Updates product's LifecycleStatus to "approved"
+     - Appends release notes to existing notes
+
+AUTOMATIC INSPECTION CREATION:
+  - When a production batch is completed (or finished) and the product's
+    LifecycleStatus is "underreview", a quality inspection is automatically
+    created with Status = "ongoing" and Result = "N/A"
+  - This ensures every new product goes through quality control
+
+--------------------------------------------------------------------------------
+6.2 NON-CONFORMANCE REPORTS (NCR)
+--------------------------------------------------------------------------------
+
+NCRs document quality failures, deviations, and corrective/preventive actions.
+
+Data Model (NonConformance):
+  - NonConformanceID (PK)
+  - CompanyID (FK to Company)
+  - QualityInspectionID (FK, nullable — if linked to an inspection)
+  - ProductionBatchID (FK, nullable — if linked to a batch)
+  - ReportedByUserId (FK — who reported it)
+  - AssignedToUserId (FK, nullable — who is responsible)
+  - NCRNumber (auto-generated, format: "NCR-YYYYMM-####")
+  - Category: "Material", "Process", "Equipment", "Product", "Packaging",
+              "Labeling"
+  - Severity: "Critical", "Major", "Minor"
+  - Title (string, max 200)
+  - Description (string, max 2000)
+  - RootCause, ImmediateAction, CorrectiveAction, PreventiveAction
+    (all string, max 2000)
+  - Status: "Open", "InProgress", "PendingVerification", "Closed"
+  - AffectedQuantity (int, nullable)
+  - CostImpact (decimal, nullable)
+  - Disposition: "UseAsIs", "Rework", "Scrap", "Return", "Hold"
+  - ReportedDate, DueDate, ClosedDate, VerifiedDate
+  - VerifiedByUserId (who verified the closure)
+
+NCR Status Flow:
+  Open → InProgress → PendingVerification → Closed
+
+Operations:
+  a) Non-Conformance Dashboard
+     Route: GET /QM/NonConformance
+     - Lists all NCRs for the company with category, severity, title, status
+     - Summary: total open, in progress, pending verification,
+       closed this month, overdue count, total cost impact
+     - Lists company users for assignment
+
+  b) Get NCR Detail
+     Route: GET /QM/GetNonConformanceDetail/{id}
+     - Returns JSON with full NCR details
+
+  c) Create Non-Conformance
+     Route: POST /QM/CreateNonConformance
+     Input: QualityInspectionID, ProductionBatchID, AssignedToUserId,
+            Category, Severity, Title, Description, ImmediateAction,
+            AffectedQuantity, DueDate
+     - Auto-generates NCR number: "NCR-YYYYMM-####" (sequential)
+     - Sets ReportedByUserId to current user
+     - Initial status: "Open"
+
+  d) Update Non-Conformance
+     Route: POST /QM/UpdateNonConformance
+     Input: NonConformanceID, RootCause, CorrectiveAction, PreventiveAction,
+            Disposition, CostImpact, AssignedToUserId, DueDate, Status
+     - Partial update — only updates provided fields
+     - If Status = "Closed", sets ClosedDate to now
+
+  e) Close Non-Conformance
+     Route: POST /QM/CloseNonConformance/{id}
+     - Sets status to "Closed"
+     - Records ClosedDate and VerifiedDate
+     - Sets VerifiedByUserId to current user
+
+  f) Create NCR from Failed Inspection
+     Route: POST /QM/CreateNCRFromInspection/{inspectionId}
+     - Auto-creates an NCR linked to the failed inspection
+     - Pre-fills Category = "Product", Severity = "Major"
+     - Title: "QC Failure - Batch {BatchCode}"
+     - Description includes test types and notes from the inspection
+     - Due date set to 7 days from creation
+
+  g) Get Batches (for NCR creation)
+     Route: GET /QM/GetBatches
+     - Returns last 50 production batches for the NCR creation form
+
+
+================================================================================
+7. PRODUCTION MODULE
+================================================================================
+
+Controller: ProductionController.cs
+Route Prefix: /Production
+
+PURPOSE:
+The Production module manages the manufacturing process — creating production
+batches, tracking their schedule, monitoring completion, and recording
+production costs. It integrates heavily with Products, Equipment, and Quality
+Management.
+
+--------------------------------------------------------------------------------
+7.1 PRODUCTION BATCHES
+--------------------------------------------------------------------------------
+
+Data Model (ProductionBatch):
+  - ProductionBatchID (PK)
+  - CompanyID (FK to Company)
+  - ProductID (FK to Product)
+  - EquipmentID (FK to Equipment)
+  - UserID (FK to ApplicationUser — batch operator)
+  - BatchCode (auto-generated: "BATCH-YYYYMMDD-XXXXXX")
+  - StartDate, EndDate (DateTime, nullable)
+  - Quantity (int, required)
+  - Status (string: "Scheduled", "In Progress", "Completed")
+
+Batch Code Format:
+  BATCH-{date in yyyyMMdd}-{6 random hex characters}
+  Example: BATCH-20260305-A1B2C3
+
+Operations:
+  a) Batches Dashboard
+     Route: GET /Production/Batches
+     - Lists all NON-completed batches (active work queue)
+     - Shows batch code, start/end dates, status, product, equipment, user
+     - Provides dropdowns for:
+         * Products (excluding archived)
+         * Equipment (only "Available" status)
+     - Auto-completes past-due batches on page load (see Auto-Completion below)
+
+  b) Production Schedule
+     Route: GET /Production/Schedule
+     - Lists ALL batches (including completed) ordered by start date
+     - Used for calendar/Gantt-style planning views
+     - Also runs auto-completion on page load
+
+  c) Production Costs
+     Route: GET /Production/Costs
+     - Lists all production costs with batch code and total cost
+
+  d) Get Batch Detail
+     Route: GET /Production/GetBatchDetail/{id}
+     - Returns JSON with full batch details including product, equipment, and user
+
+  e) Create Batch
+     Route: POST /Production/CreateBatch
+     Input: ProductID, EquipmentID, StartDate, EndDate, Status, Quantity
+     - Validates product and equipment belong to company
+     - Equipment must have "Available" status
+     - Auto-generates BatchCode
+
+     SPECIAL BEHAVIOR FOR PRODUCTS UNDER REVIEW:
+       * If the product's LifecycleStatus is "underreview" and the batch
+         Status is "Completed", the quantity is forced to 10 (trial batch)
+       * The product status remains "underreview" (not changed to "In Production")
+       * A QualityInspection is auto-created for the batch
+
+     FOR REGULAR PRODUCTS:
+       * Product's LifecycleStatus is set to "In Production"
+       * Equipment status is set to "Busy"
+
+  f) Finish Batch
+     Route: POST /Production/FinishBatch/{id}
+     - Sets batch Status to "Completed"
+     - Sets EndDate to now (if not already set)
+
+     PRODUCT STATUS UPDATE:
+       * If product was "underreview" → stays "underreview" + auto-creates
+         QualityInspection
+       * If product was anything else → set to "Produced"
+
+     EQUIPMENT:
+       * Equipment status set back to "Available"
+
+AUTO-COMPLETION OF BATCHES:
+  The system automatically completes batches when their EndDate has passed:
+  - Triggered on every load of the Batches and Schedule pages
+  - Finds all batches where EndDate <= now and Status != "Completed"
+  - Sets Status to "Completed"
+  - Updates product status (same logic as FinishBatch)
+  - Sets equipment back to "Available"
+  - For underreview products, auto-creates quality inspections
+
+
+================================================================================
+8. MODULE INTERCONNECTIONS & WORKFLOW
+================================================================================
+
+Below is how the modules connect to form a complete dairy operations workflow:
+
+--------------------------------------------------------------------------------
+8.1 PRODUCT LIFECYCLE FLOW
+--------------------------------------------------------------------------------
+
+  1. PLM: Create Product → Status: "underreview"
+  2. PLM: Define Formulation (recipe) with raw materials
+  3. PRODUCTION: Create trial batch (qty forced to 10) → Equipment set to "Busy"
+  4. PRODUCTION: Batch completes → Auto-creates QualityInspection
+  5. QM: Inspector performs inspection with dairy tests
+     a. PASS → Product status: "approved", Inspection: "released"
+     b. FAIL → Inspection: "rejected", can create NCR
+  6. PLM: Product now "approved" → available for full production
+  7. PRODUCTION: Create full production batches → Product: "In Production"
+  8. PRODUCTION: Batch completes → Product: "Produced", Equipment: "Available"
+  9. INVENTORY: Add finished goods to inventory with expiry dates
+  10. PLM: Eventually archive product when discontinued
+
+--------------------------------------------------------------------------------
+8.2 RAW MATERIAL & SUPPLY CHAIN FLOW
+--------------------------------------------------------------------------------
+
+  1. INVENTORY: Create Suppliers (via Supplier entity)
+  2. INVENTORY: Register Raw Materials linked to suppliers
+  3. PLM: Add raw materials to product formulations with quantities
+  4. PLM: Calculate batch requirements to estimate material needs/costs
+  5. INVENTORY: Restock raw materials → Auto-creates Finance Expense
+  6. INVENTORY: Consume raw materials during production
+  7. FINANCE: Track all expenses including auto-created restock expenses
+
+--------------------------------------------------------------------------------
+8.3 EQUIPMENT & PRODUCTION FLOW
+--------------------------------------------------------------------------------
+
+  1. EQUIPMENT: Register equipment with type, location, status
+  2. PRODUCTION: Create batch → Equipment auto-set to "Busy"
+  3. PRODUCTION: Batch completes → Equipment auto-set to "Available"
+  4. EQUIPMENT: Track maintenance schedules (>30 days = needs maintenance)
+  5. EQUIPMENT: Record maintenance → Status back to "Operational"
+
+  Note: Equipment must be "Available" to be assigned to a new production batch.
+  Equipment cannot be deleted if assigned to any production batch.
+
+--------------------------------------------------------------------------------
+8.4 QUALITY & NON-CONFORMANCE FLOW
+--------------------------------------------------------------------------------
+
+  1. PRODUCTION: Batch completes (for underreview product) → Auto-creates
+     QualityInspection
+  2. QM: Assign quality checker to inspection
+  3. QM: Perform inspection with dairy parameters (temp, pH, fat%, etc.)
+  4. On PASS: Product approved, batch released
+  5. On FAIL: Batch rejected → Create NCR from inspection
+  6. QM: NCR workflow: Open → InProgress → PendingVerification → Closed
+     - Record root cause, corrective action, preventive action
+     - Track cost impact and affected quantity
+     - Assign responsible person and due date
+
+--------------------------------------------------------------------------------
+8.5 FINANCIAL TRACKING FLOW
+--------------------------------------------------------------------------------
+
+  1. FINANCE: Set up budgets for periods (quarterly, monthly, etc.)
+  2. FINANCE: Record expenses manually (or auto from raw material restocking)
+  3. FINANCE: Create billing invoices for sales
+  4. FINANCE: Mark invoices as paid to track revenue
+  5. FINANCE: Monitor production costs per batch
+  6. FINANCE: Dashboard shows: Revenue, Expenses, Net Income, Budget
+     Utilization, Production Costs, Pending Invoices
+
+  Key Integration Points:
+  - Inventory's "Restock Raw Material" auto-creates expenses in Finance
+  - Production Costs are linked to Production Batches
+  - Budget utilization is calculated from total expenses
+  - Revenue = sum of paid invoices
+
+--------------------------------------------------------------------------------
+8.6 MULTI-TENANT DATA ISOLATION
+--------------------------------------------------------------------------------
+
+Every module enforces company-level data isolation:
+  - Each controller retrieves the current user's CompanyID
+  - All queries filter by CompanyID
+  - All create operations assign the user's CompanyID
+  - Cross-company access is prevented at both read and write levels
+
+================================================================================
+END OF GUIDE
+================================================================================

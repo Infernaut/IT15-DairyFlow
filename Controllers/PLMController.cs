@@ -33,7 +33,7 @@ namespace IT15_DairyFlow.Controllers
 
             var companyId = GetUserCompanyId(user);
 
-            var query = _context.Products
+            var query = _context.Product
                 .Include(p => p.User)
                 .Where(p => p.CompanyID == companyId);
 
@@ -72,7 +72,7 @@ namespace IT15_DairyFlow.Controllers
 
             var companyId = GetUserCompanyId(user);
 
-            var products = await _context.Products
+            var products = await _context.Product
                 .Include(p => p.User)
                 .Where(p => p.CompanyID == companyId &&
                     (p.LifecycleStatus == "Archived" || p.LifecycleStatus == "Archive"))
@@ -95,7 +95,7 @@ namespace IT15_DairyFlow.Controllers
         [HttpGet]
         public async Task<IActionResult> GetProductDetail(int id)
         {
-            var product = await _context.Products
+            var product = await _context.Product
                 .Include(p => p.User)
                 .FirstOrDefaultAsync(p => p.ProductID == id);
 
@@ -152,7 +152,7 @@ namespace IT15_DairyFlow.Controllers
                 UserID = user.Id
             };
 
-            _context.Products.Add(product);
+            _context.Product.Add(product);
             await _context.SaveChangesAsync();
 
             return Ok(new { success = true, message = "Product created successfully!" });
@@ -168,7 +168,7 @@ namespace IT15_DairyFlow.Controllers
                 return BadRequest(ModelState);
             }
 
-            var product = await _context.Products.FindAsync(model.ProductID);
+            var product = await _context.Product.FindAsync(model.ProductID);
             if (product == null)
             {
                 return NotFound();
@@ -185,7 +185,7 @@ namespace IT15_DairyFlow.Controllers
             product.Type = model.Type;
             product.LifecycleStatus = model.LifecycleStatus;
 
-            _context.Products.Update(product);
+            _context.Product.Update(product);
             await _context.SaveChangesAsync();
 
             return Ok(new { success = true, message = "Product updated successfully!" });
@@ -196,7 +196,7 @@ namespace IT15_DairyFlow.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ArchiveProduct(int id)
         {
-            var product = await _context.Products.FindAsync(id);
+            var product = await _context.Product.FindAsync(id);
             if (product == null)
             {
                 return NotFound();
@@ -210,7 +210,7 @@ namespace IT15_DairyFlow.Controllers
             }
 
             product.LifecycleStatus = "Archived";
-            _context.Products.Update(product);
+            _context.Product.Update(product);
             await _context.SaveChangesAsync();
 
             return Ok(new { success = true, message = "Product archived successfully!" });
@@ -221,7 +221,7 @@ namespace IT15_DairyFlow.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UnarchiveProduct(int id)
         {
-            var product = await _context.Products.FindAsync(id);
+            var product = await _context.Product.FindAsync(id);
             if (product == null)
             {
                 return NotFound();
@@ -234,10 +234,246 @@ namespace IT15_DairyFlow.Controllers
             }
 
             product.LifecycleStatus = "Active";
-            _context.Products.Update(product);
+            _context.Product.Update(product);
             await _context.SaveChangesAsync();
 
             return Ok(new { success = true, message = "Product unarchived successfully!" });
+        }
+
+        // GET: PLM/Formulation/{productId}
+        [HttpGet]
+        public async Task<IActionResult> Formulation(int productId)
+        {
+            var companyId = GetUserCompanyId(await _userManager.GetUserAsync(User));
+
+            var product = await _context.Product
+                .FirstOrDefaultAsync(p => p.ProductID == productId && p.CompanyID == companyId);
+
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            var ingredients = await _context.ProductFormulation
+                .Include(f => f.RawMaterial)
+                .Where(f => f.ProductID == productId && f.CompanyID == companyId && f.IsActive)
+                .OrderBy(f => f.ProcessOrder ?? int.MaxValue)
+                .Select(f => new FormulationIngredientViewModel
+                {
+                    FormulationID = f.FormulationID,
+                    RawMaterialID = f.RawMaterialID,
+                    MaterialName = f.RawMaterial.MaterialName ?? "Unknown",
+                    Quantity = f.Quantity,
+                    Unit = f.Unit ?? "kg",
+                    ProcessOrder = f.ProcessOrder,
+                    ProcessInstructions = f.ProcessInstructions,
+                    UnitCost = f.RawMaterial.UnitCost ?? 0
+                })
+                .ToListAsync();
+
+            var availableMaterials = await _context.RawMaterial
+                .Where(m => m.CompanyID == companyId)
+                .OrderBy(m => m.MaterialName)
+                .Select(m => new RawMaterialLookupViewModel
+                {
+                    Id = m.RawMaterialID,
+                    Name = m.MaterialName ?? "Unknown",
+                    UnitCost = m.UnitCost ?? 0
+                })
+                .ToListAsync();
+
+            var viewModel = new FormulationPageViewModel
+            {
+                ProductID = product.ProductID,
+                ProductName = product.ProductName ?? "Unknown",
+                ProductType = product.Type,
+                LifecycleStatus = product.LifecycleStatus,
+                Ingredients = ingredients,
+                AvailableMaterials = availableMaterials,
+                TotalCost = ingredients.Sum(i => i.TotalCost)
+            };
+
+            return View(viewModel);
+        }
+
+        // POST: PLM/AddIngredient
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddIngredient([FromBody] CreateFormulationViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var companyId = GetUserCompanyId(await _userManager.GetUserAsync(User));
+
+            // Verify product exists
+            var product = await _context.Product
+                .FirstOrDefaultAsync(p => p.ProductID == model.ProductID && p.CompanyID == companyId);
+
+            if (product == null)
+            {
+                return BadRequest("Invalid product.");
+            }
+
+            // Verify raw material exists
+            var rawMaterial = await _context.RawMaterial
+                .FirstOrDefaultAsync(m => m.RawMaterialID == model.RawMaterialID && m.CompanyID == companyId);
+
+            if (rawMaterial == null)
+            {
+                return BadRequest("Invalid raw material.");
+            }
+
+            // Check if ingredient already exists
+            var existingFormulation = await _context.ProductFormulation
+                .FirstOrDefaultAsync(f => f.ProductID == model.ProductID && 
+                                         f.RawMaterialID == model.RawMaterialID && 
+                                         f.CompanyID == companyId && 
+                                         f.IsActive);
+
+            if (existingFormulation != null)
+            {
+                // Update existing
+                existingFormulation.Quantity += model.Quantity;
+                existingFormulation.UpdatedAt = DateTime.UtcNow;
+                _context.ProductFormulation.Update(existingFormulation);
+            }
+            else
+            {
+                // Create new
+                var formulation = new ProductFormulation
+                {
+                    ProductID = model.ProductID,
+                    CompanyID = companyId,
+                    RawMaterialID = model.RawMaterialID,
+                    Quantity = model.Quantity,
+                    Unit = model.Unit ?? "kg",
+                    ProcessOrder = model.ProcessOrder,
+                    ProcessInstructions = model.ProcessInstructions,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.ProductFormulation.Add(formulation);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { success = true, message = "Ingredient added successfully!" });
+        }
+
+        // POST: PLM/UpdateIngredient
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateIngredient([FromBody] UpdateFormulationViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var companyId = GetUserCompanyId(await _userManager.GetUserAsync(User));
+
+            var formulation = await _context.ProductFormulation
+                .FirstOrDefaultAsync(f => f.FormulationID == model.FormulationID && f.CompanyID == companyId);
+
+            if (formulation == null)
+            {
+                return NotFound();
+            }
+
+            formulation.Quantity = model.Quantity;
+            formulation.Unit = model.Unit ?? "kg";
+            formulation.ProcessOrder = model.ProcessOrder;
+            formulation.ProcessInstructions = model.ProcessInstructions;
+            formulation.UpdatedAt = DateTime.UtcNow;
+
+            _context.ProductFormulation.Update(formulation);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { success = true, message = "Ingredient updated successfully!" });
+        }
+
+        // POST: PLM/RemoveIngredient/{id}
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveIngredient(int id)
+        {
+            var companyId = GetUserCompanyId(await _userManager.GetUserAsync(User));
+
+            var formulation = await _context.ProductFormulation
+                .FirstOrDefaultAsync(f => f.FormulationID == id && f.CompanyID == companyId);
+
+            if (formulation == null)
+            {
+                return NotFound();
+            }
+
+            // Soft delete
+            formulation.IsActive = false;
+            formulation.UpdatedAt = DateTime.UtcNow;
+            _context.ProductFormulation.Update(formulation);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { success = true, message = "Ingredient removed successfully!" });
+        }
+
+        // GET: PLM/GetFormulationDetail/{id}
+        [HttpGet]
+        public async Task<IActionResult> GetFormulationDetail(int id)
+        {
+            var companyId = GetUserCompanyId(await _userManager.GetUserAsync(User));
+
+            var formulation = await _context.ProductFormulation
+                .Include(f => f.RawMaterial)
+                .FirstOrDefaultAsync(f => f.FormulationID == id && f.CompanyID == companyId);
+
+            if (formulation == null)
+            {
+                return NotFound();
+            }
+
+            var viewModel = new FormulationIngredientViewModel
+            {
+                FormulationID = formulation.FormulationID,
+                RawMaterialID = formulation.RawMaterialID,
+                MaterialName = formulation.RawMaterial?.MaterialName ?? "Unknown",
+                Quantity = formulation.Quantity,
+                Unit = formulation.Unit ?? "kg",
+                ProcessOrder = formulation.ProcessOrder,
+                ProcessInstructions = formulation.ProcessInstructions,
+                UnitCost = formulation.RawMaterial?.UnitCost ?? 0
+            };
+
+            return Json(viewModel);
+        }
+
+        // GET: PLM/CalculateBatchRequirements/{productId}/{quantity}
+        [HttpGet]
+        public async Task<IActionResult> CalculateBatchRequirements(int productId, int quantity)
+        {
+            var companyId = GetUserCompanyId(await _userManager.GetUserAsync(User));
+
+            var ingredients = await _context.ProductFormulation
+                .Include(f => f.RawMaterial)
+                .Where(f => f.ProductID == productId && f.CompanyID == companyId && f.IsActive)
+                .Select(f => new BatchMaterialRequirementViewModel
+                {
+                    MaterialName = f.RawMaterial.MaterialName ?? "Unknown",
+                    RequiredQuantity = f.Quantity * quantity,
+                    Unit = f.Unit ?? "kg",
+                    UnitCost = f.RawMaterial.UnitCost ?? 0,
+                    TotalCost = (f.Quantity * quantity) * (f.RawMaterial.UnitCost ?? 0)
+                })
+                .ToListAsync();
+
+            return Json(new 
+            { 
+                requirements = ingredients, 
+                totalCost = ingredients.Sum(i => i.TotalCost) 
+            });
         }
 
         // Helper method to get user's CompanyID

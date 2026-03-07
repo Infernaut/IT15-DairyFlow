@@ -1,31 +1,33 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @using IT15_DairyFlow.Models
+@using IT15_DairyFlow.Models.Admin
 @inject UserManager<ApplicationUser> UserManager
+
+@{
+    var dash = ViewBag.UserDashboard as UserDashboardViewModel ?? new UserDashboardViewModel();
+}
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h1 class="fw-bold text-dark h3 mb-1">Operational Overview</h1>
         <p class="text-muted small mb-0">Real-time metrics for @User.Identity?.Name's Facility</p>
     </div>
-    <div class="dropdown">
-        <button class="btn btn-white border shadow-sm btn-sm dropdown-toggle px-3" type="button" data-bs-toggle="dropdown">
-            <i class="bi bi-calendar3 me-2"></i>Last 30 Days
-        </button>
-        <ul class="dropdown-menu shadow-sm">
-            <li><a class="dropdown-item" href="#">Last 7 Days</a></li>
-            <li><a class="dropdown-item" href="#">Quarter to Date</a></li>
-        </ul>
+    <div>
+        <span class="badge bg-light text-muted border px-3 py-2">
+            <i class="bi bi-clock me-1"></i> @DateTime.Now.ToString("MMM dd, yyyy HH:mm")
+        </span>
     </div>
 </div>
 
+<!-- KPI Cards -->
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <div class="card border-0 shadow-sm p-3 bg-white h-100">
             <div class="d-flex justify-content-between">
                 <div>
                     <p class="text-muted small fw-bold text-uppercase mb-1">Active Products</p>
-                    <h2 class="fw-bold mb-0">124</h2>
-                    <span class="text-success small fw-medium"><i class="bi bi-arrow-up-short"></i>+3.2%</span>
+                    <h2 class="fw-bold mb-0">@dash.ActiveProducts</h2>
+                    <span class="text-success small fw-medium"><i class="bi bi-arrow-up-short"></i>@dash.ActiveProductGrowth% active</span>
                 </div>
                 <div class="module-icon bg-blue-sky text-primary"><i class="bi bi-droplet"></i></div>
             </div>
@@ -36,8 +38,17 @@
             <div class="d-flex justify-content-between">
                 <div>
                     <p class="text-muted small fw-bold text-uppercase mb-1">Ongoing Batches</p>
-                    <h2 class="fw-bold mb-0">18</h2>
-                    <span class="text-primary small fw-medium">4 Ending Today</span>
+                    <h2 class="fw-bold mb-0">@dash.OngoingBatches</h2>
+                    <span class="text-primary small fw-medium">
+                        @if (dash.BatchesEndingToday > 0)
+                        {
+                            @:@dash.BatchesEndingToday Ending Today
+                        }
+                        else
+                        {
+                            @:No batches ending today
+                        }
+                    </span>
                 </div>
                 <div class="module-icon bg-blue-sky text-primary"><i class="bi bi-layers"></i></div>
             </div>
@@ -48,8 +59,15 @@
             <div class="d-flex justify-content-between">
                 <div>
                     <p class="text-muted small fw-bold text-uppercase mb-1">Stock Status</p>
-                    <h2 class="fw-bold mb-0 text-success">Healthy</h2>
-                    <span class="text-danger small fw-medium"><i class="bi bi-exclamation-triangle"></i> 2 Low Items</span>
+                    <h2 class="fw-bold mb-0 @(dash.StockHealthLabel == "Healthy" ? "text-success" : dash.StockHealthLabel == "Fair" ? "text-warning" : "text-danger")">@dash.StockHealthLabel</h2>
+                    @if (dash.LowStockItems > 0)
+                    {
+                        <span class="text-danger small fw-medium"><i class="bi bi-exclamation-triangle"></i> @dash.LowStockItems Low Items</span>
+                    }
+                    else
+                    {
+                        <span class="text-success small fw-medium"><i class="bi bi-check-circle"></i> @dash.TotalInventoryItems Items in Stock</span>
+                    }
                 </div>
                 <div class="module-icon bg-blue-sky text-primary"><i class="bi bi-box-seam"></i></div>
             </div>
@@ -59,9 +77,18 @@
         <div class="card border-0 shadow-sm p-3 bg-white h-100">
             <div class="d-flex justify-content-between">
                 <div>
-                    <p class="text-muted small fw-bold text-uppercase mb-1">Prod. Cost (MTD)</p>
-                    <h2 class="fw-bold mb-0">$42.5k</h2>
-                    <span class="text-muted small fw-medium">-$1.2k vs Budget</span>
+                    <p class="text-muted small fw-bold text-uppercase mb-1">Expenses (MTD)</p>
+                    <h2 class="fw-bold mb-0">₱@dash.ProductionCostMTD.ToString("N0")</h2>
+                    @if (dash.BudgetVarianceMTD != 0)
+                    {
+                        <span class="@(dash.BudgetVarianceMTD < 0 ? "text-success" : "text-danger") small fw-medium">
+                            @(dash.BudgetVarianceMTD < 0 ? "₱" + Math.Abs(dash.BudgetVarianceMTD).ToString("N0") + " under budget" : "₱" + dash.BudgetVarianceMTD.ToString("N0") + " over budget")
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="text-muted small fw-medium">No budget set</span>
+                    }
                 </div>
                 <div class="module-icon bg-blue-sky text-primary"><i class="bi bi-currency-dollar"></i></div>
             </div>
@@ -69,57 +96,81 @@
     </div>
 </div>
 
+<!-- Charts Row -->
 <div class="row g-4 mb-4">
     <div class="col-lg-8">
         <div class="card border-0 shadow-sm p-4 h-100">
-            <h6 class="fw-bold mb-3">Production Volume vs. Targets</h6>
+            <h6 class="fw-bold mb-3">Production Volume (Last 6 Months)</h6>
             <div style="height: 250px;">
-                <canvas id="productionChart"></canvas>
+                <canvas id="dashProductionChart"></canvas>
             </div>
         </div>
     </div>
     <div class="col-lg-4">
         <div class="card border-0 shadow-sm p-4 h-100">
-            <h6 class="fw-bold mb-3">Quality Assurance Yield</h6>
+            <h6 class="fw-bold mb-3">Quality Assurance</h6>
             <div style="height: 180px;">
-                <canvas id="qualityPieChart"></canvas>
+                <canvas id="dashQualityChart"></canvas>
             </div>
             <div class="mt-3">
                 <div class="d-flex justify-content-between mb-1 small">
-                    <span>Passed</span><span class="fw-bold text-success">98.2%</span>
+                    <span>Pass Rate</span><span class="fw-bold text-success">@dash.QualityPassRate%</span>
                 </div>
                 <div class="progress" style="height: 6px;">
-                    <div class="progress-bar bg-success" style="width: 98%"></div>
+                    <div class="progress-bar bg-success" style="width: @dash.QualityPassRate%"></div>
+                </div>
+                <div class="d-flex justify-content-between mt-2 small text-muted">
+                    <span><i class="bi bi-check-circle-fill text-success"></i> @dash.QualityPassed Passed</span>
+                    <span><i class="bi bi-x-circle-fill text-danger"></i> @dash.QualityFailed Failed</span>
+                    <span><i class="bi bi-clock-fill text-warning"></i> @dash.QualityPending Pending</span>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Inventory Alerts & Cost Breakdown -->
 <div class="row g-4 mb-4">
     <div class="col-lg-6">
         <div class="card border-0 shadow-sm h-100">
             <div class="p-4 border-bottom d-flex justify-content-between align-items-center">
-                <h6 class="fw-bold mb-0">Inventory Expiry Alerts</h6>
-                <span class="badge bg-soft-danger text-danger">High Priority</span>
+                <h6 class="fw-bold mb-0">Inventory & Stock Alerts</h6>
+                @if (dash.InventoryAlerts.Any(a => a.AlertType == "danger"))
+                {
+                    <span class="badge bg-soft-danger text-danger">High Priority</span>
+                }
+                else if (dash.InventoryAlerts.Any())
+                {
+                    <span class="badge bg-soft-warning text-warning">Attention</span>
+                }
+                else
+                {
+                    <span class="badge bg-soft-success text-success">All Clear</span>
+                }
             </div>
             <div class="p-0">
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
-                        <div>
-                            <div class="fw-bold mb-0">Raw Milk - Tank A</div>
-                            <small class="text-muted">Batch #RM-990</small>
-                        </div>
-                        <span class="text-danger fw-bold">Expires in 12h</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
-                        <div>
-                            <div class="fw-bold mb-0">Skimmed Milk Powder</div>
-                            <small class="text-muted">Warehouse Section B</small>
-                        </div>
-                        <span class="text-warning fw-bold">Low Stock (20kg)</span>
-                    </li>
-                </ul>
+                @if (dash.InventoryAlerts.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var alert in dash.InventoryAlerts)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                <div>
+                                    <div class="fw-bold mb-0">@alert.ProductName</div>
+                                    <small class="text-muted">@alert.Detail</small>
+                                </div>
+                                <span class="@(alert.AlertType == "danger" ? "text-danger" : "text-warning") fw-bold small">@alert.AlertMessage</span>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-5">
+                        <i class="bi bi-box-seam display-4 d-block mb-3 opacity-25"></i>
+                        <p class="mb-0">No alerts. All stock levels are normal.</p>
+                    </div>
+                }
             </div>
         </div>
     </div>
@@ -129,60 +180,89 @@
             <div class="d-flex align-items-center h-100">
                 <div class="flex-grow-1">
                     <div class="mb-3">
-                        <small class="text-muted d-block">Raw Materials (65%)</small>
-                        <div class="progress" style="height: 8px;"><div class="progress-bar bg-primary" style="width: 65%"></div></div>
+                        <small class="text-muted d-block">Raw Materials (@dash.CostRawMaterialsPct%)</small>
+                        <div class="progress" style="height: 8px;"><div class="progress-bar bg-primary" style="width: @dash.CostRawMaterialsPct%"></div></div>
                     </div>
                     <div class="mb-3">
-                        <small class="text-muted d-block">Labor & Logistics (25%)</small>
-                        <div class="progress" style="height: 8px;"><div class="progress-bar bg-info" style="width: 25%"></div></div>
+                        <small class="text-muted d-block">Equipment (@dash.CostEquipmentPct%)</small>
+                        <div class="progress" style="height: 8px;"><div class="progress-bar bg-info" style="width: @dash.CostEquipmentPct%"></div></div>
                     </div>
                     <div>
-                        <small class="text-muted d-block">Overheads (10%)</small>
-                        <div class="progress" style="height: 8px;"><div class="progress-bar bg-secondary" style="width: 10%"></div></div>
+                        <small class="text-muted d-block">Other Expenses (@dash.CostOtherPct%)</small>
+                        <div class="progress" style="height: 8px;"><div class="progress-bar bg-secondary" style="width: @dash.CostOtherPct%"></div></div>
                     </div>
                 </div>
                 <div class="ps-4 text-center">
-                    <h3 class="fw-bold text-primary mb-0">$28.1k</h3>
-                    <small class="text-muted">Direct Cost</small>
+                    <h3 class="fw-bold text-primary mb-0">₱@dash.CostTotal.ToString("N0")</h3>
+                    <small class="text-muted">Total Cost</small>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Financial Summary -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-3 bg-white text-center">
+            <p class="text-muted small fw-bold text-uppercase mb-1">Total Revenue</p>
+            <h3 class="fw-bold text-success mb-0">₱@dash.TotalRevenue.ToString("N0")</h3>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-3 bg-white text-center">
+            <p class="text-muted small fw-bold text-uppercase mb-1">Total Expenses</p>
+            <h3 class="fw-bold text-danger mb-0">₱@dash.TotalExpenses.ToString("N0")</h3>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm p-3 bg-white text-center">
+            <p class="text-muted small fw-bold text-uppercase mb-1">Net Profit</p>
+            <h3 class="fw-bold @(dash.NetProfit >= 0 ? "text-success" : "text-danger") mb-0">₱@dash.NetProfit.ToString("N0")</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Live Audit Trail -->
 <div class="card border-0 shadow-sm overflow-hidden">
     <div class="p-4 border-bottom bg-white">
         <h6 class="fw-bold mb-0">Live Audit Trail</h6>
     </div>
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="bg-light">
-                <tr class="small text-uppercase text-muted">
-                    <th class="ps-4">Activity</th>
-                    <th>Staff</th>
-                    <th>Module</th>
-                    <th>Time</th>
-                    <th class="text-end pe-4">Status</th>
-                </tr>
-            </thead>
-            <tbody class="small">
-                <tr>
-                    <td class="ps-4 fw-bold">Sterilization Temperature Check</td>
-                    <td>S. Miller</td>
-                    <td>Quality</td>
-                    <td>10 mins ago</td>
-                    <td class="text-end pe-4"><span class="badge rounded-pill bg-soft-success text-success px-3">Passed</span></td>
-                </tr>
-                <tr>
-                    <td class="ps-4 fw-bold">Batch #DF-202-A Start</td>
-                    <td>A. Chen</td>
-                    <td>Production</td>
-                    <td>45 mins ago</td>
-                    <td class="text-end pe-4"><span class="badge rounded-pill bg-soft-primary text-primary px-3">Active</span></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    @if (dash.RecentAuditLogs.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr class="small text-uppercase text-muted">
+                        <th class="ps-4">Activity</th>
+                        <th>Staff</th>
+                        <th>Module</th>
+                        <th>Time</th>
+                        <th class="text-end pe-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    @foreach (var log in dash.RecentAuditLogs)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-bold">@log.Activity</td>
+                            <td>@log.Staff</td>
+                            <td>@log.Module</td>
+                            <td>@log.TimeAgo</td>
+                            <td class="text-end pe-4"><span class="badge rounded-pill @log.StatusClass px-3">@log.StatusLabel</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-journal display-4 d-block mb-3 opacity-25"></i>
+            <p class="mb-0">No activity yet. Actions will appear here as you use the system.</p>
+        </div>
+    }
 </div>
 
 <style>
@@ -202,6 +282,14 @@
         background-color: #f0f7ff;
     }
 
+    .bg-soft-warning {
+        background-color: #fff8e1;
+    }
+
+    .bg-soft-info {
+        background-color: #e8f4fd;
+    }
+
     .module-icon {
         width: 42px;
         height: 42px;
@@ -212,3 +300,67 @@
         font-size: 1.2rem;
     }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    // Production Volume Chart
+    (function () {
+        const ctx = document.getElementById('dashProductionChart');
+        if (!ctx) return;
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(dash.ProductionLabels)),
+                datasets: [
+                    {
+                        label: 'Actual Batches',
+                        data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(dash.ProductionActual)),
+                        backgroundColor: 'rgba(13, 110, 253, 0.7)',
+                        borderColor: '#0d6efd',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    },
+                    {
+                        label: 'Average',
+                        data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(dash.ProductionTarget)),
+                        type: 'line',
+                        borderColor: '#dc3545',
+                        borderDash: [5, 5],
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+        });
+    })();
+
+    // Quality Doughnut Chart
+    (function () {
+        const ctx = document.getElementById('dashQualityChart');
+        if (!ctx) return;
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Passed', 'Failed', 'Pending'],
+                datasets: [{
+                    data: [@dash.QualityPassed, @dash.QualityFailed, @dash.QualityPending],
+                    backgroundColor: ['#198754', '#dc3545', '#ffc107'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: { legend: { display: false } }
+            }
+        });
+    })();
+</script>

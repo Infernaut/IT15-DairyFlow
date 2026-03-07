@@ -1,3 +1,5 @@
+@model IT15_DairyFlow.Models.QM.NonConformancePageViewModel
+
 @{
     ViewData["Title"] = "Non-conformance Reports";
 }
@@ -15,69 +17,91 @@
 
     <!-- Statistics Cards -->
     <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0">
+        <div class="col-md-2">
+            <div class="card shadow-sm border-0 h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="bg-danger bg-opacity-10 text-danger rounded p-3">
-                                <i class="bi bi-exclamation-triangle fs-3"></i>
-                            </div>
+                        <div class="bg-danger bg-opacity-10 text-danger rounded p-2 me-3">
+                            <i class="bi bi-exclamation-triangle fs-4"></i>
                         </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1 small">Open Reports</h6>
-                            <h3 class="mb-0 fw-bold">12</h3>
+                        <div>
+                            <h6 class="text-muted mb-0 small">Open</h6>
+                            <h4 class="mb-0 fw-bold">@Model.Summary.TotalOpen</h4>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0">
+        <div class="col-md-2">
+            <div class="card shadow-sm border-0 h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="bg-warning bg-opacity-10 text-warning rounded p-3">
-                                <i class="bi bi-clock-history fs-3"></i>
-                            </div>
+                        <div class="bg-warning bg-opacity-10 text-warning rounded p-2 me-3">
+                            <i class="bi bi-clock-history fs-4"></i>
                         </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1 small">In Progress</h6>
-                            <h3 class="mb-0 fw-bold">8</h3>
+                        <div>
+                            <h6 class="text-muted mb-0 small">In Progress</h6>
+                            <h4 class="mb-0 fw-bold">@Model.Summary.TotalInProgress</h4>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0">
+        <div class="col-md-2">
+            <div class="card shadow-sm border-0 h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="bg-success bg-opacity-10 text-success rounded p-3">
-                                <i class="bi bi-check-circle fs-3"></i>
-                            </div>
+                        <div class="bg-info bg-opacity-10 text-info rounded p-2 me-3">
+                            <i class="bi bi-hourglass-split fs-4"></i>
                         </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1 small">Resolved</h6>
-                            <h3 class="mb-0 fw-bold">45</h3>
+                        <div>
+                            <h6 class="text-muted mb-0 small">Pending</h6>
+                            <h4 class="mb-0 fw-bold">@Model.Summary.PendingVerification</h4>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0">
+        <div class="col-md-2">
+            <div class="card shadow-sm border-0 h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="bg-info bg-opacity-10 text-info rounded p-3">
-                                <i class="bi bi-graph-up fs-3"></i>
-                            </div>
+                        <div class="bg-success bg-opacity-10 text-success rounded p-2 me-3">
+                            <i class="bi bi-check-circle fs-4"></i>
                         </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="text-muted mb-1 small">This Month</h6>
-                            <h3 class="mb-0 fw-bold">7</h3>
+                        <div>
+                            <h6 class="text-muted mb-0 small">Closed</h6>
+                            <h4 class="mb-0 fw-bold">@Model.Summary.ClosedThisMonth</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-secondary bg-opacity-10 text-secondary rounded p-2 me-3">
+                            <i class="bi bi-alarm fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-0 small">Overdue</h6>
+                            <h4 class="mb-0 fw-bold text-danger">@Model.Summary.OverdueCount</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded p-2 me-3">
+                            <i class="bi bi-currency-dollar fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-0 small">Cost Impact</h6>
+                            <h5 class="mb-0 fw-bold">₱@Model.Summary.TotalCostImpact.ToString("N0")</h5>
                         </div>
                     </div>
                 </div>
@@ -85,32 +109,41 @@
         </div>
     </div>
 
-    <!-- Filters and Search -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <div class="row g-3">
+    <!-- Filters -->
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-body py-3">
+            <div class="row g-3 align-items-center">
                 <div class="col-md-4">
                     <div class="input-group">
                         <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" id="searchInput" placeholder="Search reports...">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search NCR..." onkeyup="filterTable()">
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <select class="form-select" id="statusFilter">
+                <div class="col-md-2">
+                    <select class="form-select" id="statusFilter" onchange="filterTable()">
                         <option value="">All Statuses</option>
-                        <option value="open">Open</option>
-                        <option value="in-progress">In Progress</option>
-                        <option value="resolved">Resolved</option>
-                        <option value="closed">Closed</option>
+                        <option value="Open">Open</option>
+                        <option value="InProgress">In Progress</option>
+                        <option value="PendingVerification">Pending Verification</option>
+                        <option value="Closed">Closed</option>
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <select class="form-select" id="severityFilter">
+                <div class="col-md-2">
+                    <select class="form-select" id="severityFilter" onchange="filterTable()">
                         <option value="">All Severities</option>
-                        <option value="critical">Critical</option>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
+                        <option value="Critical">Critical</option>
+                        <option value="Major">Major</option>
+                        <option value="Minor">Minor</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select" id="categoryFilter" onchange="filterTable()">
+                        <option value="">All Categories</option>
+                        <option value="Material">Material</option>
+                        <option value="Process">Process</option>
+                        <option value="Equipment">Equipment</option>
+                        <option value="Product">Product</option>
+                        <option value="Packaging">Packaging</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -122,266 +155,431 @@
         </div>
     </div>
 
-    <!-- Reports Table -->
-    <div class="card shadow-sm">
+    <!-- NCR Table -->
+    <div class="card shadow-sm border-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" id="reportsTable">
+            <table class="table table-hover align-middle mb-0" id="ncrTable">
                 <thead class="table-light">
                     <tr>
-                        <th class="px-4">Report ID</th>
-                        <th>Issue Description</th>
+                        <th class="px-4">NCR #</th>
+                        <th>Title</th>
+                        <th>Category</th>
                         <th>Severity</th>
                         <th>Status</th>
-                        <th>Date Reported</th>
-                        <th>Assigned To</th>
+                        <th>Reported</th>
+                        <th>Due Date</th>
+                        <th>Assigned</th>
                         <th class="text-end px-4">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Sample Data -->
-                    <tr style="cursor: pointer;" onclick="viewReportDetail(1)">
-                        <td class="px-4 fw-semibold">NCR-2026-001</td>
-                        <td>Product temperature out of specification range</td>
-                        <td><span class="badge bg-danger">Critical</span></td>
-                        <td><span class="badge bg-warning">In Progress</span></td>
-                        <td>Feb 20, 2026</td>
-                        <td>John Smith</td>
-                        <td class="text-end px-4">
-                            <button class="btn btn-sm btn-outline-primary me-1" onclick="event.stopPropagation(); viewReportDetail(1)">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); editReport(1)">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    <tr style="cursor: pointer;" onclick="viewReportDetail(2)">
-                        <td class="px-4 fw-semibold">NCR-2026-002</td>
-                        <td>Packaging defect detected in batch</td>
-                        <td><span class="badge bg-warning">High</span></td>
-                        <td><span class="badge bg-danger">Open</span></td>
-                        <td>Feb 21, 2026</td>
-                        <td>Sarah Johnson</td>
-                        <td class="text-end px-4">
-                            <button class="btn btn-sm btn-outline-primary me-1" onclick="event.stopPropagation(); viewReportDetail(2)">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); editReport(2)">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    <tr style="cursor: pointer;" onclick="viewReportDetail(3)">
-                        <td class="px-4 fw-semibold">NCR-2026-003</td>
-                        <td>Minor appearance deviation from standard</td>
-                        <td><span class="badge bg-info">Medium</span></td>
-                        <td><span class="badge bg-success">Resolved</span></td>
-                        <td>Feb 19, 2026</td>
-                        <td>Mike Wilson</td>
-                        <td class="text-end px-4">
-                            <button class="btn btn-sm btn-outline-primary me-1" onclick="event.stopPropagation(); viewReportDetail(3)">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); editReport(3)">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                        </td>
-                    </tr>
+                    @if (Model.NonConformances.Any())
+                    {
+                        @foreach (var ncr in Model.NonConformances)
+                        {
+                            var severityClass = ncr.Severity switch
+                            {
+                                "Critical" => "bg-danger",
+                                "Major" => "bg-warning text-dark",
+                                _ => "bg-info"
+                            };
+                            var statusClass = ncr.Status switch
+                            {
+                                "Open" => "bg-danger",
+                                "InProgress" => "bg-warning text-dark",
+                                "PendingVerification" => "bg-info",
+                                "Closed" => "bg-success",
+                                _ => "bg-secondary"
+                            };
+                            var isOverdue = ncr.DueDate.HasValue && ncr.DueDate.Value.Date < DateTime.UtcNow.Date && ncr.Status != "Closed";
+                            <tr data-id="@ncr.NonConformanceID" data-status="@ncr.Status" data-severity="@ncr.Severity" data-category="@ncr.Category"
+                                style="cursor: pointer;" onclick="viewNCRDetail(@ncr.NonConformanceID)">
+                                <td class="px-4 fw-semibold">@ncr.NCRNumber</td>
+                                <td>
+                                    @ncr.Title
+                                    @if (!string.IsNullOrEmpty(ncr.BatchCode))
+                                    {
+                                        <br /><small class="text-muted">Batch: @ncr.BatchCode</small>
+                                    }
+                                </td>
+                                <td><span class="badge bg-secondary">@ncr.Category</span></td>
+                                <td><span class="badge @severityClass">@ncr.Severity</span></td>
+                                <td><span class="badge @statusClass">@ncr.Status</span></td>
+                                <td>@ncr.ReportedDate.ToString("MMM dd, yyyy")</td>
+                                <td class="@(isOverdue ? "text-danger fw-bold" : "")">
+                                    @(ncr.DueDate?.ToString("MMM dd, yyyy") ?? "-")
+                                    @if (isOverdue)
+                                    {
+                                        <i class="bi bi-exclamation-circle ms-1"></i>
+                                    }
+                                </td>
+                                <td>@(ncr.AssignedTo ?? "-")</td>
+                                <td class="text-end px-4">
+                                    @if (ncr.Status != "Closed")
+                                    {
+                                        <button class="btn btn-sm btn-outline-secondary me-1" onclick="event.stopPropagation(); editNCR(@ncr.NonConformanceID)" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); closeNCR(@ncr.NonConformanceID)" title="Close">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox display-4"></i>
+                                <p class="mt-2">No non-conformance reports found.</p>
+                            </td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
-<!-- Create Report Modal -->
-<div class="modal fade" id="createReportModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+<!-- Create NCR Modal -->
+<div class="modal fade" id="createReportModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">
-                    <i class="bi bi-plus-circle text-primary me-2"></i>Create Non-conformance Report
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="createReportForm">
+            <form id="createNCRForm">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle text-primary me-2"></i>Create Non-conformance Report</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Report ID</label>
-                            <input type="text" class="form-control" value="Auto-generated" readonly>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Date Reported <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" required>
+                            <label class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+                            <select class="form-select" id="createCategory" required>
+                                <option value="">Select category...</option>
+                                <option value="Material">Material</option>
+                                <option value="Process">Process</option>
+                                <option value="Equipment">Equipment</option>
+                                <option value="Product">Product</option>
+                                <option value="Packaging">Packaging</option>
+                                <option value="Labeling">Labeling</option>
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold">Severity <span class="text-danger">*</span></label>
-                            <select class="form-select" required>
+                            <select class="form-select" id="createSeverity" required>
                                 <option value="">Select severity...</option>
-                                <option value="critical">Critical</option>
-                                <option value="high">High</option>
-                                <option value="medium">Medium</option>
-                                <option value="low">Low</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
-                            <select class="form-select" required>
-                                <option value="open" selected>Open</option>
-                                <option value="in-progress">In Progress</option>
-                                <option value="resolved">Resolved</option>
-                                <option value="closed">Closed</option>
+                                <option value="Critical">Critical</option>
+                                <option value="Major">Major</option>
+                                <option value="Minor">Minor</option>
                             </select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Issue Description <span class="text-danger">*</span></label>
-                            <textarea class="form-control" rows="3" placeholder="Describe the non-conformance issue..." required></textarea>
+                            <label class="form-label fw-semibold">Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="createTitle" maxlength="200" required placeholder="Brief description of the issue">
                         </div>
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Root Cause Analysis</label>
-                            <textarea class="form-control" rows="3" placeholder="Identify the root cause of the issue..."></textarea>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Corrective Action</label>
-                            <textarea class="form-control" rows="3" placeholder="Describe corrective actions taken or planned..."></textarea>
+                            <label class="form-label fw-semibold">Description</label>
+                            <textarea class="form-control" id="createDescription" rows="3" placeholder="Detailed description of the non-conformance..."></textarea>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Assigned To</label>
-                            <select class="form-select">
+                            <label class="form-label fw-semibold">Production Batch</label>
+                            <select class="form-select" id="createBatchId">
+                                <option value="">Select batch (optional)...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Affected Quantity</label>
+                            <input type="number" class="form-control" id="createAffectedQty" min="0" placeholder="0">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Immediate Action Taken</label>
+                            <textarea class="form-control" id="createImmediateAction" rows="2" placeholder="Describe any immediate actions taken..."></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Assign To</label>
+                            <select class="form-select" id="createAssignedTo">
                                 <option value="">Select assignee...</option>
-                                <option value="1">John Smith</option>
-                                <option value="2">Sarah Johnson</option>
-                                <option value="3">Mike Wilson</option>
+                                @foreach (var user in Model.Users)
+                                {
+                                    <option value="@user.Id">@user.Name</option>
+                                }
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Target Resolution Date</label>
-                            <input type="date" class="form-control">
+                            <label class="form-label fw-semibold">Due Date</label>
+                            <input type="date" class="form-control" id="createDueDate">
                         </div>
                     </div>
-                </form>
-            </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="createReport()">
-                    <i class="bi bi-check-lg me-1"></i>Create Report
-                </button>
-            </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Create Report</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- View Report Detail Modal -->
-<div class="modal fade" id="reportDetailModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+<!-- View/Edit NCR Modal -->
+<div class="modal fade" id="ncrDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">
-                    <i class="bi bi-file-earmark-text text-primary me-2"></i>Non-conformance Report Details
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold text-muted small">Report ID</label>
-                        <input type="text" class="form-control form-control-lg" id="viewReportId" readonly>
+            <form id="editNCRForm">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-file-earmark-text text-primary me-2"></i>NCR Details - <span id="detailNCRNumber"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editNCRId">
+                    
+                    <!-- Summary Row -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small">Category</label>
+                            <div class="fw-bold" id="detailCategory"></div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small">Severity</label>
+                            <div id="detailSeverityBadge"></div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small">Status</label>
+                            <select class="form-select form-select-sm" id="editStatus">
+                                <option value="Open">Open</option>
+                                <option value="InProgress">In Progress</option>
+                                <option value="PendingVerification">Pending Verification</option>
+                                <option value="Closed">Closed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted small">Reported</label>
+                            <div id="detailReportedDate"></div>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold text-muted small">Date Reported</label>
-                        <input type="text" class="form-control form-control-lg" id="viewReportDate" readonly>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold text-muted small">Severity</label>
-                        <input type="text" class="form-control" id="viewSeverity" readonly>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-semibold text-muted small">Status</label>
-                        <input type="text" class="form-control" id="viewStatus" readonly>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label fw-semibold text-muted small">Issue Description</label>
-                        <textarea class="form-control" id="viewDescription" rows="3" readonly></textarea>
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label fw-semibold text-muted small">Assigned To</label>
-                        <input type="text" class="form-control" id="viewAssignee" readonly>
+
+                    <hr />
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Title</label>
+                            <div class="form-control-plaintext border-bottom" id="detailTitle"></div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Description</label>
+                            <div class="form-control-plaintext text-muted" id="detailDescription"></div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Root Cause Analysis</label>
+                            <textarea class="form-control" id="editRootCause" rows="2" placeholder="Enter root cause analysis..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Corrective Action</label>
+                            <textarea class="form-control" id="editCorrectiveAction" rows="2" placeholder="Enter corrective actions..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Preventive Action</label>
+                            <textarea class="form-control" id="editPreventiveAction" rows="2" placeholder="Enter preventive measures..."></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Disposition</label>
+                            <select class="form-select" id="editDisposition">
+                                <option value="">Select...</option>
+                                <option value="UseAsIs">Use As Is</option>
+                                <option value="Rework">Rework</option>
+                                <option value="Scrap">Scrap</option>
+                                <option value="Return">Return</option>
+                                <option value="Hold">Hold</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Cost Impact (₱)</label>
+                            <input type="number" class="form-control" id="editCostImpact" step="0.01" min="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Due Date</label>
+                            <input type="date" class="form-control" id="editDueDate">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Assigned To</label>
+                            <select class="form-select" id="editAssignedTo">
+                                <option value="">Unassigned</option>
+                                @foreach (var user in Model.Users)
+                                {
+                                    <option value="@user.Id">@user.Name</option>
+                                }
+                            </select>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="editReport()">
-                    <i class="bi bi-pencil me-1"></i>Edit
-                </button>
-            </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
+        const antiForgeryToken = $('input[name="__RequestVerificationToken"]').val();
+
+        // Load batches for create form
+        $(document).ready(function() {
+            $.get('@Url.Action("GetBatches", "QM")', function(data) {
+                data.forEach(function(batch) {
+                    $('#createBatchId').append(`<option value="${batch.id}">${batch.code}</option>`);
+                });
+            });
+        });
+
+        // Filter table
+        function filterTable() {
+            const search = $('#searchInput').val().toLowerCase();
+            const status = $('#statusFilter').val();
+            const severity = $('#severityFilter').val();
+            const category = $('#categoryFilter').val();
+
+            $('#ncrTable tbody tr').each(function() {
+                const row = $(this);
+                const rowStatus = row.data('status');
+                const rowSeverity = row.data('severity');
+                const rowCategory = row.data('category');
+                const text = row.text().toLowerCase();
+
+                const matchSearch = !search || text.includes(search);
+                const matchStatus = !status || rowStatus === status;
+                const matchSeverity = !severity || rowSeverity === severity;
+                const matchCategory = !category || rowCategory === category;
+
+                row.toggle(matchSearch && matchStatus && matchSeverity && matchCategory);
+            });
+        }
+
         function clearFilters() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('statusFilter').value = '';
-            document.getElementById('severityFilter').value = '';
+            $('#searchInput').val('');
+            $('#statusFilter').val('');
+            $('#severityFilter').val('');
+            $('#categoryFilter').val('');
+            filterTable();
         }
 
-        function createReport() {
-            const form = document.getElementById('createReportForm');
-            if (!form.checkValidity()) {
-                form.classList.add('was-validated');
-                return;
-            }
-            
-            alert('Report creation functionality will be implemented in the backend.');
-            bootstrap.Modal.getInstance(document.getElementById('createReportModal')).hide();
-        }
+        // Create NCR
+        $('#createNCRForm').on('submit', function(e) {
+            e.preventDefault();
 
-        function viewReportDetail(reportId) {
-            // Sample data for demonstration
-            const sampleData = {
-                1: {
-                    id: 'NCR-2026-001',
-                    date: 'Feb 20, 2026',
-                    severity: 'Critical',
-                    status: 'In Progress',
-                    description: 'Product temperature out of specification range during quality check. Batch temperature recorded at 8°C, specification requires 4°C ± 2°C.',
-                    assignee: 'John Smith'
-                },
-                2: {
-                    id: 'NCR-2026-002',
-                    date: 'Feb 21, 2026',
-                    severity: 'High',
-                    status: 'Open',
-                    description: 'Packaging defect detected in batch. Multiple units found with improper seal integrity.',
-                    assignee: 'Sarah Johnson'
-                },
-                3: {
-                    id: 'NCR-2026-003',
-                    date: 'Feb 19, 2026',
-                    severity: 'Medium',
-                    status: 'Resolved',
-                    description: 'Minor appearance deviation from standard. Product color slightly lighter than specification.',
-                    assignee: 'Mike Wilson'
-                }
+            const data = {
+                Category: $('#createCategory').val(),
+                Severity: $('#createSeverity').val(),
+                Title: $('#createTitle').val(),
+                Description: $('#createDescription').val(),
+                ProductionBatchID: $('#createBatchId').val() ? parseInt($('#createBatchId').val()) : null,
+                AffectedQuantity: $('#createAffectedQty').val() ? parseInt($('#createAffectedQty').val()) : null,
+                ImmediateAction: $('#createImmediateAction').val(),
+                AssignedToUserId: $('#createAssignedTo').val() || null,
+                DueDate: $('#createDueDate').val() || null
             };
 
-            const data = sampleData[reportId];
-            if (data) {
-                document.getElementById('viewReportId').value = data.id;
-                document.getElementById('viewReportDate').value = data.date;
-                document.getElementById('viewSeverity').value = data.severity;
-                document.getElementById('viewStatus').value = data.status;
-                document.getElementById('viewDescription').value = data.description;
-                document.getElementById('viewAssignee').value = data.assignee;
+            $.ajax({
+                url: '@Url.Action("CreateNonConformance", "QM")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                headers: { 'RequestVerificationToken': antiForgeryToken },
+                success: function(response) {
+                    if (response.success) {
+                        showGlobalToast('success', 'NCR created: ' + response.ncrNumber);
+                        location.reload();
+                    }
+                },
+                error: function(xhr) {
+                    showGlobalToast('error', 'Error creating NCR');
+                }
+            });
+        });
 
-                new bootstrap.Modal(document.getElementById('reportDetailModal')).show();
-            }
+        // View NCR Detail
+        function viewNCRDetail(id) {
+            $.get('@Url.Action("GetNonConformanceDetail", "QM")/' + id, function(data) {
+                $('#editNCRId').val(data.nonConformanceID);
+                $('#detailNCRNumber').text(data.ncrNumber);
+                $('#detailCategory').text(data.category);
+                
+                const severityClass = data.severity === 'Critical' ? 'bg-danger' : data.severity === 'Major' ? 'bg-warning text-dark' : 'bg-info';
+                $('#detailSeverityBadge').html(`<span class="badge ${severityClass}">${data.severity}</span>`);
+                
+                $('#editStatus').val(data.status);
+                $('#detailReportedDate').text(new Date(data.reportedDate).toLocaleDateString());
+                $('#detailTitle').text(data.title);
+                $('#detailDescription').text(data.description || 'No description provided');
+                $('#editRootCause').val(data.rootCause || '');
+                $('#editCorrectiveAction').val(data.correctiveAction || '');
+                $('#editPreventiveAction').val(data.preventiveAction || '');
+                $('#editDisposition').val(data.disposition || '');
+                $('#editCostImpact').val(data.costImpact || '');
+                $('#editDueDate').val(data.dueDate ? data.dueDate.split('T')[0] : '');
+                $('#editAssignedTo').val(data.assignedToId || '');
+
+                new bootstrap.Modal($('#ncrDetailModal')).show();
+            });
         }
 
-        function editReport(reportId) {
-            alert('Edit functionality will be implemented in the backend.');
+        function editNCR(id) {
+            viewNCRDetail(id);
+        }
+
+        // Update NCR
+        $('#editNCRForm').on('submit', function(e) {
+            e.preventDefault();
+
+            const data = {
+                NonConformanceID: parseInt($('#editNCRId').val()),
+                RootCause: $('#editRootCause').val() || null,
+                CorrectiveAction: $('#editCorrectiveAction').val() || null,
+                PreventiveAction: $('#editPreventiveAction').val() || null,
+                Disposition: $('#editDisposition').val() || null,
+                CostImpact: $('#editCostImpact').val() ? parseFloat($('#editCostImpact').val()) : null,
+                DueDate: $('#editDueDate').val() || null,
+                AssignedToUserId: $('#editAssignedTo').val() || null,
+                Status: $('#editStatus').val()
+            };
+
+            $.ajax({
+                url: '@Url.Action("UpdateNonConformance", "QM")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                headers: { 'RequestVerificationToken': antiForgeryToken },
+                success: function(response) {
+                    if (response.success) {
+                        location.reload();
+                    }
+                },
+                error: function(xhr) {
+                    showGlobalToast('error', 'Error updating NCR');
+                }
+            });
+        });
+
+        // Close NCR
+        function closeNCR(id) {
+            showConfirmModal('Close this non-conformance report?', () => {
+                $.ajax({
+                    url: '@Url.Action("CloseNonConformance", "QM")/' + id,
+                    type: 'POST',
+                    headers: { 'RequestVerificationToken': antiForgeryToken },
+                    success: function(response) {
+                        if (response.success) {
+                            location.reload();
+                        }
+                    },
+                    error: function(xhr) {
+                        showGlobalToast('error', 'Error closing NCR');
+                    }
+                });
+            });
         }
     </script>
 }

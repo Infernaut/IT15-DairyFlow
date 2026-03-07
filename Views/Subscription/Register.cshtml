@@ -1,0 +1,226 @@
+@model IT15_DairyFlow.Models.Sub.SubscriptionRegisterViewModel
+@{
+    ViewData["Title"] = "Get Started — DairyFlow ERP";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<style>
+    :root {
+        --blue-main: #0d6efd;
+        --blue-soft: #4dabf7;
+        --blue-sky: #e7f3ff;
+        --blue-deep: #0b5ed7;
+        --green-accent: #20c997;
+        --border-soft: #dbe7f3;
+    }
+
+    body {
+        background: linear-gradient(180deg, #f8fbff, #eef6ff);
+        min-height: 100vh;
+    }
+
+    .register-container {
+        max-width: 900px;
+        margin-top: 5rem;
+    }
+
+    .register-card {
+        background: #ffffff;
+        border-radius: 24px;
+        border: 1px solid var(--border-soft);
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(13, 110, 253, 0.08);
+    }
+
+    .register-brand-side {
+        background: linear-gradient(135deg, var(--green-accent), var(--blue-main), var(--blue-deep));
+        padding: 3rem;
+        color: white;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+    }
+
+    .register-brand-side::before {
+        content: "";
+        position: absolute;
+        width: 150px;
+        height: 150px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        top: -50px;
+        right: -50px;
+    }
+
+    .register-brand-side::after {
+        content: "";
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        background: rgba(255, 255, 255, 0.07);
+        border-radius: 50%;
+        bottom: -30px;
+        left: -30px;
+    }
+
+    .brand-icon {
+        font-size: 5rem;
+        margin-bottom: 1rem;
+        filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2));
+        z-index: 2;
+    }
+
+    .float-icon {
+        animation: floatIcon 4s ease-in-out infinite;
+    }
+
+    @@keyframes floatIcon {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+
+    .form-section {
+        padding: 3rem;
+    }
+
+    .btn-register {
+        background: linear-gradient(135deg, var(--green-accent), var(--blue-main));
+        border: none;
+        padding: 0.8rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        color: white;
+    }
+
+    .btn-register:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(32, 201, 151, 0.3);
+        color: white;
+    }
+
+    .form-floating > .form-control:focus {
+        border-color: var(--green-accent);
+        box-shadow: 0 0 0 0.25rem rgba(32, 201, 151, 0.15);
+    }
+
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 24px;
+    }
+
+    .step-dot {
+        width: 32px;
+        height: 4px;
+        border-radius: 2px;
+        background: #dee2e6;
+    }
+
+    .step-dot.active {
+        background: linear-gradient(135deg, var(--green-accent), var(--blue-main));
+    }
+
+    .feature-check {
+        color: var(--green-accent);
+        font-size: 0.85rem;
+    }
+
+    .bi {
+        display: inline-block !important;
+        line-height: 1;
+    }
+</style>
+
+<div class="container register-container">
+    <div class="register-card shadow-lg">
+        <div class="row g-0">
+            <div class="col-lg-5 register-brand-side text-center">
+                <div class="float-icon">
+                    <i class="bi bi-building-add brand-icon"></i>
+                </div>
+                <h2 class="fw-bold">Join DairyFlow</h2>
+                <p class="opacity-75">Start your ERP journey today</p>
+
+                <div class="mt-4 text-start px-3" style="z-index:2;">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-check-circle-fill me-2 feature-check"></i>
+                        <small class="opacity-90">Full ERP suite access</small>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-check-circle-fill me-2 feature-check"></i>
+                        <small class="opacity-90">Production & quality modules</small>
+                    </div>
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-check-circle-fill me-2 feature-check"></i>
+                        <small class="opacity-90">Financial management tools</small>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-check-circle-fill me-2 feature-check"></i>
+                        <small class="opacity-90">Batch traceability system</small>
+                    </div>
+                </div>
+
+                <div class="mt-auto pt-4 small opacity-50">
+                    Secure registration <br />
+                    <i class="bi bi-shield-lock-fill me-1"></i> 256-bit encryption
+                </div>
+            </div>
+
+            <div class="col-lg-7 form-section">
+                <div class="step-indicator">
+                    <div class="step-dot active"></div>
+                    <div class="step-dot"></div>
+                    <div class="step-dot"></div>
+                </div>
+
+                <h3 class="fw-bold text-primary mb-1">Create Your Account</h3>
+                <p class="text-muted mb-4">Step 1 of 3 — Enter your credentials to get started.</p>
+
+                <form asp-action="Register" asp-controller="Subscription" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3" role="alert"></div>
+
+                    <div class="form-floating mb-3">
+                        <input asp-for="Email" class="form-control" placeholder="name@company.com" autocomplete="email" />
+                        <label asp-for="Email" class="text-muted"><i class="bi bi-envelope me-1"></i> Email Address</label>
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                        <div class="form-text small mt-1">
+                            <i class="bi bi-info-circle me-1"></i> Your company name will be derived from your email prefix.
+                        </div>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input asp-for="Password" class="form-control" placeholder="Password" autocomplete="new-password" />
+                        <label asp-for="Password" class="text-muted"><i class="bi bi-lock me-1"></i> Password</label>
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="form-floating mb-4">
+                        <input asp-for="ConfirmPassword" class="form-control" placeholder="Confirm Password" autocomplete="new-password" />
+                        <label asp-for="ConfirmPassword" class="text-muted"><i class="bi bi-lock-fill me-1"></i> Confirm Password</label>
+                        <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="w-100 btn btn-lg btn-register mb-4">
+                        <i class="bi bi-arrow-right-circle me-2"></i> Continue to Plans
+                    </button>
+
+                    <div class="text-center border-top pt-3">
+                        <p class="mb-1 text-muted small">Already have an account?</p>
+                        <a asp-area="Identity" asp-page="/Account/Login" class="fw-bold text-primary text-decoration-none">
+                            Sign in here
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

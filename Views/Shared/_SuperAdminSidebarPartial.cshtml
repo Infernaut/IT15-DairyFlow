@@ -9,13 +9,15 @@
         max-width: 280px;
         background: #ffffff;
         border-right: 1px solid #eef2f7;
-        height: calc(100vh - 70px);
-        position: sticky;
-        top: 70px;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: 0;
         display: flex;
         flex-direction: column;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        z-index: 1020;
+        z-index: 1040;
+        box-shadow: 2px 0 8px rgba(0,0,0,0.05);
     }
 
     .sidebar-scroll-container {
@@ -76,10 +78,21 @@
 </style>
 
 <div class="sidebar d-none d-md-flex">
+    <!-- Brand / Logo -->
+    <div style="display:flex;align-items:center;padding:1rem 1.5rem;border-bottom:1px solid #eef2f7;min-height:70px;background:linear-gradient(135deg,#6610f2 0%,#4c0eb8 100%);">
+        <div style="width:40px;height:40px;background:rgba(255,255,255,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-right:12px;">
+            <i class="bi bi-stars" style="font-size:1.5rem;color:#fff;"></i>
+        </div>
+        <div>
+            <div style="color:#fff;font-weight:700;font-size:1.25rem;letter-spacing:-0.5px;">DairyFlow</div>
+            <div style="color:rgba(255,255,255,0.7);font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;">SuperAdmin</div>
+        </div>
+    </div>
+
     <div class="sidebar-scroll-container">
         <div class="sidebar-section-label">Platform</div>
 
-        <a class="sidebar-link @(currentController == "Home" && currentAction == "Index" ? "active" : "")" asp-controller="Home" asp-action="Index">
+        <a class="sidebar-link @(currentController == "SuperAdmin" && currentAction == "Dashboard" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Dashboard">
             <span><i class="bi bi-speedometer2 me-2"></i> Dashboard</span>
         </a>
         <a class="sidebar-link @(currentController == "SuperAdmin" && currentAction == "Companies" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Companies">
@@ -90,6 +103,15 @@
         </a>
         <a class="sidebar-link @(currentController == "SuperAdmin" && currentAction == "Analytics" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Analytics">
             <span><i class="bi bi-bar-chart me-2"></i> Usage Analytics</span>
+        </a>
+
+        <div class="sidebar-section-label">Administration</div>
+
+        <a class="sidebar-link @(currentController == "SuperAdmin" && (currentAction == "Users" || currentAction == "UserRoles") ? "active" : "")" asp-controller="SuperAdmin" asp-action="Users">
+            <span><i class="bi bi-people me-2"></i> User Management</span>
+        </a>
+        <a class="sidebar-link @(currentController == "SuperAdmin" && (currentAction == "Roles" || currentAction == "CreateRole" || currentAction == "EditRole") ? "active" : "")" asp-controller="SuperAdmin" asp-action="Roles">
+            <span><i class="bi bi-shield-lock me-2"></i> Role Management</span>
         </a>
 
         <div class="sidebar-section-label">Monitoring</div>

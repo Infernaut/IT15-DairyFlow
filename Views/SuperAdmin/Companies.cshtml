@@ -1,16 +1,79 @@
+@using IT15_DairyFlow.Models.Admin
+@model List<CompanyListItemViewModel>
+
 @{
     ViewData["Title"] = "Companies";
+    Layout = "_Layout";
 }
 
 <div class="container-fluid p-4">
-    <div class="mb-4">
-        <h2 class="mb-1">Companies</h2>
-        <p class="text-muted mb-0">Customer roster and tenant lifecycle management.</p>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">Companies</h2>
+            <p class="text-muted mb-0">Customer roster and tenant lifecycle management.</p>
+        </div>
+        <span class="badge bg-primary fs-6">@Model.Count Companies</span>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-body text-muted">
-            No company data source configured yet.
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            @if (Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="px-4">Company</th>
+                                <th>Status</th>
+                                <th>Plan</th>
+                                <th>Billing</th>
+                                <th class="text-end">Price</th>
+                                <th class="text-center">Users</th>
+                                <th class="text-end px-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var company in Model)
+                            {
+                                var statusBadge = company.Status switch
+                                {
+                                    "Active" => "bg-success",
+                                    "Trial" => "bg-warning text-dark",
+                                    "Inactive" => "bg-secondary",
+                                    _ => "bg-light text-dark"
+                                };
+                                <tr>
+                                    <td class="px-4">
+                                        <div class="fw-semibold">@company.CompanyName</div>
+                                        <small class="text-muted">ID: @company.CompanyID</small>
+                                    </td>
+                                    <td><span class="badge @statusBadge">@company.Status</span></td>
+                                    <td>@company.SubscriptionPlan</td>
+                                    <td>@company.BillingCycle</td>
+                                    <td class="text-end">₱@company.Price.ToString("N2")</td>
+                                    <td class="text-center"><span class="badge bg-primary-subtle text-primary">@company.UserCount</span></td>
+                                    <td class="text-end px-4">
+                                        <form asp-action="ToggleCompanyStatus" asp-route-id="@company.CompanyID" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm @(company.Status == "Active" ? "btn-outline-danger" : "btn-outline-success")">
+                                                <i class="bi @(company.Status == "Active" ? "bi-pause-circle" : "bi-play-circle") me-1"></i>
+                                                @(company.Status == "Active" ? "Deactivate" : "Activate")
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-buildings display-4 d-block mb-3 opacity-25"></i>
+                    <p class="mb-0">No companies registered yet.</p>
+                </div>
+            }
         </div>
     </div>
 </div>

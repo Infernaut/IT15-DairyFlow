@@ -1,16 +1,59 @@
+@using IT15_DairyFlow.Models.Admin
+@model List<SubscriptionListItemViewModel>
+
 @{
     ViewData["Title"] = "Subscriptions";
+    Layout = "_Layout";
 }
 
 <div class="container-fluid p-4">
-    <div class="mb-4">
-        <h2 class="mb-1">Subscriptions</h2>
-        <p class="text-muted mb-0">Plan status, renewals, and billing activity.</p>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">Subscriptions</h2>
+            <p class="text-muted mb-0">Plan status, pricing, and company enrollment.</p>
+        </div>
+        <span class="badge bg-success fs-6">@Model.Count Plans</span>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-body text-muted">
-            No subscription data source configured yet.
-        </div>
+    <div class="row g-4">
+        @foreach (var sub in Model)
+        {
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                                <i class="bi bi-receipt-cutoff text-primary fs-4"></i>
+                            </div>
+                            <div>
+                                <h5 class="fw-bold mb-0">@sub.PlanName</h5>
+                                <small class="text-muted">@sub.BillingCycle</small>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <span class="fs-3 fw-bold text-primary">₱@sub.Price.ToString("N0")</span>
+                                <span class="text-muted">/@sub.BillingCycle.ToLower()</span>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Enrolled Companies</span>
+                            <span class="badge bg-primary-subtle text-primary fs-6">@sub.CompanyCount</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
     </div>
+
+    @if (!Model.Any())
+    {
+        <div class="card shadow-sm border-0">
+            <div class="card-body text-center text-muted py-5">
+                <i class="bi bi-receipt display-4 d-block mb-3 opacity-25"></i>
+                <p class="mb-0">No subscription plans configured yet.</p>
+            </div>
+        </div>
+    }
 </div>

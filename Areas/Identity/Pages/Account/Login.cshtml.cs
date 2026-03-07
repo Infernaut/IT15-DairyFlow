@@ -85,7 +85,7 @@ namespace IT15_DairyFlow.Areas.Identity.Pages.Account
             public bool RememberMe { get; set; }
         }
 
-        public async Task OnGetAsync(string returnUrl = null)
+        public async Task OnGetAsync(string returnUrl = null, string email = null)
         {
             if (!string.IsNullOrEmpty(ErrorMessage))
             {
@@ -98,6 +98,12 @@ namespace IT15_DairyFlow.Areas.Identity.Pages.Account
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
 
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+
+            // Pre-fill email if provided (e.g., from subscription registration)
+            if (!string.IsNullOrEmpty(email))
+            {
+                Input = new InputModel { Email = email };
+            }
 
             ReturnUrl = returnUrl;
         }

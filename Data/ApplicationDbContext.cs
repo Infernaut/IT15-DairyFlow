@@ -12,27 +12,31 @@ namespace IT15_DairyFlow.Data
         }
 
         // Core Business Entities
-        public DbSet<Company> Companies { get; set; }
-        public DbSet<Subscription> Subscriptions { get; set; }
-        public DbSet<Product> Products { get; set; }
-        public DbSet<Inventory> Inventories { get; set; }
-        public DbSet<Expense> Expenses { get; set; }
-        public DbSet<Supplier> Suppliers { get; set; }
+        public DbSet<Company> Company { get; set; }
+        public DbSet<Subscription> Subscription { get; set; }
+        public DbSet<Product> Product { get; set; }
+        public DbSet<Inventory> Inventory { get; set; }
+        public DbSet<Expense> Expense { get; set; }
+        public DbSet<Supplier> Supplier { get; set; }
 
         // Production Entities
-        public DbSet<RawMaterial> RawMaterials { get; set; }
+        public DbSet<RawMaterial> RawMaterial { get; set; }
         public DbSet<ProductionBatch> ProductionBatch { get; set; }
-        public DbSet<ProductionCost> ProductionCosts { get; set; }
+        public DbSet<ProductionCost> ProductionCost { get; set; }
         public DbSet<QualityInspection> QualityInspection { get; set; }
-        public DbSet<Equipment> Equipments { get; set; }
+        public DbSet<NonConformance> NonConformance { get; set; }
+        public DbSet<Equipment> Equipment { get; set; }
 
         // Financial Entities
-        public DbSet<Budget> Budgets { get; set; }
-        public DbSet<BillingInvoice> BillingInvoices { get; set; }
-        public DbSet<JournalEntry> JournalEntries { get; set; }
+        public DbSet<Budget> Budget { get; set; }
+        public DbSet<BillingInvoice> BillingInvoice { get; set; }
+        public DbSet<JournalEntry> JournalEntry { get; set; }
+
+        // Product Formulation
+        public DbSet<ProductFormulation> ProductFormulation { get; set; }
 
         // Audit
-        public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<AuditLog> AuditLog { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -213,6 +217,74 @@ namespace IT15_DairyFlow.Data
                 .WithMany()
                 .HasForeignKey(al => al.UserID)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure ProductFormulation relationships
+            modelBuilder.Entity<ProductFormulation>()
+                .HasOne(pf => pf.Product)
+                .WithMany()
+                .HasForeignKey(pf => pf.ProductID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ProductFormulation>()
+                .HasOne(pf => pf.Company)
+                .WithMany()
+                .HasForeignKey(pf => pf.CompanyID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ProductFormulation>()
+                .HasOne(pf => pf.RawMaterial)
+                .WithMany()
+                .HasForeignKey(pf => pf.RawMaterialID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure NonConformance relationships
+            modelBuilder.Entity<NonConformance>()
+                .HasOne(nc => nc.Company)
+                .WithMany(c => c.NonConformances)
+                .HasForeignKey(nc => nc.CompanyID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<NonConformance>()
+                .HasOne(nc => nc.QualityInspection)
+                .WithMany(q => q.NonConformances)
+                .HasForeignKey(nc => nc.QualityInspectionID)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<NonConformance>()
+                .HasOne(nc => nc.ProductionBatch)
+                .WithMany()
+                .HasForeignKey(nc => nc.ProductionBatchID)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<NonConformance>()
+                .HasOne(nc => nc.ReportedByUser)
+                .WithMany()
+                .HasForeignKey(nc => nc.ReportedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<NonConformance>()
+                .HasOne(nc => nc.AssignedToUser)
+                .WithMany()
+                .HasForeignKey(nc => nc.AssignedToUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Configure decimal precision for QualityInspection
+            modelBuilder.Entity<QualityInspection>()
+                .Property(q => q.Temperature).HasPrecision(5, 2);
+            modelBuilder.Entity<QualityInspection>()
+                .Property(q => q.PHLevel).HasPrecision(4, 2);
+            modelBuilder.Entity<QualityInspection>()
+                .Property(q => q.FatContent).HasPrecision(5, 2);
+            modelBuilder.Entity<QualityInspection>()
+                .Property(q => q.ProteinContent).HasPrecision(5, 2);
+            modelBuilder.Entity<QualityInspection>()
+                .Property(q => q.MoistureContent).HasPrecision(5, 2);
+            modelBuilder.Entity<QualityInspection>()
+                .Property(q => q.Acidity).HasPrecision(5, 2);
+
+            // Configure decimal precision for NonConformance
+            modelBuilder.Entity<NonConformance>()
+                .Property(nc => nc.CostImpact).HasPrecision(18, 2);
         }
     }
 }

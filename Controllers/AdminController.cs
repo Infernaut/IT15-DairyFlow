@@ -1,5 +1,6 @@
 using IT15_DairyFlow.Models.Admin;
 using IT15_DairyFlow.Models;
+using IT15_DairyFlow.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -13,18 +14,25 @@ namespace IT15_DairyFlow.Controllers
         private const string SuperAdminRoleName = "Superadmin";
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly ApplicationDbContext _dbContext;
 
-        public AdminController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+        public AdminController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext dbContext)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _dbContext = dbContext;
         }
 
         [HttpGet]
         public async Task<IActionResult> Users()
         {
             var currentUserId = _userManager.GetUserId(User) ?? string.Empty;
+            var currentUser = await _userManager.FindByIdAsync(currentUserId);
+            var currentUserCompanyId = currentUser?.CompanyID;
+
+            // Only show users with the same CompanyID as the current admin, excluding the current admin
             var users = await _userManager.Users
+                .Where(u => u.CompanyID == currentUserCompanyId && u.Id != currentUserId)
                 .OrderBy(u => u.Email)
                 .ToListAsync();
 
@@ -32,7 +40,7 @@ namespace IT15_DairyFlow.Controllers
             foreach (var user in users)
             {
                 var roles = await _userManager.GetRolesAsync(user);
-                var isProtected = user.Id == currentUserId || roles.Contains(SuperAdminRoleName);
+                var isProtected = roles.Contains(SuperAdminRoleName);
                 items.Add(new UserListItemViewModel
                 {
                     Id = user.Id,
@@ -119,6 +127,7 @@ namespace IT15_DairyFlow.Controllers
                 return View(model);
             }
 
+            await LogAuditAsync($"Updated user: {user.Email}");
             return RedirectToAction(nameof(Users));
         }
 
@@ -137,16 +146,23 @@ namespace IT15_DairyFlow.Controllers
                 return View(model);
             }
 
+            // Get the current admin's CompanyID
+            var currentUserId = _userManager.GetUserId(User) ?? string.Empty;
+            var currentUser = await _userManager.FindByIdAsync(currentUserId);
+            var companyId = currentUser?.CompanyID;
+
             var user = new ApplicationUser
             {
                 UserName = model.UserName,
                 Email = model.Email,
-                EmailConfirmed = true
+                EmailConfirmed = true,
+                CompanyID = companyId  // Set to admin's CompanyID
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
             if (result.Succeeded)
             {
+                await LogAuditAsync($"Created user: {user.Email}");
                 return RedirectToAction(nameof(Users));
             }
 
@@ -192,6 +208,10 @@ namespace IT15_DairyFlow.Controllers
                     ModelState.AddModelError(string.Empty, error.Description);
                 }
             }
+            else
+            {
+                await LogAuditAsync($"Toggled user status: {user.Email}");
+            }
 
             return RedirectToAction(nameof(Users));
         }
@@ -236,6 +256,7 @@ namespace IT15_DairyFlow.Controllers
             var result = await _roleManager.CreateAsync(new IdentityRole(model.Name));
             if (result.Succeeded)
             {
+                await LogAuditAsync($"Created role: {model.Name}");
                 return RedirectToAction(nameof(Roles));
             }
 
@@ -287,6 +308,7 @@ namespace IT15_DairyFlow.Controllers
             var result = await _roleManager.UpdateAsync(role);
             if (result.Succeeded)
             {
+                await LogAuditAsync($"Updated role: {model.Name}");
                 return RedirectToAction(nameof(Roles));
             }
 
@@ -338,9 +360,254 @@ namespace IT15_DairyFlow.Controllers
         }
 
         [HttpGet]
-        public IActionResult Logs()
+        public async Task<IActionResult> Dashboard()
         {
-            return View();
+            var currentUserId = _userManager.GetUserId(User) ?? string.Empty;
+            var currentUser = await _userManager.FindByIdAsync(currentUserId);
+
+            if (currentUser?.CompanyID == null)
+            {
+                return BadRequest("User does not have a company assigned.");
+            }
+
+            var companyId = currentUser.CompanyID.Value;
+            var company = await _dbContext.Company.FindAsync(companyId);
+
+            // Get KPI Metrics
+            var kpiMetrics = await GetKPIMetricsAsync(companyId);
+
+            // Get recent audit logs (last 20)
+            var auditLogs = await _dbContext.AuditLog
+                .Where(a => a.CompanyID == companyId)
+                .OrderByDescending(a => a.TimeStamp)
+                .Take(20)
+                .Include(a => a.User)
+                .ToListAsync();
+
+            var auditLogViewModels = auditLogs.Select(log => new AuditLogViewModel
+            {
+                AuditLogID = log.AuditLogID,
+                UserEmail = log.User?.Email ?? "Unknown",
+                UserName = log.User?.UserName ?? "Unknown",
+                Action = log.Action ?? "Unknown",
+                TimeStamp = log.TimeStamp
+            }).ToList();
+
+            // Get user counts with EF-translatable expressions
+            var now = DateTimeOffset.UtcNow;
+            var totalUsers = await _userManager.Users.Where(u => u.CompanyID == companyId).CountAsync();
+            var activeUsers = await _userManager.Users.Where(u => u.CompanyID == companyId && (!u.LockoutEnd.HasValue || u.LockoutEnd <= now)).CountAsync();
+            var inactiveUsers = await _userManager.Users.Where(u => u.CompanyID == companyId && u.LockoutEnd.HasValue && u.LockoutEnd > now).CountAsync();
+
+            // Build dashboard view model
+            var model = new AdminDashboardViewModel
+            {
+                CompanyName = company?.CompanyName ?? "Unknown Company",
+                CompanyID = companyId,
+                TotalUsers = totalUsers,
+                ActiveUsers = activeUsers,
+                InactiveUsers = inactiveUsers,
+                AdminUsers = 0, // Will be calculated from roles
+                KPIMetrics = kpiMetrics,
+                RecentAuditLogs = auditLogViewModels
+            };
+
+            // Get admin count
+            var allUsersInCompany = await _userManager.Users.Where(u => u.CompanyID == companyId).ToListAsync();
+            var adminCount = 0;
+            foreach (var user in allUsersInCompany)
+            {
+                if (await _userManager.IsInRoleAsync(user, "Admin"))
+                {
+                    adminCount++;
+                }
+            }
+            model.AdminUsers = adminCount;
+
+            // ── Chart data: Monthly production batches (last 6 months) ──
+            var sixMonthsAgo = DateTime.UtcNow.AddMonths(-6);
+            var monthlyBatches = await _dbContext.ProductionBatch
+                .Where(b => b.CompanyID == companyId && b.StartDate >= sixMonthsAgo)
+                .GroupBy(b => new { b.StartDate.Value.Year, b.StartDate.Value.Month })
+                .Select(g => new { g.Key.Year, g.Key.Month, Count = g.Count() })
+                .OrderBy(g => g.Year).ThenBy(g => g.Month)
+                .ToListAsync();
+
+            model.MonthlyBatchLabels = monthlyBatches.Select(m => $"{m.Year}-{m.Month:D2}").ToList();
+            model.MonthlyBatchCounts = monthlyBatches.Select(m => m.Count).ToList();
+
+            // ── Chart data: Monthly revenue vs expenses (last 6 months) ──
+            var monthlyRevenue = await _dbContext.BillingInvoice
+                .Where(b => b.CompanyID == companyId && b.PaymentStatus == "Paid" && b.InvoiceDate >= sixMonthsAgo)
+                .GroupBy(b => new { b.InvoiceDate.Value.Year, b.InvoiceDate.Value.Month })
+                .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(b => (decimal?)b.Amount ?? 0) })
+                .OrderBy(g => g.Year).ThenBy(g => g.Month)
+                .ToListAsync();
+
+            var monthlyExpenses = await _dbContext.Expense
+                .Where(e => e.CompanyID == companyId && e.ExpenseDate >= sixMonthsAgo)
+                .GroupBy(e => new { e.ExpenseDate.Value.Year, e.ExpenseDate.Value.Month })
+                .Select(g => new { g.Key.Year, g.Key.Month, Total = g.Sum(e => (decimal?)e.Amount ?? 0) })
+                .OrderBy(g => g.Year).ThenBy(g => g.Month)
+                .ToListAsync();
+
+            // Build union of all months
+            var allMonthKeys = monthlyRevenue.Select(r => $"{r.Year}-{r.Month:D2}")
+                .Union(monthlyExpenses.Select(e => $"{e.Year}-{e.Month:D2}"))
+                .OrderBy(x => x).Distinct().ToList();
+
+            model.MonthlyRevenueLabels = allMonthKeys;
+            model.MonthlyRevenues = allMonthKeys.Select(k =>
+            {
+                var parts = k.Split('-');
+                var yr = int.Parse(parts[0]); var mo = int.Parse(parts[1]);
+                return monthlyRevenue.FirstOrDefault(r => r.Year == yr && r.Month == mo)?.Total ?? 0;
+            }).ToList();
+            model.MonthlyExpenses = allMonthKeys.Select(k =>
+            {
+                var parts = k.Split('-');
+                var yr = int.Parse(parts[0]); var mo = int.Parse(parts[1]);
+                return monthlyExpenses.FirstOrDefault(e => e.Year == yr && e.Month == mo)?.Total ?? 0;
+            }).ToList();
+
+            return View(model);
+        }
+
+        private async Task<KPIMetricsViewModel> GetKPIMetricsAsync(int companyId)
+        {
+            var kpiMetrics = new KPIMetricsViewModel();
+
+            // User Management KPIs
+            var allUsersInCompany = await _userManager.Users.Where(u => u.CompanyID == companyId).ToListAsync();
+            var activeUsers = allUsersInCompany.Where(u => IsUserActive(u)).Count();
+            var inactiveUsers = allUsersInCompany.Where(u => !IsUserActive(u)).Count();
+
+            kpiMetrics.TotalActiveUsers = activeUsers;
+            kpiMetrics.TotalInactiveUsers = inactiveUsers;
+            if (allUsersInCompany.Count > 0)
+            {
+                kpiMetrics.UserGrowthPercentage = (decimal)activeUsers / allUsersInCompany.Count * 100;
+            }
+
+            // Product Management KPIs
+            kpiMetrics.TotalProducts = await _dbContext.Product.Where(p => p.CompanyID == companyId).CountAsync();
+            kpiMetrics.ActiveProducts = await _dbContext.Product.Where(p => p.CompanyID == companyId && p.LifecycleStatus == "Active").CountAsync();
+            kpiMetrics.DiscontinuedProducts = await _dbContext.Product.Where(p => p.CompanyID == companyId && p.LifecycleStatus == "Discontinued").CountAsync();
+
+            // Production KPIs
+            kpiMetrics.TotalProductionBatches = await _dbContext.ProductionBatch.Where(p => p.CompanyID == companyId).CountAsync();
+            kpiMetrics.CompletedBatches = await _dbContext.ProductionBatch.Where(p => p.CompanyID == companyId && p.Status == "Completed").CountAsync();
+            kpiMetrics.OngoingBatches = await _dbContext.ProductionBatch.Where(p => p.CompanyID == companyId && p.Status == "In Production").CountAsync();
+            if (kpiMetrics.TotalProductionBatches > 0)
+            {
+                kpiMetrics.ProductionCompletionRate = (decimal)kpiMetrics.CompletedBatches / kpiMetrics.TotalProductionBatches * 100;
+            }
+
+            // Quality Inspection KPIs
+            kpiMetrics.TotalQualityInspections = await _dbContext.QualityInspection.Where(q => q.CompanyID == companyId).CountAsync();
+            kpiMetrics.PassedInspections = await _dbContext.QualityInspection.Where(q => q.CompanyID == companyId && q.Result == "pass").CountAsync();
+            kpiMetrics.FailedInspections = await _dbContext.QualityInspection.Where(q => q.CompanyID == companyId && q.Result == "fail").CountAsync();
+            if (kpiMetrics.TotalQualityInspections > 0)
+            {
+                kpiMetrics.QualityPassRate = (decimal)kpiMetrics.PassedInspections / kpiMetrics.TotalQualityInspections * 100;
+            }
+
+            // Inventory KPIs
+            kpiMetrics.TotalInventoryItems = await _dbContext.Inventory.Where(i => i.CompanyID == companyId).CountAsync();
+            // Assuming there's a threshold for low stock (e.g., < 10 units)
+            var inventoryItems = await _dbContext.Inventory.Where(i => i.CompanyID == companyId).ToListAsync();
+            kpiMetrics.LowStockItems = inventoryItems.Count(i => (i.Quantity ?? 0) < 10);
+            if (inventoryItems.Count > 0)
+            {
+                var totalQuantity = inventoryItems.Sum(i => i.Quantity ?? 0);
+                kpiMetrics.AverageInventoryHealth = (decimal)(totalQuantity / inventoryItems.Count);
+            }
+
+            // Financial KPIs
+            kpiMetrics.TotalExpenses = await _dbContext.Expense.Where(e => e.CompanyID == companyId).SumAsync(e => (decimal?)e.Amount ?? 0);
+
+            var totalBudget = await _dbContext.Budget.Where(b => b.CompanyID == companyId).SumAsync(b => (decimal?)b.AllocatedAmount ?? 0);
+            if (totalBudget > 0)
+            {
+                kpiMetrics.BudgetUtilization = (kpiMetrics.TotalExpenses / totalBudget) * 100;
+            }
+
+            var totalInvoicesAmount = await _dbContext.BillingInvoice
+                .Where(b => b.CompanyID == companyId && b.PaymentStatus == "Paid")
+                .SumAsync(b => (decimal?)b.Amount ?? 0);
+            kpiMetrics.TotalRevenue = totalInvoicesAmount;
+
+            // System KPIs
+            var lastAuditLog = await _dbContext.AuditLog
+                .Where(a => a.CompanyID == companyId)
+                .OrderByDescending(a => a.TimeStamp)
+                .FirstOrDefaultAsync();
+            kpiMetrics.LastModifiedDate = lastAuditLog?.TimeStamp ?? DateTime.Now;
+
+            kpiMetrics.SystemActivityCount = await _dbContext.AuditLog
+                .Where(a => a.CompanyID == companyId && a.TimeStamp >= DateTime.Now.AddDays(-30))
+                .CountAsync();
+
+            return kpiMetrics;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Logs(DateTime? startDate = null, DateTime? endDate = null, string? actionFilter = null)
+        {
+            var currentUserId = _userManager.GetUserId(User) ?? string.Empty;
+            var currentUser = await _userManager.FindByIdAsync(currentUserId);
+
+            if (currentUser?.CompanyID == null)
+            {
+                return BadRequest("User does not have a company assigned.");
+            }
+
+            var companyId = currentUser.CompanyID.Value;
+
+            var query = _dbContext.AuditLog
+                .Where(a => a.CompanyID == companyId)
+                .Include(a => a.User)
+                .AsQueryable();
+
+            // Apply filters
+            if (startDate.HasValue)
+            {
+                query = query.Where(a => a.TimeStamp >= startDate.Value);
+            }
+
+            if (endDate.HasValue)
+            {
+                query = query.Where(a => a.TimeStamp <= endDate.Value.AddDays(1));
+            }
+
+            if (!string.IsNullOrWhiteSpace(actionFilter))
+            {
+                query = query.Where(a => a.Action!.Contains(actionFilter));
+            }
+
+            var auditLogs = await query
+                .OrderByDescending(a => a.TimeStamp)
+                .ToListAsync();
+
+            var auditLogViewModels = auditLogs.Select(log => new AuditLogViewModel
+            {
+                AuditLogID = log.AuditLogID,
+                UserEmail = log.User?.Email ?? "Unknown",
+                UserName = log.User?.UserName ?? "Unknown",
+                Action = log.Action ?? "Unknown",
+                TimeStamp = log.TimeStamp
+            }).ToList();
+
+            var model = new AuditLogFilterViewModel
+            {
+                StartDate = startDate,
+                EndDate = endDate,
+                ActionFilter = actionFilter,
+                AuditLogs = auditLogViewModels,
+                TotalRecords = auditLogViewModels.Count
+            };
+
+            return View(model);
         }
 
         [HttpPost]
@@ -373,6 +640,10 @@ namespace IT15_DairyFlow.Controllers
                         ModelState.AddModelError(string.Empty, error.Description);
                     }
                 }
+                else
+                {
+                    await LogAuditAsync($"Removed roles from user {user.Email}: {string.Join(", ", rolesToRemove)}");
+                }
             }
 
             if (rolesToAdd.Count > 0)
@@ -384,6 +655,10 @@ namespace IT15_DairyFlow.Controllers
                     {
                         ModelState.AddModelError(string.Empty, error.Description);
                     }
+                }
+                else
+                {
+                    await LogAuditAsync($"Added roles to user {user.Email}: {string.Join(", ", rolesToAdd)}");
                 }
             }
 
@@ -415,6 +690,26 @@ namespace IT15_DairyFlow.Controllers
             }
 
             return user.LockoutEnd <= DateTimeOffset.UtcNow;
+        }
+
+        private async Task LogAuditAsync(string action)
+        {
+            var currentUserId = _userManager.GetUserId(User) ?? string.Empty;
+            var currentUser = await _userManager.FindByIdAsync(currentUserId);
+
+            if (currentUser?.CompanyID == null)
+                return;
+
+            var auditLog = new AuditLog
+            {
+                CompanyID = currentUser.CompanyID.Value,
+                UserID = currentUserId,
+                Action = action,
+                TimeStamp = DateTime.Now
+            };
+
+            _dbContext.AuditLog.Add(auditLog);
+            await _dbContext.SaveChangesAsync();
         }
     }
 }
