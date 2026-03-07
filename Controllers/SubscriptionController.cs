@@ -2,6 +2,7 @@ using IT15_DairyFlow.Data;
 using IT15_DairyFlow.Models;
 using IT15_DairyFlow.Models.Sub;
 using IT15_DairyFlow.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -169,19 +170,42 @@ namespace IT15_DairyFlow.Controllers
 
         // ─── GET: /Subscription/Plans ──────────────────────────────
         [HttpGet]
-        public IActionResult Plans()
+        public async Task<IActionResult> Plans()
         {
             var userId = TempData["SubUserId"]?.ToString();
             var email = TempData["SubEmail"]?.ToString();
 
+            // If TempData is empty but user is authenticated (came back after closing browser)
             if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(email))
             {
-                return RedirectToAction("Register");
-            }
+                if (User.Identity?.IsAuthenticated == true)
+                {
+                    var currentUser = await _userManager.GetUserAsync(User);
+                    if (currentUser != null && currentUser.CompanyID.HasValue)
+                    {
+                        var company = await _dbContext.Company.FindAsync(currentUser.CompanyID.Value);
+                        if (company != null && company.SubscriptionID == null)
+                        {
+                            userId = currentUser.Id;
+                            email = currentUser.Email;
+                        }
+                        else
+                        {
+                            // Company already has a subscription — go home
+                            return RedirectToAction("Index", "Home");
+                        }
+                    }
+                }
 
-            // Keep TempData alive for next request
-            TempData.Keep("SubUserId");
-            TempData.Keep("SubEmail");
+                if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(email))
+                    return RedirectToAction("Register");
+            }
+            else
+            {
+                // Keep TempData alive for next request
+                TempData.Keep("SubUserId");
+                TempData.Keep("SubEmail");
+            }
 
             var viewModel = new SubscriptionPlansViewModel
             {
@@ -424,6 +448,150 @@ namespace IT15_DairyFlow.Controllers
             };
 
             return View(model);
+        }
+
+        // ─── GET: /Subscription/ChangePlan ─────────────────────────
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<IActionResult> ChangePlan()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user?.CompanyID == null)
+                return RedirectToAction("Index", "Home");
+
+            var company = await _dbContext.Company
+                .Include(c => c.Subscription)
+                .FirstOrDefaultAsync(c => c.CompanyID == user.CompanyID.Value);
+
+            if (company == null)
+                return RedirectToAction("Index", "Home");
+
+            var model = new ChangePlanViewModel
+            {
+                CompanyName = company.CompanyName,
+                CurrentPlanName = company.Subscription?.PlanName ?? "None",
+                CurrentBillingCycle = company.Subscription?.BillingCycle ?? "N/A",
+                CurrentPrice = company.Subscription?.Price ?? 0,
+                CurrentSubscriptionId = company.SubscriptionID,
+                Plans = GetPlans()
+            };
+
+            return View(model);
+        }
+
+        // ─── POST: /Subscription/ChangePlan ────────────────────────
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePlan(string planId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user?.CompanyID == null || string.IsNullOrEmpty(planId))
+                return RedirectToAction("Index", "Home");
+
+            var company = await _dbContext.Company
+                .Include(c => c.Subscription)
+                .FirstOrDefaultAsync(c => c.CompanyID == user.CompanyID.Value);
+
+            if (company == null)
+                return RedirectToAction("Index", "Home");
+
+            var plan = GetPlans().FirstOrDefault(p => p.PlanId == planId);
+            if (plan == null)
+                return RedirectToAction("ChangePlan");
+
+            int newSubscriptionId = planId switch
+            {
+                "freetrial" => 1,
+                "monthly" => 2,
+                "annual" => 3,
+                _ => 1
+            };
+
+            // If already on this plan, redirect back
+            if (company.SubscriptionID == newSubscriptionId)
+            {
+                TempData["InfoMessage"] = "You are already on this plan.";
+                return RedirectToAction("ChangePlan");
+            }
+
+            // Free Trial — direct activation
+            if (plan.IsFreeTrial)
+            {
+                company.SubscriptionID = newSubscriptionId;
+                company.Status = "FreeTrial";
+                await _dbContext.SaveChangesAsync();
+
+                await _emailService.SendSubscriptionConfirmationAsync(user.Email!, "Free Trial", true);
+
+                TempData["SuccessMessage"] = "Your plan has been changed to Free Trial.";
+                return RedirectToAction("ChangePlan");
+            }
+
+            // Paid plan — go through payment flow
+            var amountInCentavos = (int)(plan.Price * 100);
+            var payMongoType = "card";
+
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var successUrl = $"{baseUrl}/Subscription/UpgradeSuccess?planId={planId}&planName={Uri.EscapeDataString(plan.PlanName)}&billingCycle={Uri.EscapeDataString(plan.BillingCycle)}";
+            var cancelUrl = $"{baseUrl}/Subscription/ChangePlan";
+
+            var description = $"DairyFlow ERP — Upgrade to {plan.PlanName} ({plan.BillingCycle})";
+
+            var result = await _payMongoService.CreateCheckoutSession(
+                user.Email!,
+                description,
+                amountInCentavos,
+                payMongoType,
+                successUrl,
+                cancelUrl);
+
+            if (result == null)
+            {
+                TempData["ErrorMessage"] = "Unable to initialize payment. Please try again.";
+                return RedirectToAction("ChangePlan");
+            }
+
+            TempData[$"UpgradeSession_{user.Id}"] = result.Value.sessionId;
+
+            return Redirect(result.Value.checkoutUrl);
+        }
+
+        // ─── GET: /Subscription/UpgradeSuccess ─────────────────────
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        public async Task<IActionResult> UpgradeSuccess(string planId, string planName, string billingCycle)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user?.CompanyID == null)
+                return RedirectToAction("Index", "Home");
+
+            // Verify payment
+            var sessionId = TempData[$"UpgradeSession_{user.Id}"]?.ToString();
+            if (!string.IsNullOrEmpty(sessionId))
+            {
+                await _payMongoService.VerifyPayment(sessionId);
+            }
+
+            var company = await _dbContext.Company.FindAsync(user.CompanyID.Value);
+            if (company != null)
+            {
+                int newSubscriptionId = planId switch
+                {
+                    "monthly" => 2,
+                    "annual" => 3,
+                    _ => 2
+                };
+
+                company.SubscriptionID = newSubscriptionId;
+                company.Status = "Active";
+                await _dbContext.SaveChangesAsync();
+            }
+
+            await _emailService.SendSubscriptionConfirmationAsync(user.Email!, planName ?? "Paid Plan", false);
+
+            TempData["SuccessMessage"] = $"Your plan has been upgraded to {planName}!";
+            return RedirectToAction("ChangePlan");
         }
     }
 }

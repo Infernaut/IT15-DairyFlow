@@ -1,0 +1,203 @@
+@model IT15_DairyFlow.Models.Sub.ChangePlanViewModel
+@{
+    ViewData["Title"] = "Change Subscription Plan";
+}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<style>
+    :root {
+        --cp-primary: #0d6efd;
+        --cp-primary-dark: #0b5ed7;
+        --cp-accent: #20c997;
+        --cp-accent-dark: #0ca678;
+        --cp-navy: #0f172a;
+        --cp-slate: #334155;
+        --cp-muted: #64748b;
+        --cp-border: #e2e8f0;
+        --cp-light: #f8fafc;
+    }
+
+    .cp-page { max-width: 900px; margin: 0 auto; }
+
+    .cp-current {
+        background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+        border: 1px solid #bae6fd;
+        border-radius: 16px;
+        padding: 1.75rem 2rem;
+        margin-bottom: 2rem;
+    }
+    .cp-current-label {
+        font-size: .75rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .06em; color: var(--cp-primary); margin-bottom: .5rem;
+    }
+    .cp-current h4 { font-weight: 800; color: var(--cp-navy); margin-bottom: .25rem; }
+    .cp-current p { color: var(--cp-muted); margin: 0; font-size: .9rem; }
+
+    .cp-card {
+        background: #fff;
+        border: 2px solid var(--cp-border);
+        border-radius: 16px;
+        padding: 1.75rem;
+        transition: all .25s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+    .cp-card:hover { border-color: var(--cp-primary); box-shadow: 0 4px 20px rgba(13,110,253,.1); }
+    .cp-card.current-plan { border-color: var(--cp-accent); background: #f0fdf9; }
+    .cp-card.current-plan::after {
+        content: 'Current';
+        position: absolute; top: 12px; right: 12px;
+        background: var(--cp-accent); color: #fff;
+        font-size: .7rem; font-weight: 700; text-transform: uppercase;
+        padding: 3px 10px; border-radius: 100px;
+    }
+
+    .cp-icon {
+        width: 48px; height: 48px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.3rem; color: #fff; margin-bottom: 1rem;
+    }
+    .cp-icon.trial { background: linear-gradient(135deg, #fbbf24, #d97706); }
+    .cp-icon.monthly { background: linear-gradient(135deg, var(--cp-primary), var(--cp-primary-dark)); }
+    .cp-icon.annual { background: linear-gradient(135deg, var(--cp-accent), var(--cp-accent-dark)); }
+
+    .cp-card h5 { font-weight: 700; color: var(--cp-navy); font-size: 1.05rem; }
+    .cp-card .cp-price { font-size: 1.75rem; font-weight: 800; color: var(--cp-navy); line-height: 1; margin: .75rem 0; }
+    .cp-card .cp-price .currency { font-size: .9rem; vertical-align: top; margin-right: 1px; }
+    .cp-card .cp-price .cycle { font-size: .8rem; font-weight: 400; color: var(--cp-muted); }
+    .cp-card .cp-desc { font-size: .85rem; color: var(--cp-muted); line-height: 1.5; }
+
+    .cp-features { list-style: none; padding: 0; margin: 1rem 0; flex-grow: 1; }
+    .cp-features li { font-size: .82rem; color: var(--cp-slate); padding: 3px 0; display: flex; align-items: center; gap: 6px; }
+    .cp-features li i { color: var(--cp-accent); font-size: .75rem; }
+
+    .btn-cp-select {
+        width: 100%; padding: .65rem; border-radius: 10px;
+        font-weight: 600; font-size: .9rem; border: none;
+        transition: all .2s ease;
+    }
+    .btn-cp-select.primary { background: linear-gradient(135deg, var(--cp-primary), var(--cp-primary-dark)); color: #fff; }
+    .btn-cp-select.primary:hover { box-shadow: 0 4px 12px rgba(13,110,253,.3); color: #fff; }
+    .btn-cp-select.accent { background: linear-gradient(135deg, var(--cp-accent), var(--cp-accent-dark)); color: #fff; }
+    .btn-cp-select.accent:hover { box-shadow: 0 4px 12px rgba(32,201,151,.3); color: #fff; }
+    .btn-cp-select.outline { background: transparent; border: 2px solid var(--cp-border); color: var(--cp-muted); }
+    .btn-cp-select.outline:hover { border-color: var(--cp-primary); color: var(--cp-primary); }
+    .btn-cp-select:disabled { opacity: .5; cursor: not-allowed; }
+</style>
+
+<div class="container py-4">
+    <div class="cp-page">
+        <h3 class="fw-bold mb-1" style="color: var(--cp-navy);">Change Subscription Plan</h3>
+        <p class="text-muted mb-4">Select a new plan for <strong>@Model.CompanyName</strong>. Changes take effect immediately.</p>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success d-flex align-items-center rounded-3 mb-4" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                @TempData["SuccessMessage"]
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger d-flex align-items-center rounded-3 mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                @TempData["ErrorMessage"]
+            </div>
+        }
+        @if (TempData["InfoMessage"] != null)
+        {
+            <div class="alert alert-info d-flex align-items-center rounded-3 mb-4" role="alert">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                @TempData["InfoMessage"]
+            </div>
+        }
+
+        <!-- Current Plan -->
+        <div class="cp-current">
+            <div class="cp-current-label">Current Plan</div>
+            <h4>@Model.CurrentPlanName</h4>
+            <p>
+                @if (Model.CurrentPrice > 0)
+                {
+                    <span>₱@Model.CurrentPrice.ToString("N0") / @Model.CurrentBillingCycle.ToLower()</span>
+                }
+                else
+                {
+                    <span>Free</span>
+                }
+            </p>
+        </div>
+
+        <!-- Plan Options -->
+        <div class="row g-4">
+            @foreach (var plan in Model.Plans)
+            {
+                var isCurrent = (plan.PlanId == "freetrial" && Model.CurrentSubscriptionId == 1)
+                    || (plan.PlanId == "monthly" && Model.CurrentSubscriptionId == 2)
+                    || (plan.PlanId == "annual" && Model.CurrentSubscriptionId == 3);
+
+                <div class="col-md-4">
+                    <div class="cp-card @(isCurrent ? "current-plan" : "")">
+                        <div class="cp-icon @(plan.IsFreeTrial ? "trial" : plan.PlanId == "monthly" ? "monthly" : "annual")">
+                            <i class="bi @plan.Icon"></i>
+                        </div>
+                        <h5>@plan.PlanName</h5>
+                        <div class="cp-price">
+                            @if (plan.IsFreeTrial)
+                            {
+                                <span>Free</span>
+                            }
+                            else
+                            {
+                                <span class="currency">₱</span>@plan.Price.ToString("N0")<span class="cycle"> / @plan.BillingCycle.ToLower()</span>
+                            }
+                        </div>
+                        <p class="cp-desc">@plan.Description</p>
+                        <ul class="cp-features">
+                            @foreach (var feature in plan.Features)
+                            {
+                                <li><i class="bi bi-check-circle-fill"></i> @feature</li>
+                            }
+                        </ul>
+
+                        @if (isCurrent)
+                        {
+                            <button class="btn btn-cp-select outline" disabled>
+                                <i class="bi bi-check-lg me-1"></i> Current Plan
+                            </button>
+                        }
+                        else
+                        {
+                            <form asp-action="ChangePlan" asp-controller="Subscription" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="planId" value="@plan.PlanId" />
+                                <button type="submit" class="btn btn-cp-select @(plan.IsFreeTrial ? "outline" : plan.PlanId == "monthly" ? "primary" : "accent")">
+                                    @if (plan.IsFreeTrial)
+                                    {
+                                        <span><i class="bi bi-arrow-repeat me-1"></i> Switch to Free Trial</span>
+                                    }
+                                    else
+                                    {
+                                        <span><i class="bi bi-arrow-up-circle me-1"></i> Switch to @plan.PlanName</span>
+                                    }
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="text-center mt-4">
+            <p class="text-muted small">
+                <i class="bi bi-shield-lock me-1"></i> Paid plan changes are processed securely through PayMongo.
+            </p>
+            <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-outline-secondary btn-sm mt-1">
+                <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>

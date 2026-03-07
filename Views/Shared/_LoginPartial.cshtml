@@ -4,64 +4,118 @@
 @inject UserManager<ApplicationUser> UserManager
 
 <style>
-    .nav-profile-link {
-        color: #0b5ed7 !important;
-        background: rgba(13, 110, 253, 0.05);
-        border-radius: 50px;
+    .nav-profile-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #334155 !important;
+        background: #f1f5f9;
+        border-radius: 100px;
+        padding: 6px 14px 6px 10px;
         font-weight: 600;
-        font-size: 0.9rem;
-        transition: all 0.2s ease-in-out;
+        font-size: 0.85rem;
         text-decoration: none !important;
+        transition: all 0.2s ease;
+    }
+    .nav-profile-pill:hover {
+        background: #e2e8f0;
+        color: #0d6efd !important;
+    }
+    .nav-profile-pill .avatar-circle {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+        color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.72rem;
+        font-weight: 700;
     }
 
     .logout-btn {
-        border: 1.5px solid #ff4d4d;
-        color: #ff4d4d;
+        border: 1.5px solid #e2e8f0;
+        color: #64748b;
         font-weight: 600;
-        font-size: 0.85rem;
-        border-radius: 50px;
+        font-size: 0.82rem;
+        border-radius: 8px;
+        padding: 6px 16px;
         transition: all 0.2s ease;
+        background: transparent;
+    }
+    .logout-btn:hover {
+        border-color: #ef4444;
+        color: #ef4444;
+        background: rgba(239,68,68,.04);
     }
 
-        .logout-btn:hover {
-            background-color: #ff4d4d;
-            color: white;
-        }
+    .guest-signin-btn {
+        background: transparent;
+        border: 1.5px solid #e2e8f0;
+        color: #334155;
+        font-weight: 600;
+        font-size: 0.85rem;
+        border-radius: 8px;
+        padding: 7px 18px;
+        transition: all 0.2s ease;
+    }
+    .guest-signin-btn:hover {
+        border-color: #0d6efd;
+        color: #0d6efd;
+        background: rgba(13,110,253,.04);
+    }
 
-    .staff-login-btn {
-        background: linear-gradient(135deg, #4dabf7, #0d6efd);
-        color: white !important;
+    .guest-signup-btn {
+        background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+        color: #fff !important;
+        font-weight: 600;
+        font-size: 0.85rem;
         border: none;
-        font-weight: 700;
-        border-radius: 50px;
+        border-radius: 8px;
+        padding: 7px 20px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(13,110,253,.25);
+    }
+    .guest-signup-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(13,110,253,.35);
+        color: #fff;
     }
 </style>
 
-<ul class="navbar-nav align-items-center">
+<ul class="navbar-nav align-items-center gap-2">
     @if (SignInManager.IsSignedIn(User))
     {
-        <li class="nav-item me-2">
-            <a class="nav-link px-3 nav-profile-link" asp-area="Identity" asp-page="/Account/Manage/Index">
-                <i class="bi bi-person-circle me-1"></i> @User.Identity?.Name
+        var loginUser = await UserManager.GetUserAsync(User);
+        var initials = "";
+        if (loginUser?.UserName != null)
+        {
+            var parts = loginUser.UserName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            initials = parts.Length >= 2
+                ? $"{parts[0][0]}{parts[1][0]}".ToUpper()
+                : loginUser.UserName.Substring(0, Math.Min(2, loginUser.UserName.Length)).ToUpper();
+        }
+        <li class="nav-item">
+            <a class="nav-profile-pill" asp-area="Identity" asp-page="/Account/Manage/Index">
+                <span class="avatar-circle">@initials</span>
+                @loginUser?.UserName
             </a>
         </li>
         <li class="nav-item">
             <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
-                <button type="submit" class="btn btn-sm logout-btn px-4">Logout</button>
+                <button type="submit" class="btn btn-sm logout-btn">
+                    <i class="bi bi-box-arrow-right me-1"></i>Logout
+                </button>
             </form>
         </li>
     }
     else
     {
-        @* <li class="nav-item">
-            <a class="nav-link text-muted px-3" asp-area="Identity" asp-page="/Account/Register">Register</a>
-        </li> *@
         <li class="nav-item">
-            <a class="btn btn-sm px-4 ms-2" asp-controller="Subscription" asp-action="Register"
-               style="background: linear-gradient(135deg, #20c997, #0ca678); color: white; font-weight: 700; border-radius: 50px; border: none;">Sign Up</a>
+            <a class="btn btn-sm guest-signin-btn" asp-area="Identity" asp-page="/Account/Login">Sign In</a>
         </li>
         <li class="nav-item">
-            <a class="btn btn-primary btn-sm staff-login-btn px-4 ms-2" asp-area="Identity" asp-page="/Account/Login">Staff Login</a>
+            <a class="btn btn-sm guest-signup-btn" asp-controller="Subscription" asp-action="Register">
+                Get Started
+            </a>
         </li>
     }
 </ul>

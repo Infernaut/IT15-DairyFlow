@@ -10,10 +10,12 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
+using IT15_DairyFlow.Data;
 using IT15_DairyFlow.Models;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace IT15_DairyFlow.Areas.Identity.Pages.Account
@@ -22,12 +24,14 @@ namespace IT15_DairyFlow.Areas.Identity.Pages.Account
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<LoginModel> _logger;
 
-        public LoginModel(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ILogger<LoginModel> logger)
+        public LoginModel(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ApplicationDbContext dbContext, ILogger<LoginModel> logger)
         {
             _signInManager = signInManager;
             _userManager = userManager;
+            _dbContext = dbContext;
             _logger = logger;
         }
 
@@ -138,6 +142,20 @@ namespace IT15_DairyFlow.Areas.Identity.Pages.Account
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User logged in.");
+
+                    // If user's company has no subscription yet, force plan selection
+                    if (user.CompanyID.HasValue)
+                    {
+                        var company = await _dbContext.Company
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(c => c.CompanyID == user.CompanyID.Value);
+
+                        if (company != null && company.SubscriptionID == null)
+                        {
+                            return Redirect("/Subscription/Plans");
+                        }
+                    }
+
                     return LocalRedirect(returnUrl);
                 }
                 if (result.RequiresTwoFactor)

@@ -30,6 +30,23 @@ namespace IT15_DairyFlow.Controllers
             // ── Redirect authenticated users to their role-specific dashboard ──
             if (User.Identity?.IsAuthenticated == true)
             {
+                // If user's company has no subscription yet, force plan selection
+                if (!User.IsInRole("Superadmin"))
+                {
+                    var currentUser = await _userManager.GetUserAsync(User);
+                    if (currentUser?.CompanyID != null)
+                    {
+                        var company = await _dbContext.Company
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(c => c.CompanyID == currentUser.CompanyID.Value);
+
+                        if (company != null && company.SubscriptionID == null)
+                        {
+                            return Redirect("/Subscription/Plans");
+                        }
+                    }
+                }
+
                 if (User.IsInRole("Superadmin"))
                     return RedirectToAction("SuperadminDashboard");
                 if (User.IsInRole("Admin"))

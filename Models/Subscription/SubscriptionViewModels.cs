@@ -69,4 +69,14 @@ namespace IT15_DairyFlow.Models.Sub
         public bool IsFreeTrial { get; set; }
         public string Message { get; set; } = string.Empty;
     }
+
+    public class ChangePlanViewModel
+    {
+        public string CompanyName { get; set; } = string.Empty;
+        public string CurrentPlanName { get; set; } = string.Empty;
+        public string CurrentBillingCycle { get; set; } = string.Empty;
+        public decimal CurrentPrice { get; set; }
+        public int? CurrentSubscriptionId { get; set; }
+        public List<PlanDisplayItem> Plans { get; set; } = new();
+    }
 }
