@@ -3,14 +3,26 @@
 @{
     var hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any();
 }
-<ul class="nav nav-pills flex-column">
-    <li class="nav-item"><a class="nav-link @ManageNavPages.IndexNavClass(ViewContext)" id="profile" asp-page="./Index">Profile</a></li>
-    <li class="nav-item"><a class="nav-link @ManageNavPages.EmailNavClass(ViewContext)" id="email" asp-page="./Email">Email</a></li>
-    <li class="nav-item"><a class="nav-link @ManageNavPages.ChangePasswordNavClass(ViewContext)" id="change-password" asp-page="./ChangePassword">Password</a></li>
+<nav>
+    <a class="manage-nav-link @(ManageNavPages.IndexNavClass(ViewContext) == "active" ? "active" : "")" asp-page="./Index">
+        <i class="bi bi-person"></i> Profile
+    </a>
+    <a class="manage-nav-link @(ManageNavPages.EmailNavClass(ViewContext) == "active" ? "active" : "")" asp-page="./Email">
+        <i class="bi bi-envelope"></i> Email
+    </a>
+    <a class="manage-nav-link @(ManageNavPages.ChangePasswordNavClass(ViewContext) == "active" ? "active" : "")" asp-page="./ChangePassword">
+        <i class="bi bi-key"></i> Password
+    </a>
     @if (hasExternalLogins)
     {
-        <li id="external-logins" class="nav-item"><a id="external-login" class="nav-link @ManageNavPages.ExternalLoginsNavClass(ViewContext)" asp-page="./ExternalLogins">External logins</a></li>
+        <a class="manage-nav-link @(ManageNavPages.ExternalLoginsNavClass(ViewContext) == "active" ? "active" : "")" asp-page="./ExternalLogins">
+            <i class="bi bi-link-45deg"></i> External Logins
+        </a>
     }
-    <li class="nav-item"><a class="nav-link @ManageNavPages.TwoFactorAuthenticationNavClass(ViewContext)" id="two-factor" asp-page="./TwoFactorAuthentication">Two-factor authentication</a></li>
-    <li class="nav-item"><a class="nav-link @ManageNavPages.PersonalDataNavClass(ViewContext)" id="personal-data" asp-page="./PersonalData">Personal data</a></li>
-</ul>
+    <a class="manage-nav-link @(ManageNavPages.TwoFactorAuthenticationNavClass(ViewContext) == "active" ? "active" : "")" asp-page="./TwoFactorAuthentication">
+        <i class="bi bi-shield-lock"></i> Two-factor Auth
+    </a>
+    <a class="manage-nav-link @(ManageNavPages.PersonalDataNavClass(ViewContext) == "active" ? "active" : "")" asp-page="./PersonalData">
+        <i class="bi bi-database"></i> Personal Data
+    </a>
+</nav>

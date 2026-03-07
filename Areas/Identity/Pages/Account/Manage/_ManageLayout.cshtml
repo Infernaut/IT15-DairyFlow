@@ -1,0 +1,272 @@
+@using Microsoft.AspNetCore.Identity
+@using IT15_DairyFlow.Models
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+@{
+    Layout = "/Views/Shared/_Layout.cshtml";
+
+    var manageUser = await UserManager.GetUserAsync(User);
+    var roles = manageUser != null ? await UserManager.GetRolesAsync(manageUser) : new List<string>();
+    var userRole = roles.FirstOrDefault() ?? "User";
+    var isSuperAdmin = User.IsInRole("Superadmin");
+
+    // Avatar initials
+    var initials = "U";
+    if (manageUser?.UserName != null)
+    {
+        var parts = manageUser.UserName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        initials = parts.Length >= 2
+            ? $"{parts[0][0]}{parts[1][0]}".ToUpper()
+            : manageUser.UserName.Substring(0, Math.Min(2, manageUser.UserName.Length)).ToUpper();
+    }
+
+    var accentColor = isSuperAdmin ? "#b8860b" : "#0d6efd";
+    var accentGradient = isSuperAdmin
+        ? "linear-gradient(135deg, #d4a017, #b8860b)"
+        : "linear-gradient(135deg, #0d6efd, #0b5ed7)";
+}
+
+<style>
+    .manage-page {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 3rem;
+    }
+
+    /* ─── Profile header card ──────────────────────────── */
+    .manage-profile-header {
+        background: @accentGradient;
+        border-radius: 16px;
+        padding: 2rem 2.25rem;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        margin-bottom: 1.75rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .manage-profile-header::before {
+        content: '';
+        position: absolute;
+        top: -40%;
+        right: -10%;
+        width: 280px;
+        height: 280px;
+        background: rgba(255,255,255,.06);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .manage-avatar {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.2);
+        border: 3px solid rgba(255,255,255,.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: 700;
+        flex-shrink: 0;
+        letter-spacing: 1px;
+    }
+
+    .manage-profile-name {
+        font-size: 1.35rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+    }
+
+    .manage-profile-role {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        opacity: .75;
+        font-weight: 600;
+        margin-top: 2px;
+    }
+
+    .manage-profile-email {
+        font-size: 0.85rem;
+        opacity: .8;
+        margin-top: 2px;
+    }
+
+    /* ─── Layout grid ──────────────────────────────────── */
+    .manage-grid {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        gap: 1.5rem;
+        align-items: start;
+    }
+
+    @@media (max-width: 991.98px) {
+        .manage-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* ─── Side nav card ────────────────────────────────── */
+    .manage-nav-card {
+        background: #fff;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+    }
+
+    .manage-nav-card .nav-title {
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: #94a3b8;
+        letter-spacing: .06em;
+        padding: 1rem 1.25rem 0.35rem;
+    }
+
+    .manage-nav-link {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0.6rem 1.25rem;
+        color: #334155;
+        text-decoration: none !important;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all .15s ease;
+        border-left: 3px solid transparent;
+    }
+
+    .manage-nav-link:hover {
+        background: rgba(13,110,253,.04);
+        color: @accentColor;
+    }
+
+    .manage-nav-link.active {
+        background: rgba(13,110,253,.06);
+        color: @accentColor;
+        font-weight: 600;
+        border-left-color: @accentColor;
+    }
+
+    .manage-nav-link i {
+        font-size: 1rem;
+        width: 20px;
+        text-align: center;
+        color: #94a3b8;
+    }
+
+    .manage-nav-link.active i,
+    .manage-nav-link:hover i {
+        color: @accentColor;
+    }
+
+    /* ─── Content card ─────────────────────────────────── */
+    .manage-content-card {
+        background: #fff;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        padding: 1.75rem 2rem;
+    }
+
+    .manage-content-card h5 {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #0f172a;
+        margin-bottom: 0.25rem;
+    }
+
+    .manage-content-card .section-desc {
+        font-size: 0.82rem;
+        color: #64748b;
+        margin-bottom: 1.5rem;
+    }
+
+    .manage-content-card .form-label {
+        font-weight: 600;
+        font-size: 0.82rem;
+        color: #334155;
+        margin-bottom: 0.35rem;
+    }
+
+    .manage-content-card .form-control {
+        border-radius: 10px;
+        border: 1.5px solid #e2e8f0;
+        padding: 0.55rem 0.9rem;
+        font-size: 0.875rem;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .manage-content-card .form-control:focus {
+        border-color: @accentColor;
+        box-shadow: 0 0 0 3px rgba(13,110,253,.1);
+    }
+
+    .manage-content-card .form-control[readonly] {
+        background: #f8fafc;
+        color: #64748b;
+    }
+
+    .btn-manage-save {
+        background: @accentGradient;
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        padding: 0.55rem 1.5rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: all .2s ease;
+        box-shadow: 0 2px 8px rgba(13,110,253,.2);
+    }
+
+    .btn-manage-save:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(13,110,253,.3);
+        color: #fff;
+    }
+
+    /* ─── Status message (toast banner) ────────────────── */
+    .manage-status-msg {
+        border-radius: 10px;
+        font-size: 0.85rem;
+        padding: 0.6rem 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    @@media (max-width: 575.98px) {
+        .manage-page { padding: 1rem 0.75rem 2rem; }
+        .manage-profile-header { flex-direction: column; text-align: center; padding: 1.5rem 1.25rem; }
+        .manage-content-card { padding: 1.25rem 1rem; }
+    }
+</style>
+
+<div class="manage-page">
+    <!-- Profile header -->
+    <div class="manage-profile-header">
+        <div class="manage-avatar">@initials</div>
+        <div>
+            <div class="manage-profile-name">@manageUser?.UserName</div>
+            <div class="manage-profile-email"><i class="bi bi-envelope me-1"></i>@manageUser?.Email</div>
+            <div class="manage-profile-role"><i class="bi bi-shield-check me-1"></i>@userRole</div>
+        </div>
+    </div>
+
+    <!-- Grid: nav + content -->
+    <div class="manage-grid">
+        <div class="manage-nav-card">
+            <div class="nav-title">Account</div>
+            <partial name="_ManageNav" />
+        </div>
+
+        <div class="manage-content-card">
+            @RenderBody()
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}

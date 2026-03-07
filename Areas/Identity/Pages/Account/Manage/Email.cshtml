@@ -1,0 +1,78 @@
+@page
+@model EmailModel
+@{
+    ViewData["Title"] = "Manage Email";
+    ViewData["ActivePage"] = ManageNavPages.Email;
+}
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    var alertClass = Model.StatusMessage.StartsWith("Error") ? "alert-danger" : "alert-success";
+    var icon = Model.StatusMessage.StartsWith("Error") ? "bi-exclamation-circle" : "bi-check-circle";
+    <div class="alert @alertClass manage-status-msg d-flex align-items-center" role="alert">
+        <i class="bi @icon me-2"></i> @Model.StatusMessage
+    </div>
+}
+
+<h5><i class="bi bi-envelope me-2" style="opacity:.5"></i>Email Address</h5>
+<p class="section-desc">Your email is used to sign in and receive notifications. To change it, enter a new address and confirm via the link we'll send.</p>
+
+<form id="email-form" method="post" asp-page-handler="ChangeEmail">
+    <div asp-validation-summary="All" class="text-danger mb-3" style="font-size:.85rem;"></div>
+
+    <div class="row g-3">
+        <div class="col-md-8">
+            <label class="form-label">Current Email</label>
+            <div class="d-flex align-items-center gap-2">
+                <div class="input-group flex-grow-1">
+                    <span class="input-group-text border-end-0" style="background:#f8fafc;border-radius:10px 0 0 10px;border:1.5px solid #e2e8f0;border-right:none;">
+                        <i class="bi bi-envelope text-muted"></i>
+                    </span>
+                    <input class="form-control border-start-0" style="border-radius:0 10px 10px 0;" value="@Model.Email" readonly />
+                </div>
+                @if (Model.IsEmailConfirmed)
+                {
+                    <span class="badge rounded-pill text-bg-success px-3 py-2" style="font-size:.72rem;font-weight:600;">
+                        <i class="bi bi-check-circle me-1"></i>Verified
+                    </span>
+                }
+                else
+                {
+                    <span class="badge rounded-pill text-bg-warning px-3 py-2" style="font-size:.72rem;font-weight:600;">Unverified</span>
+                }
+            </div>
+
+            @if (!Model.IsEmailConfirmed)
+            {
+                <form id="send-verification-form" asp-page-handler="SendVerificationEmail" method="post" class="mt-2">
+                    <button type="submit" class="btn btn-sm btn-outline-primary" style="border-radius:8px;font-size:.8rem;">
+                        <i class="bi bi-send me-1"></i>Send verification email
+                    </button>
+                </form>
+            }
+        </div>
+
+        <div class="col-md-8">
+            <label asp-for="Input.NewEmail" class="form-label">New Email</label>
+            <div class="input-group">
+                <span class="input-group-text border-end-0" style="background:#f8fafc;border-radius:10px 0 0 10px;border:1.5px solid #e2e8f0;border-right:none;">
+                    <i class="bi bi-at text-muted"></i>
+                </span>
+                <input asp-for="Input.NewEmail" class="form-control border-start-0" style="border-radius:0 10px 10px 0;" placeholder="new@example.com" />
+            </div>
+            <span asp-validation-for="Input.NewEmail" class="text-danger" style="font-size:.8rem;"></span>
+        </div>
+    </div>
+
+    <hr class="my-4" style="border-color:#e2e8f0;" />
+
+    <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-manage-save">
+            <i class="bi bi-send me-1"></i>Change Email
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
