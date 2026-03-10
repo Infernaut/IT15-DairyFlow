@@ -22,6 +22,8 @@ namespace IT15_DairyFlow.Models.InventoryVM
         public bool IsExpiringSoon { get; set; }
         public bool IsExpired { get; set; }
         public int DaysUntilExpiry { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal MinUnitPrice { get; set; }
     }
 
     public class InventoryDetailViewModel
@@ -92,6 +94,34 @@ namespace IT15_DairyFlow.Models.InventoryVM
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
+    }
+
+    public class SetUnitPriceViewModel
+    {
+        [Required]
+        public int ProductID { get; set; }
+
+        [Required]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Unit price must be greater than zero")]
+        public decimal UnitPrice { get; set; }
+    }
+
+    public class ProductPriceInfoViewModel
+    {
+        public int ProductID { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public decimal CurrentUnitPrice { get; set; }
+        public decimal MinUnitPrice { get; set; }
+        public List<IngredientCostViewModel> Ingredients { get; set; } = new();
+    }
+
+    public class IngredientCostViewModel
+    {
+        public string MaterialName { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public string Unit { get; set; } = string.Empty;
+        public decimal UnitCost { get; set; }
+        public decimal TotalCost { get; set; }
     }
 
     public class InventoryTransactionViewModel

@@ -15,6 +15,7 @@ namespace IT15_DairyFlow.Controllers
         private readonly ApplicationDbContext _dbContext;
         private readonly PayMongoService _payMongoService;
         private readonly SubscriptionEmailService _emailService;
+        private readonly NotificationService _notificationService;
         private readonly ILogger<SubscriptionController> _logger;
 
         public SubscriptionController(
@@ -22,12 +23,14 @@ namespace IT15_DairyFlow.Controllers
             ApplicationDbContext dbContext,
             PayMongoService payMongoService,
             SubscriptionEmailService emailService,
+            NotificationService notificationService,
             ILogger<SubscriptionController> logger)
         {
             _userManager = userManager;
             _dbContext = dbContext;
             _payMongoService = payMongoService;
             _emailService = emailService;
+            _notificationService = notificationService;
             _logger = logger;
         }
 
@@ -255,11 +258,16 @@ namespace IT15_DairyFlow.Controllers
                 {
                     company.SubscriptionID = subscriptionId;
                     company.Status = "FreeTrial";
+                    company.SubscriptionStartDate = DateTime.UtcNow;
                     await _dbContext.SaveChangesAsync();
                 }
 
                 // Send confirmation email
                 await _emailService.SendSubscriptionConfirmationAsync(email, "Free Trial", true);
+
+                // Notify superadmins about new subscription
+                await _notificationService.NotifySuperAdminsAsync(
+                    $"New free trial started: {company?.CompanyName ?? email}", "System", "bi-rocket-takeoff");
 
                 return RedirectToAction("Success", new { email, planName = "Free Trial", isTrial = true });
             }
@@ -413,12 +421,17 @@ namespace IT15_DairyFlow.Controllers
                     };
 
                     company.SubscriptionID = subscriptionId;
+                    company.SubscriptionStartDate = DateTime.UtcNow;
                     await _dbContext.SaveChangesAsync();
                 }
             }
 
             // Send confirmation email
             await _emailService.SendSubscriptionConfirmationAsync(email, planName ?? "Paid Plan", false);
+
+            // Notify superadmins about new paid subscription
+            await _notificationService.NotifySuperAdminsAsync(
+                $"New paid subscription ({planName}): {email}", "System", "bi-credit-card");
 
             _logger.LogInformation("Payment success for {Email}, plan: {Plan}, verified: {Verified}", email, planName, paymentVerified);
 
@@ -520,6 +533,7 @@ namespace IT15_DairyFlow.Controllers
             {
                 company.SubscriptionID = newSubscriptionId;
                 company.Status = "FreeTrial";
+                company.SubscriptionStartDate = DateTime.UtcNow;
                 await _dbContext.SaveChangesAsync();
 
                 await _emailService.SendSubscriptionConfirmationAsync(user.Email!, "Free Trial", true);
@@ -585,6 +599,7 @@ namespace IT15_DairyFlow.Controllers
 
                 company.SubscriptionID = newSubscriptionId;
                 company.Status = "Active";
+                company.SubscriptionStartDate = DateTime.UtcNow;
                 await _dbContext.SaveChangesAsync();
             }
 

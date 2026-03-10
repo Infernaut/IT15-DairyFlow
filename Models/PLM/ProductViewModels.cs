@@ -9,7 +9,8 @@ namespace IT15_DairyFlow.Models.PLM
         public string? Type { get; set; }
         public string? LifecycleStatus { get; set; }
         public int CompanyID { get; set; }
-        public string UserEmail { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+        public int? ShelfLifeDays { get; set; }
     }
 
     public class ProductDetailViewModel
@@ -31,7 +32,8 @@ namespace IT15_DairyFlow.Models.PLM
         
         public int CompanyID { get; set; }
         public string UserID { get; set; } = string.Empty;
-        public string UserEmail { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+        public int? ShelfLifeDays { get; set; }
         
         // Formulation details
         public List<FormulationIngredientViewModel> Ingredients { get; set; } = new List<FormulationIngredientViewModel>();
@@ -47,6 +49,10 @@ namespace IT15_DairyFlow.Models.PLM
         [Display(Name = "Type")]
         [StringLength(100)]
         public string? Type { get; set; }
+
+        [Display(Name = "Shelf Life (Days)")]
+        [Range(1, 3650, ErrorMessage = "Shelf life must be between 1 and 3650 days.")]
+        public int? ShelfLifeDays { get; set; }
     }
 
     public class EditProductViewModel
@@ -65,6 +71,10 @@ namespace IT15_DairyFlow.Models.PLM
         [Display(Name = "Lifecycle Status")]
         [StringLength(50)]
         public string? LifecycleStatus { get; set; }
+
+        [Display(Name = "Shelf Life (Days)")]
+        [Range(1, 3650, ErrorMessage = "Shelf life must be between 1 and 3650 days.")]
+        public int? ShelfLifeDays { get; set; }
     }
 
     // Formulation View Models
@@ -136,6 +146,7 @@ namespace IT15_DairyFlow.Models.PLM
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public decimal UnitCost { get; set; }
+        public string Unit { get; set; } = "kg";
     }
 
     public class BatchMaterialRequirementViewModel

@@ -110,6 +110,15 @@
         dispatchRefresh(data.module);
     });
 
+    // ── Notification Bell Events ─────────────────────────────────────────
+
+    connection.on('NewNotification', function (data) {
+        // Dispatch a custom event so the notification bell JS can react
+        document.dispatchEvent(new CustomEvent('dairyflow:new-notification', {
+            detail: data
+        }));
+    });
+
     /**
      * Dispatch a custom event so page-specific scripts can react to real-time updates.
      * Usage in page scripts:

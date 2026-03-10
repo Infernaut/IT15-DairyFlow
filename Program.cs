@@ -50,6 +50,9 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<PayMongoService>();
 builder.Services.AddSingleton<SubscriptionEmailService>();
 
+// Notification service (scoped — uses DbContext)
+builder.Services.AddScoped<NotificationService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -93,6 +96,17 @@ app.Use(async (context, next) =>
         context.Request.Path = "/Home/Error";
         await next();
     }
+});
+
+// Security headers middleware
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
+    context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+    await next();
 });
 
 app.UseHttpsRedirection();

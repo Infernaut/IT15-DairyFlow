@@ -1,6 +1,7 @@
 using IT15_DairyFlow.Models.Admin;
 using IT15_DairyFlow.Models;
 using IT15_DairyFlow.Data;
+using IT15_DairyFlow.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -15,12 +16,14 @@ namespace IT15_DairyFlow.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ApplicationDbContext _dbContext;
+        private readonly NotificationService _notificationService;
 
-        public AdminController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext dbContext)
+        public AdminController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext dbContext, NotificationService notificationService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _dbContext = dbContext;
+            _notificationService = notificationService;
         }
 
         [HttpGet]
@@ -128,6 +131,7 @@ namespace IT15_DairyFlow.Controllers
             }
 
             await LogAuditAsync($"Updated user: {user.Email}");
+            await NotifyAdminActionAsync($"Updated user: {user.Email}", "Admin", "bi-person-gear");
             return RedirectToAction(nameof(Users));
         }
 
@@ -163,6 +167,7 @@ namespace IT15_DairyFlow.Controllers
             if (result.Succeeded)
             {
                 await LogAuditAsync($"Created user: {user.Email}");
+                await NotifyAdminActionAsync($"Created new user: {user.Email}", "Admin", "bi-person-plus");
                 return RedirectToAction(nameof(Users));
             }
 
@@ -211,6 +216,7 @@ namespace IT15_DairyFlow.Controllers
             else
             {
                 await LogAuditAsync($"Toggled user status: {user.Email}");
+                await NotifyAdminActionAsync($"Toggled user status: {user.Email}", "Admin", "bi-person-check");
             }
 
             return RedirectToAction(nameof(Users));
@@ -387,8 +393,7 @@ namespace IT15_DairyFlow.Controllers
             var auditLogViewModels = auditLogs.Select(log => new AuditLogViewModel
             {
                 AuditLogID = log.AuditLogID,
-                UserEmail = log.User?.Email ?? "Unknown",
-                UserName = log.User?.UserName ?? "Unknown",
+                UserName = log.User?.UserName ?? log.User?.Email ?? "Unknown",
                 Action = log.Action ?? "Unknown",
                 TimeStamp = log.TimeStamp
             }).ToList();
@@ -592,8 +597,7 @@ namespace IT15_DairyFlow.Controllers
             var auditLogViewModels = auditLogs.Select(log => new AuditLogViewModel
             {
                 AuditLogID = log.AuditLogID,
-                UserEmail = log.User?.Email ?? "Unknown",
-                UserName = log.User?.UserName ?? "Unknown",
+                UserName = log.User?.UserName ?? log.User?.Email ?? "Unknown",
                 Action = log.Action ?? "Unknown",
                 TimeStamp = log.TimeStamp
             }).ToList();
@@ -735,6 +739,7 @@ namespace IT15_DairyFlow.Controllers
             await _dbContext.SaveChangesAsync();
 
             await LogAuditAsync($"Updated company name to: {model.CompanyName}");
+            await NotifyAdminActionAsync($"Updated company name to: {model.CompanyName}", "Admin", "bi-building-gear");
             TempData["SuccessMessage"] = "Company settings updated successfully.";
 
             return RedirectToAction(nameof(Settings));
@@ -758,6 +763,16 @@ namespace IT15_DairyFlow.Controllers
 
             _dbContext.AuditLog.Add(auditLog);
             await _dbContext.SaveChangesAsync();
+        }
+
+        private async Task NotifyAdminActionAsync(string message, string type = "Admin", string icon = "bi-bell")
+        {
+            var currentUserId = _userManager.GetUserId(User) ?? string.Empty;
+            var currentUser = await _userManager.FindByIdAsync(currentUserId);
+            if (currentUser?.CompanyID == null) return;
+
+            await _notificationService.NotifyCompanyActionAsync(
+                currentUserId, currentUser.CompanyID.Value, message, type, icon);
         }
     }
 }

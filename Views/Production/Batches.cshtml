@@ -51,7 +51,7 @@
                                 <td>@batch.Quantity</td>
                                 <td>@(batch.StartDate?.ToString("MMM dd, yyyy") ?? "-")</td>
                                 <td>@(batch.EndDate?.ToString("MMM dd, yyyy") ?? "-")</td>
-                                <td>@(batch.TotalCost?.ToString("C") ?? "-")</td>
+                                <td>@(batch.TotalCost.HasValue ? "₱" + batch.TotalCost.Value.ToString("N2") : "-")</td>
                                 <td>
                                     @{
                                         var badgeClass = batch.Status switch

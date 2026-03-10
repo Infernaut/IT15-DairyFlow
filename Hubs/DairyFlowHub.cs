@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using System.Security.Claims;
 
 namespace IT15_DairyFlow.Hubs
 {
     /// <summary>
     /// Central SignalR hub for real-time notifications across all DairyFlow modules.
     /// Clients are grouped by CompanyID so each tenant only sees their own events.
+    /// Superadmin users are also added to the "superadmin" group.
     /// </summary>
     [Authorize]
     public class DairyFlowHub : Hub
@@ -19,6 +21,7 @@ namespace IT15_DairyFlow.Hubs
 
         /// <summary>
         /// On connect, add the user to their company group (passed as query param).
+        /// Also adds Superadmin users to the "superadmin" group.
         /// </summary>
         public override async Task OnConnectedAsync()
         {
@@ -28,6 +31,14 @@ namespace IT15_DairyFlow.Hubs
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"company-{companyId}");
                 _logger.LogInformation("SignalR: {User} joined company-{CompanyId}", Context.User?.Identity?.Name, companyId);
             }
+
+            // Add Superadmin users to the superadmin group for platform-level notifications
+            if (Context.User?.IsInRole("Superadmin") == true)
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, "superadmin");
+                _logger.LogInformation("SignalR: {User} joined superadmin group", Context.User?.Identity?.Name);
+            }
+
             await base.OnConnectedAsync();
         }
 
@@ -38,6 +49,12 @@ namespace IT15_DairyFlow.Hubs
             {
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"company-{companyId}");
             }
+
+            if (Context.User?.IsInRole("Superadmin") == true)
+            {
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, "superadmin");
+            }
+
             await base.OnDisconnectedAsync(exception);
         }
     }
@@ -144,6 +161,32 @@ namespace IT15_DairyFlow.Hubs
             await hub.Clients.Group($"company-{companyId}").SendAsync("InvoicePaid", new
             {
                 amount,
+                timestamp = DateTime.Now.ToString("MMM dd, yyyy HH:mm")
+            });
+        }
+
+        // ── Sales Notifications ───────────────────────────────────────────
+
+        public static async Task NotifySaleCreated(this IHubContext<DairyFlowHub> hub,
+            int companyId, string invoiceNumber, string productName, string createdBy)
+        {
+            await hub.Clients.Group($"company-{companyId}").SendAsync("SaleCreated", new
+            {
+                invoiceNumber,
+                productName,
+                createdBy,
+                timestamp = DateTime.Now.ToString("MMM dd, yyyy HH:mm")
+            });
+        }
+
+        public static async Task NotifyPaymentProcessed(this IHubContext<DairyFlowHub> hub,
+            int companyId, string invoiceNumber, decimal amount, string paymentMethod)
+        {
+            await hub.Clients.Group($"company-{companyId}").SendAsync("PaymentProcessed", new
+            {
+                invoiceNumber,
+                amount,
+                paymentMethod,
                 timestamp = DateTime.Now.ToString("MMM dd, yyyy HH:mm")
             });
         }

@@ -135,7 +135,10 @@ namespace IT15_DairyFlow.Controllers
                     CompanyID = companyId,
                     UserID = user?.Id ?? string.Empty,
                     Amount = model.Cost.Value,
-                    ExpenseDate = DateTime.UtcNow
+                    ExpenseDate = DateTime.UtcNow,
+                    Category = "Equipment",
+                    IsEmergency = model.IsEmergencyOverride,
+                    EmergencyReason = model.IsEmergencyOverride ? model.EmergencyReason : null
                 };
                 _context.Expense.Add(expense);
                 await _context.SaveChangesAsync();
@@ -330,6 +333,11 @@ namespace IT15_DairyFlow.Controllers
         public decimal? Cost { get; set; }
 
         public DateTime? LastMaintenanceDate { get; set; }
+
+        public bool IsEmergencyOverride { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? EmergencyReason { get; set; }
     }
 
     public class UpdateEquipmentViewModel

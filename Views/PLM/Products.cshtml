@@ -45,6 +45,10 @@
                 <div class="col-md-3">
                     <select class="form-select" id="statusFilter">
                         <option value="">All Statuses</option>
+                        <option value="Draft">Draft</option>
+                        <option value="Under Review">Under Review</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Needs Revision">Needs Revision</option>
                         <option value="Active">Active</option>
                         <option value="Development">Development</option>
                         <option value="Discontinued">Discontinued</option>
@@ -105,9 +109,12 @@
                                             var badgeClass = product.LifecycleStatus switch
                                             {
                                                 "Active" => "bg-success",
+                                                "Approved" => "bg-success",
                                                 "approved" => "bg-success",
+                                                "Draft" => "bg-secondary",
                                                 "Development" => "bg-info",
                                                 "underreview" => "bg-warning text-dark",
+                                                "Needs Revision" => "bg-danger",
                                                 "In Production" => "bg-primary",
                                                 "Produced" => "bg-info",
                                                 "Discontinued" => "bg-warning",
@@ -117,17 +124,26 @@
                                             var badgeLabel = product.LifecycleStatus switch
                                             {
                                                 "approved" => "Approved",
+                                                "Approved" => "Approved",
                                                 "underreview" => "Under Review",
+                                                "Draft" => "Draft",
+                                                "Needs Revision" => "Needs Revision",
                                                 _ => product.LifecycleStatus ?? "Unknown"
                                             };
                                         }
                                         <span class="badge @badgeClass">@badgeLabel</span>
                                     </td>
-                                    <td class="text-muted">@product.UserEmail</td>
+                                    <td class="text-muted">@product.UserName</td>
                                     <td class="text-end px-4">
                                         <a class="btn btn-sm btn-outline-success me-1" href="@Url.Action("Formulation", "PLM", new { productId = product.ProductID })" onclick="event.stopPropagation();" title="Formulation">
                                             <i class="bi bi-list-check"></i>
                                         </a>
+                                        @if (product.LifecycleStatus == "Draft" || product.LifecycleStatus == "Needs Revision")
+                                        {
+                                            <button class="btn btn-sm btn-outline-primary me-1" onclick="event.stopPropagation(); submitForReview(@product.ProductID, '@product.ProductName')" title="Submit for Review">
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+                                        }
                                         <button class="btn btn-sm btn-outline-secondary me-1" onclick="event.stopPropagation(); editProduct(@product.ProductID)">
                                             <i class="bi bi-pencil"></i>
                                         </button>
@@ -176,8 +192,13 @@
                             <option value="Other">Other</option>
                         </select>
                     </div>
+                    <div class="mb-3">
+                        <label for="createShelfLifeDays" class="form-label fw-semibold">Shelf Life (Days)</label>
+                        <input type="number" class="form-control" id="createShelfLifeDays" min="1" max="3650" placeholder="e.g. 30">
+                        <div class="form-text">Number of days from production before expiry. Required for food safety compliance.</div>
+                    </div>
                     <div class="alert alert-info mb-0">
-                        <i class="bi bi-info-circle me-2"></i>New products will be set to "Under Review" status automatically.
+                        <i class="bi bi-info-circle me-2"></i>New products will be saved as "Draft". Add a formulation, then submit for review.
                     </div>
                 </form>
             </div>
@@ -274,7 +295,8 @@
 
             const data = {
                 productName: document.getElementById('createProductName').value,
-                type: document.getElementById('createProductType').value || null
+                type: document.getElementById('createProductType').value || null,
+                shelfLifeDays: parseInt(document.getElementById('createShelfLifeDays').value) || null
             };
 
             try {
@@ -336,7 +358,12 @@
         function displayProductDetail(product) {
             const statusBadgeClass = {
                 'Active': 'bg-success',
+                'Approved': 'bg-success',
+                'approved': 'bg-success',
+                'Draft': 'bg-secondary',
                 'Development': 'bg-info',
+                'underreview': 'bg-warning text-dark',
+                'Needs Revision': 'bg-danger',
                 'Discontinued': 'bg-warning',
                 'Archived': 'bg-secondary'
             }[product.lifecycleStatus] || 'bg-secondary';
@@ -369,7 +396,12 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold text-muted small">Created By</label>
-                        <input type="text" class="form-control form-control-lg" value="${product.userEmail}" readonly>
+                        <input type="text" class="form-control form-control-lg" value="${product.userName}" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-muted small">Shelf Life (Days)</label>
+                        <input type="number" class="form-control form-control-lg" id="editShelfLifeDays" value="${product.shelfLifeDays || ''}" min="1" max="3650" ${isEditMode ? '' : 'readonly'}>
+                        <div class="form-text">Days from production to expiry (food safety compliance).</div>
                     </div>
                     <div class="col-12">
                         <div class="alert alert-light border mb-0">
@@ -395,6 +427,7 @@
             document.getElementById('editProductName').readOnly = !isEditMode;
             document.getElementById('editProductType').disabled = !isEditMode;
             document.getElementById('editLifecycleStatus').disabled = !isEditMode;
+            document.getElementById('editShelfLifeDays').readOnly = !isEditMode;
             
             if (isEditMode) {
                 document.getElementById('editProductBtn').classList.add('d-none');
@@ -410,7 +443,8 @@
                 productID: currentProductId,
                 productName: document.getElementById('editProductName').value,
                 type: document.getElementById('editProductType').value || null,
-                lifecycleStatus: document.getElementById('editLifecycleStatus').value
+                lifecycleStatus: document.getElementById('editLifecycleStatus').value,
+                shelfLifeDays: parseInt(document.getElementById('editShelfLifeDays').value) || null
             };
 
             try {
@@ -434,6 +468,30 @@
                 showToast('error', 'An error occurred');
                 console.error(error);
             }
+        }
+
+        async function submitForReview(productId, productName) {
+            showConfirmModal(`Submit "${productName}" for review? The product must have a formulation.`, async () => {
+                try {
+                    const response = await fetch(`@Url.Action("SubmitForReview", "PLM")/${productId}`, {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        }
+                    });
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        showToast('success', result.message);
+                        setTimeout(() => window.location.reload(), 300);
+                    } else {
+                        showToast('error', result.message || 'Failed to submit for review');
+                    }
+                } catch (error) {
+                    showToast('error', 'An error occurred');
+                    console.error(error);
+                }
+            });
         }
 
         async function archiveProduct(productId, productName) {

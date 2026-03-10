@@ -206,7 +206,7 @@
                     </div>
 
                     <div class="form-floating mb-3">
-                        <input asp-for="Password" class="form-control" placeholder="Password" autocomplete="new-password" />
+                        <input asp-for="Password" class="form-control" placeholder="Password" autocomplete="new-password" data-password-criteria="true" />
                         <label asp-for="Password" class="text-muted"><i class="bi bi-lock me-1"></i> Password</label>
                         <span asp-validation-for="Password" class="text-danger small"></span>
                     </div>

@@ -32,6 +32,21 @@ namespace IT15_DairyFlow.Models
         [Column("lifecycleStatus")]
         public string? LifecycleStatus { get; set; }
 
+        /// <summary>
+        /// Shelf life in days from production/release date.
+        /// Used to auto-calculate product expiry date on QM release.
+        /// Required for food safety compliance (FDA/BFAD).
+        /// </summary>
+        [Column("ShelfLifeDays")]
+        public int? ShelfLifeDays { get; set; }
+
+        /// <summary>
+        /// Selling price per unit. Defaults to ingredient cost sum.
+        /// Must not go below the sum of all product formulation ingredient costs.
+        /// </summary>
+        [Column(TypeName = "decimal(18, 2)")]
+        public decimal? UnitPrice { get; set; }
+
         // Navigation properties
         [ForeignKey("CompanyID")]
         public virtual Company Company { get; set; } = null!;

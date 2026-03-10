@@ -109,6 +109,7 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th class="px-4">Date</th>
+                                        <th>Category</th>
                                         <th>Supplier</th>
                                         <th>Amount</th>
                                         <th class="text-end px-4">Actions</th>
@@ -119,8 +120,17 @@
                                     {
                                         <tr class="expense-row" data-expense-id="@expense.ExpenseID" style="cursor: pointer;">
                                             <td class="px-4">@(expense.ExpenseDate?.ToString("MMM dd, yyyy") ?? "N/A")</td>
+                                            <td>
+                                                <span class="badge bg-secondary">@expense.Category</span>
+                                                @if (expense.IsEmergency)
+                                                {
+                                                    <span class="badge bg-danger ms-1" title="@expense.EmergencyReason">
+                                                        <i class="bi bi-exclamation-triangle"></i> Emergency
+                                                    </span>
+                                                }
+                                            </td>
                                             <td>@expense.SupplierName</td>
-                                            <td class="fw-semibold text-danger">â‚±@expense.Amount.ToString("N2")</td>
+                                            <td class="fw-semibold text-danger">₱@expense.Amount.ToString("N2")</td>
                                             <td class="text-end px-4">
                                                 <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteExpense(@expense.ExpenseID)">
                                                     <i class="bi bi-trash"></i>
@@ -261,6 +271,78 @@
             </div>
         </div>
     </div>
+
+    <!-- Monthly Budget Limits -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-speedometer2 text-primary me-2"></i>
+                        <h6 class="mb-0 fw-semibold">Monthly Budget Limits — @DateTime.UtcNow.ToString("MMMM yyyy")</h6>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addBudgetModal">
+                        <i class="bi bi-plus-lg me-1"></i> Set Budget Limit
+                    </button>
+                </div>
+                <div class="card-body">
+                    @if (Model.MonthlyBudgets.Any())
+                    {
+                        <div class="row g-3">
+                            @foreach (var mb in Model.MonthlyBudgets)
+                            {
+                                var barColor = mb.IsOverBudget ? "bg-danger" : (mb.UtilizationPercentage >= 80 ? "bg-warning" : "bg-success");
+                                var textColor = mb.IsOverBudget ? "text-danger" : (mb.UtilizationPercentage >= 80 ? "text-warning" : "text-success");
+                                <div class="col-lg-6">
+                                    <div class="border rounded-3 p-3 @(mb.IsOverBudget ? "border-danger" : "")">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div>
+                                                <span class="fw-semibold">@mb.Category</span>
+                                                @if (mb.IsOverBudget)
+                                                {
+                                                    <span class="badge bg-danger ms-2">OVER BUDGET</span>
+                                                }
+                                                @if (mb.EmergencyCount > 0)
+                                                {
+                                                    <span class="badge bg-warning text-dark ms-1" title="₱@mb.EmergencyTotal.ToString("N2") in emergency spending">
+                                                        <i class="bi bi-exclamation-triangle"></i> @mb.EmergencyCount emergency
+                                                    </span>
+                                                }
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="@textColor fw-bold">₱@mb.SpentAmount.ToString("N2")</span>
+                                                <span class="text-muted"> / ₱@mb.AllocatedAmount.ToString("N2")</span>
+                                            </div>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar @barColor" role="progressbar"
+                                                 style="width: @Math.Min(100, mb.UtilizationPercentage).ToString("F0")%"
+                                                 aria-valuenow="@mb.UtilizationPercentage.ToString("F0")"
+                                                 aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <div class="d-flex justify-content-between mt-1">
+                                            <small class="text-muted">@mb.UtilizationPercentage.ToString("F1")% used</small>
+                                            <small class="@(mb.RemainingAmount < 0 ? "text-danger" : "text-muted")">
+                                                @(mb.RemainingAmount >= 0 ? $"₱{mb.RemainingAmount:N2} remaining" : $"₱{Math.Abs(mb.RemainingAmount):N2} over")
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-speedometer2 display-4 d-block mb-3 opacity-25"></i>
+                            <p class="mb-1">No budget limits set for @DateTime.UtcNow.ToString("MMMM yyyy").</p>
+                            <p class="mb-0 small">Click "Set Budget Limit" to control monthly spending per category.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Add Expense Modal -->
@@ -276,15 +358,24 @@
             <div class="modal-body">
                 <form id="addExpenseForm">
                     <div class="mb-3">
+                        <label class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+                        <select class="form-select" id="expenseCategory" required onchange="checkBudgetLive()">
+                            <option value="Raw Materials">Raw Materials</option>
+                            <option value="Equipment">Equipment</option>
+                            <option value="Production">Production</option>
+                            <option value="Other" selected>Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label fw-semibold">Amount <span class="text-danger">*</span></label>
                         <div class="input-group">
-                            <span class="input-group-text">â‚±</span>
-                            <input type="number" class="form-control" id="expenseAmount" step="0.01" min="0.01" required>
+                            <span class="input-group-text">₱</span>
+                            <input type="number" class="form-control" id="expenseAmount" step="0.01" min="0.01" required oninput="checkBudgetLive()">
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Date <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="expenseDate" required>
+                        <input type="date" class="form-control" id="expenseDate" required onchange="checkBudgetLive()">
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Supplier</label>
@@ -296,11 +387,36 @@
                             }
                         </select>
                     </div>
+
+                    <!-- Budget Status Banner (dynamically shown) -->
+                    <div id="budgetStatusBanner" class="d-none mb-3"></div>
+
+                    <!-- Emergency Override Section (shown when over budget) -->
+                    <div id="emergencySection" class="d-none">
+                        <div class="alert alert-danger border-danger mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                                <strong>Budget Limit Exceeded</strong>
+                            </div>
+                            <p class="mb-2 small" id="emergencyMessage"></p>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="emergencyCheckbox" onchange="toggleEmergencyReason()">
+                                <label class="form-check-label fw-semibold" for="emergencyCheckbox">
+                                    Override as Emergency Expense
+                                </label>
+                            </div>
+                            <div id="emergencyReasonGroup" class="d-none">
+                                <label class="form-label small fw-semibold">Emergency Reason <span class="text-danger">*</span></label>
+                                <textarea class="form-control form-control-sm" id="emergencyReason" rows="2"
+                                          maxlength="500" placeholder="Explain why this emergency expense is necessary..."></textarea>
+                            </div>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" onclick="addExpense()">
+                <button type="button" class="btn btn-danger" id="recordExpenseBtn" onclick="addExpense()">
                     <i class="bi bi-check-lg me-1"></i>Record Expense
                 </button>
             </div>
@@ -354,24 +470,140 @@
     </div>
 </div>
 
+<!-- Add Budget Limit Modal -->
+<div class="modal fade" id="addBudgetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-speedometer2 text-primary me-2"></i>Set Monthly Budget Limit
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addBudgetForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Month <span class="text-danger">*</span></label>
+                        <input type="month" class="form-control" id="budgetPeriod" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+                        <select class="form-select" id="budgetCategory" required>
+                            <option value="Raw Materials">Raw Materials</option>
+                            <option value="Equipment">Equipment</option>
+                            <option value="Production">Production</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Budget Limit <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">₱</span>
+                            <input type="number" class="form-control" id="budgetAmount" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="form-text">Maximum amount that can be spent in this category for the selected month.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addBudget()">
+                    <i class="bi bi-check-lg me-1"></i>Set Budget Limit
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
-        // Set default date to today
+        let isCurrentlyOverBudget = false;
+
+        // Set default dates
         document.addEventListener('DOMContentLoaded', function() {
             const today = new Date().toISOString().split('T')[0];
+            const currentMonth = today.substring(0, 7);
             document.getElementById('expenseDate').value = today;
             document.getElementById('invoiceDate').value = today;
+            document.getElementById('budgetPeriod').value = currentMonth;
 
-            // Row click to view expense details
             document.querySelectorAll('.expense-row').forEach(row => {
                 row.addEventListener('click', function () {
-                    const expenseId = this.dataset.expenseId;
-                    viewExpense(expenseId);
+                    viewExpense(this.dataset.expenseId);
                 });
             });
         });
 
-        // Expense functions
+        // ── Budget Check (live, while filling expense form) ──────────
+        let budgetCheckTimer = null;
+        function checkBudgetLive() {
+            clearTimeout(budgetCheckTimer);
+            budgetCheckTimer = setTimeout(async () => {
+                const category = document.getElementById('expenseCategory').value;
+                const amount = parseFloat(document.getElementById('expenseAmount').value);
+                const date = document.getElementById('expenseDate').value;
+                const banner = document.getElementById('budgetStatusBanner');
+                const emergencySection = document.getElementById('emergencySection');
+
+                if (!category || !amount || amount <= 0 || !date) {
+                    banner.classList.add('d-none');
+                    emergencySection.classList.add('d-none');
+                    isCurrentlyOverBudget = false;
+                    return;
+                }
+
+                try {
+                    const resp = await fetch(`@Url.Action("CheckBudget", "Finance")?category=${encodeURIComponent(category)}&amount=${amount}&date=${date}`);
+                    const data = await resp.json();
+
+                    if (!data.hasBudget) {
+                        banner.innerHTML = `<div class="alert alert-info mb-0 py-2 small"><i class="bi bi-info-circle me-1"></i>No budget limit set for <strong>${category}</strong> this month.</div>`;
+                        banner.classList.remove('d-none');
+                        emergencySection.classList.add('d-none');
+                        isCurrentlyOverBudget = false;
+                        return;
+                    }
+
+                    const pct = data.allocatedAmount > 0 ? (data.spentAmount / data.allocatedAmount * 100) : 0;
+                    const barColor = data.isOverLimit ? 'bg-danger' : (pct >= 80 ? 'bg-warning' : 'bg-success');
+
+                    banner.innerHTML = `
+                        <div class="alert ${data.isOverLimit ? 'alert-warning' : 'alert-light'} mb-0 py-2">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span><strong>${category}</strong> budget (${data.period})</span>
+                                <span>₱${data.spentAmount.toFixed(2)} / ₱${data.allocatedAmount.toFixed(2)}</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                <div class="progress-bar ${barColor}" style="width: ${Math.min(100, pct).toFixed(0)}%"></div>
+                            </div>
+                            <div class="small text-muted mt-1">Remaining: ₱${data.remainingAmount.toFixed(2)}</div>
+                        </div>`;
+                    banner.classList.remove('d-none');
+
+                    if (data.isOverLimit) {
+                        document.getElementById('emergencyMessage').textContent =
+                            `This ₱${amount.toFixed(2)} expense exceeds the remaining ₱${data.remainingAmount.toFixed(2)} for ${category}. Budget: ₱${data.allocatedAmount.toFixed(2)}, Spent: ₱${data.spentAmount.toFixed(2)}.`;
+                        emergencySection.classList.remove('d-none');
+                        isCurrentlyOverBudget = true;
+                    } else {
+                        emergencySection.classList.add('d-none');
+                        document.getElementById('emergencyCheckbox').checked = false;
+                        document.getElementById('emergencyReasonGroup').classList.add('d-none');
+                        isCurrentlyOverBudget = false;
+                    }
+                } catch {
+                    banner.classList.add('d-none');
+                    isCurrentlyOverBudget = false;
+                }
+            }, 400);
+        }
+
+        function toggleEmergencyReason() {
+            const checked = document.getElementById('emergencyCheckbox').checked;
+            document.getElementById('emergencyReasonGroup').classList.toggle('d-none', !checked);
+        }
+
+        // ── Add Expense (with budget enforcement) ────────────────────
         async function addExpense() {
             const form = document.getElementById('addExpenseForm');
             if (!form.checkValidity()) {
@@ -379,10 +611,26 @@
                 return;
             }
 
+            const isEmergency = isCurrentlyOverBudget && document.getElementById('emergencyCheckbox').checked;
+            const emergencyReason = document.getElementById('emergencyReason')?.value || '';
+
+            if (isCurrentlyOverBudget && !isEmergency) {
+                showToast('error', 'This expense exceeds the budget. Check "Override as Emergency" or reduce the amount.');
+                return;
+            }
+
+            if (isEmergency && !emergencyReason.trim()) {
+                showToast('error', 'Please provide a reason for the emergency expense.');
+                return;
+            }
+
             const data = {
                 amount: parseFloat(document.getElementById('expenseAmount').value),
                 expenseDate: document.getElementById('expenseDate').value || null,
-                supplierID: document.getElementById('expenseSupplier').value || null
+                supplierID: document.getElementById('expenseSupplier').value || null,
+                category: document.getElementById('expenseCategory').value,
+                isEmergency: isEmergency,
+                emergencyReason: isEmergency ? emergencyReason : null
             };
 
             if (data.supplierID) data.supplierID = parseInt(data.supplierID);
@@ -397,11 +645,19 @@
                     body: JSON.stringify(data)
                 });
 
-                if (response.ok) {
-                    showToast('success', 'Expense recorded successfully');
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    showToast('success', result.message);
                     setTimeout(() => window.location.reload(), 300);
+                } else if (result.overBudget) {
+                    // Server returned over-budget error — show emergency section
+                    document.getElementById('emergencyMessage').textContent = result.message;
+                    document.getElementById('emergencySection').classList.remove('d-none');
+                    isCurrentlyOverBudget = true;
+                    showToast('error', 'Budget limit exceeded. Mark as emergency to proceed.');
                 } else {
-                    showToast('error', 'Failed to record expense');
+                    showToast('error', result.message || 'Failed to record expense');
                 }
             } catch (error) {
                 showToast('error', 'An error occurred');
@@ -413,10 +669,13 @@
             try {
                 const response = await fetch(`@Url.Action("GetExpenseDetail", "Finance")/${id}`);
                 if (response.ok) {
-                    const data = await response.json();
-                    showGlobalToast('success', `Expense: â‚±${data.amount.toFixed(2)} | Date: ${data.expenseDate || 'N/A'} | Supplier: ${data.supplierName}`);
+                    const d = await response.json();
+                    let msg = `₱${d.amount.toFixed(2)} | ${d.category}`;
+                    if (d.isEmergency) msg += ` | ⚠️ Emergency: ${d.emergencyReason || 'N/A'}`;
+                    msg += ` | Supplier: ${d.supplierName}`;
+                    showGlobalToast('success', msg);
                 }
-            } catch (error) {
+            } catch {
                 showToast('error', 'Failed to load expense details');
             }
         }
@@ -437,13 +696,49 @@
                     } else {
                         showToast('error', 'Failed to delete expense');
                     }
-                } catch (error) {
+                } catch {
                     showToast('error', 'An error occurred');
                 }
             });
         }
 
-        // Invoice functions
+        // ── Budget functions ─────────────────────────────────────────
+        async function addBudget() {
+            const form = document.getElementById('addBudgetForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            const data = {
+                period: document.getElementById('budgetPeriod').value,
+                category: document.getElementById('budgetCategory').value,
+                allocatedAmount: parseFloat(document.getElementById('budgetAmount').value)
+            };
+
+            try {
+                const response = await fetch('@Url.Action("CreateBudget", "Finance")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    showToast('success', result.message);
+                    setTimeout(() => window.location.reload(), 300);
+                } else {
+                    showToast('error', result.message || 'Failed to create budget');
+                }
+            } catch {
+                showToast('error', 'An error occurred');
+            }
+        }
+
+        // ── Invoice functions ────────────────────────────────────────
         async function addInvoice() {
             const form = document.getElementById('addInvoiceForm');
             if (!form.checkValidity()) {
@@ -474,7 +769,7 @@
                 } else {
                     showToast('error', 'Failed to create invoice');
                 }
-            } catch (error) {
+            } catch {
                 showToast('error', 'An error occurred');
             }
         }
@@ -495,7 +790,7 @@
                     } else {
                         showToast('error', 'Failed to update invoice');
                     }
-                } catch (error) {
+                } catch {
                     showToast('error', 'An error occurred');
                 }
             });
@@ -517,7 +812,7 @@
                     } else {
                         showToast('error', 'Failed to delete invoice');
                     }
-                } catch (error) {
+                } catch {
                     showToast('error', 'An error occurred');
                 }
             });

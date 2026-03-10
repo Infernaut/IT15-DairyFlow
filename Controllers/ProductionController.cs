@@ -2,6 +2,7 @@ using IT15_DairyFlow.Data;
 using IT15_DairyFlow.Hubs;
 using IT15_DairyFlow.Models;
 using IT15_DairyFlow.Models.Production;
+using IT15_DairyFlow.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -16,12 +17,14 @@ namespace IT15_DairyFlow.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IHubContext<DairyFlowHub> _hub;
+        private readonly NotificationService _notificationService;
 
-        public ProductionController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IHubContext<DairyFlowHub> hub)
+        public ProductionController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IHubContext<DairyFlowHub> hub, NotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
             _hub = hub;
+            _notificationService = notificationService;
         }
 
         // ─── BATCHES ──────────────────────────────────────────────
@@ -385,6 +388,8 @@ namespace IT15_DairyFlow.Controllers
             var productName = (await _context.Product.FindAsync(model.ProductID))?.ProductName ?? "";
             await _hub.NotifyBatchCreated(companyId, batch.BatchCode, productName, user.UserName ?? "");
             await _hub.NotifyDashboardRefresh(companyId, "Production");
+            await _notificationService.NotifyCompanyActionAsync(
+                user.Id, companyId, $"New batch {batch.BatchCode} ({productName}) created", "Production", "bi-box-seam");
 
             return Ok(new { success = true, message = "Production batch created successfully.", totalCost });
         }
@@ -438,6 +443,9 @@ namespace IT15_DairyFlow.Controllers
             // SignalR: notify company group
             await _hub.NotifyBatchCompleted(companyId, batch.BatchCode, batch.Product?.ProductName ?? "");
             await _hub.NotifyDashboardRefresh(companyId, "Production");
+            var finishUser = await _userManager.GetUserAsync(User);
+            await _notificationService.NotifyCompanyActionAsync(
+                finishUser?.Id ?? "", companyId, $"Batch {batch.BatchCode} completed", "Production", "bi-check-circle");
 
             return Ok(new { success = true, message = "Batch finished successfully." });
         }

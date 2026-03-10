@@ -1,0 +1,288 @@
+@{
+    ViewData["Title"] = "Budget Allotment";
+    var budgets = ViewBag.Budgets as List<IT15_DairyFlow.Models.Finance.BudgetListViewModel> ?? new();
+    var categories = new[] { "Raw Materials", "Equipment", "Production", "Other" };
+}
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">Budget Allotment</h2>
+            <p class="text-muted mb-0">Set and manage monthly spending limits per category.</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBudgetModal">
+            <i class="bi bi-plus-lg me-1"></i> Set Budget Limit
+        </button>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-4">
+        @foreach (var cat in categories)
+        {
+            var currentMonth = DateTime.UtcNow.ToString("yyyy-MM");
+            var monthBudget = budgets.FirstOrDefault(b => b.Category == cat && b.Period == currentMonth);
+            var badgeClass = monthBudget == null ? "bg-secondary" :
+                             monthBudget.IsOverBudget ? "bg-danger" :
+                             monthBudget.UtilizationPercentage > 80 ? "bg-warning" : "bg-success";
+            <div class="col-md-3 col-sm-6">
+                <div class="card shadow-sm h-100 border-0">
+                    <div class="card-body">
+                        <h6 class="text-muted small text-uppercase mb-2">@cat</h6>
+                        @if (monthBudget != null)
+                        {
+                            <h4 class="fw-bold mb-1">₱@monthBudget.AllocatedAmount.ToString("N2")</h4>
+                            <div class="progress mb-2" style="height: 6px;">
+                                <div class="progress-bar @badgeClass" style="width: @Math.Min(100, monthBudget.UtilizationPercentage)%"></div>
+                            </div>
+                            <small class="text-muted">
+                                Spent: ₱@monthBudget.SpentAmount.ToString("N2") &bull;
+                                Remaining: <span class="@(monthBudget.IsOverBudget ? "text-danger fw-bold" : "")">₱@monthBudget.RemainingAmount.ToString("N2")</span>
+                            </small>
+                            @if (monthBudget.EmergencyCount > 0)
+                            {
+                                <div class="mt-1">
+                                    <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>@monthBudget.EmergencyCount emergency</span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p class="text-muted fst-italic mb-0">No budget set for @DateTime.UtcNow.ToString("MMMM yyyy")</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Filters -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <select class="form-select" id="categoryFilter" onchange="filterBudgets()">
+                        <option value="">All Categories</option>
+                        @foreach (var cat in categories)
+                        {
+                            <option value="@cat">@cat</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" id="statusFilter" onchange="filterBudgets()">
+                        <option value="">All Statuses</option>
+                        <option value="under">Under Budget</option>
+                        <option value="over">Over Budget</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-outline-secondary w-100" onclick="clearBudgetFilters()">
+                        <i class="bi bi-x-circle me-1"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget Table -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="budgetTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="px-4">Period</th>
+                            <th>Category</th>
+                            <th>Allocated</th>
+                            <th>Spent</th>
+                            <th>Remaining</th>
+                            <th>Utilization</th>
+                            <th>Status</th>
+                            <th class="text-end px-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!budgets.Any())
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-5">
+                                    <i class="bi bi-wallet2 display-4 d-block mb-3 opacity-25"></i>
+                                    <p class="mb-0">No budgets set yet. Click "Set Budget Limit" to get started.</p>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var b in budgets)
+                            {
+                                var barClass = b.IsOverBudget ? "bg-danger" : b.UtilizationPercentage > 80 ? "bg-warning" : "bg-success";
+                                <tr class="budget-row"
+                                    data-category="@b.Category"
+                                    data-is-over="@b.IsOverBudget.ToString().ToLower()">
+                                    <td class="px-4 fw-semibold">@b.Period</td>
+                                    <td>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary">@b.Category</span>
+                                    </td>
+                                    <td>₱@b.AllocatedAmount.ToString("N2")</td>
+                                    <td>₱@b.SpentAmount.ToString("N2")</td>
+                                    <td>
+                                        <span class="@(b.IsOverBudget ? "text-danger fw-bold" : "")">₱@b.RemainingAmount.ToString("N2")</span>
+                                    </td>
+                                    <td style="min-width: 120px;">
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar @barClass" style="width: @Math.Min(100, b.UtilizationPercentage)%"></div>
+                                        </div>
+                                        <small class="text-muted">@b.UtilizationPercentage.ToString("N1")%</small>
+                                    </td>
+                                    <td>
+                                        @if (b.IsOverBudget)
+                                        {
+                                            <span class="badge bg-danger">Over Budget</span>
+                                        }
+                                        else if (b.UtilizationPercentage > 80)
+                                        {
+                                            <span class="badge bg-warning text-dark">Warning</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">On Track</span>
+                                        }
+                                        @if (b.EmergencyCount > 0)
+                                        {
+                                            <span class="badge bg-danger ms-1" title="@b.EmergencyCount emergency expense(s)">
+                                                <i class="bi bi-exclamation-triangle"></i> @b.EmergencyCount
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-end px-4">
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteBudget(@b.BudgetID, '@b.Category', '@b.Period')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Budget Modal -->
+<div class="modal fade" id="addBudgetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="bi bi-wallet2 text-primary me-2"></i>Set Monthly Budget Limit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addBudgetForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Month <span class="text-danger">*</span></label>
+                        <input type="month" class="form-control" id="budgetPeriod" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+                        <select class="form-select" id="budgetCategory" required>
+                            <option value="">Select category...</option>
+                            @foreach (var cat in categories)
+                            {
+                                <option value="@cat">@cat</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Budget Amount <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">₱</span>
+                            <input type="number" class="form-control" id="budgetAmount" min="0.01" step="0.01" required>
+                        </div>
+                        <div class="form-text">Maximum monthly spending limit for this category</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addBudget()">
+                    <i class="bi bi-check-lg me-1"></i>Set Budget
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value
+            || '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)?.[1];
+
+        function filterBudgets() {
+            const cat = document.getElementById('categoryFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            document.querySelectorAll('.budget-row').forEach(row => {
+                let show = true;
+                if (cat && row.dataset.category !== cat) show = false;
+                if (status === 'over' && row.dataset.isOver !== 'true') show = false;
+                if (status === 'under' && row.dataset.isOver === 'true') show = false;
+                row.style.display = show ? '' : 'none';
+            });
+        }
+
+        function clearBudgetFilters() {
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            filterBudgets();
+        }
+
+        async function addBudget() {
+            const period = document.getElementById('budgetPeriod').value;
+            const category = document.getElementById('budgetCategory').value;
+            const amount = parseFloat(document.getElementById('budgetAmount').value);
+
+            if (!period || !category || !amount) {
+                showGlobalToast('error', 'Please fill in all fields.');
+                return;
+            }
+
+            try {
+                const response = await fetch('@Url.Action("CreateBudget", "Finance")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': csrfToken },
+                    body: JSON.stringify({ period, category, allocatedAmount: amount })
+                });
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    showGlobalToast('success', result.message);
+                    setTimeout(() => location.reload(), 300);
+                } else {
+                    showGlobalToast('error', result.message || 'Failed to create budget.');
+                }
+            } catch (e) {
+                showGlobalToast('error', 'An error occurred.');
+                console.error(e);
+            }
+        }
+
+        async function deleteBudget(id, category, period) {
+            showConfirmModal(`Delete the ${category} budget for ${period}?`, async () => {
+                try {
+                    const response = await fetch(`@Url.Action("DeleteBudget", "Finance")/${id}`, {
+                        method: 'POST',
+                        headers: { 'RequestVerificationToken': csrfToken }
+                    });
+                    if (response.ok) {
+                        showGlobalToast('success', 'Budget deleted.');
+                        setTimeout(() => location.reload(), 300);
+                    } else {
+                        showGlobalToast('error', 'Failed to delete budget.');
+                    }
+                } catch (e) {
+                    showGlobalToast('error', 'An error occurred.');
+                    console.error(e);
+                }
+            });
+        }
+    </script>
+}

@@ -155,7 +155,6 @@ namespace IT15_DairyFlow.Models.Admin
     public class AuditLogViewModel
     {
         public int AuditLogID { get; set; }
-        public string UserEmail { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
         public string Action { get; set; } = string.Empty;
         public DateTime TimeStamp { get; set; }

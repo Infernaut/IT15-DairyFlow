@@ -1,0 +1,537 @@
+@model IT15_DairyFlow.Models.Sales.SalesPageViewModel
+
+@{
+    ViewData["Title"] = "Sales Management";
+}
+
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">Sales Management</h2>
+            <p class="text-muted mb-0">Create and track product sales, generate invoices.</p>
+        </div>
+        @if (User.IsInRole("Admin") || User.IsInRole("ProductManager"))
+        {
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createSaleModal">
+                <i class="bi bi-cart-plus me-1"></i> Create Sale
+            </button>
+        }
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-cart-check text-primary fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1 small text-uppercase">Total Sales</h6>
+                            <h3 class="mb-0 fw-bold">@Model.Summary.TotalSales</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-cash-stack text-success fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1 small text-uppercase">Revenue (Paid)</h6>
+                            <h3 class="mb-0 fw-bold text-success">₱@Model.Summary.TotalRevenue.ToString("N2")</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-hourglass-split text-warning fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1 small text-uppercase">Pending Payments</h6>
+                            <h3 class="mb-0 fw-bold text-warning">₱@Model.Summary.PendingPayments.ToString("N2")</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-info bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-check2-circle text-info fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1 small text-uppercase">Paid / Pending</h6>
+                            <h3 class="mb-0 fw-bold">@Model.Summary.PaidCount / @Model.Summary.PendingCount</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body py-3">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
+                        <input type="text" id="searchInput" class="form-control" placeholder="Search by invoice, buyer, product...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select id="statusFilter" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales Table -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            @if (Model.Sales.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="salesTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="px-4">Invoice #</th>
+                                <th>Product</th>
+                                <th>Buyer</th>
+                                <th>Qty</th>
+                                <th>Total</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th class="text-end px-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var sale in Model.Sales)
+                            {
+                                var statusClass = sale.PaymentStatus switch
+                                {
+                                    "Paid" => "bg-success",
+                                    "Pending" => "bg-warning text-dark",
+                                    "Cancelled" => "bg-danger",
+                                    _ => "bg-secondary"
+                                };
+                                <tr data-search="@sale.InvoiceNumber @sale.ProductName @sale.BuyerName" data-status="@sale.PaymentStatus">
+                                    <td class="px-4 fw-semibold">@sale.InvoiceNumber</td>
+                                    <td>@sale.ProductName</td>
+                                    <td>
+                                        @sale.BuyerName
+                                        @if (!string.IsNullOrEmpty(sale.BuyerEmail))
+                                        {
+                                            <br /><small class="text-muted">@sale.BuyerEmail</small>
+                                        }
+                                    </td>
+                                    <td>@sale.Quantity</td>
+                                    <td class="fw-semibold">₱@sale.TotalAmount.ToString("N2")</td>
+                                    <td>@sale.SaleDate.ToString("MMM dd, yyyy")</td>
+                                    <td><span class="badge @statusClass">@sale.PaymentStatus</span></td>
+                                    <td class="text-end px-4">
+                                        <a href="@Url.Action("DownloadInvoice", "Sales", new { id = sale.SaleID })"
+                                           class="btn btn-sm btn-outline-primary me-1" title="Download Invoice">
+                                            <i class="bi bi-file-earmark-pdf"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-info" onclick="viewSaleDetail(@sale.SaleID)" title="View Details">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        @if (sale.PaymentStatus == "Pending" && (User.IsInRole("Admin") || User.IsInRole("Finance")))
+                                        {
+                                            <button class="btn btn-sm btn-outline-success ms-1" onclick="openPaymentModal(@sale.SaleID, '@sale.InvoiceNumber', @sale.TotalAmount)" title="Process Payment">
+                                                <i class="bi bi-credit-card"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-cart display-4 d-block mb-3 opacity-25"></i>
+                    <p class="mb-0">No sales recorded yet.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Create Sale Modal -->
+<div class="modal fade" id="createSaleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-cart-plus me-2"></i>Create Sale</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createSaleForm" novalidate>
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label">Product <span class="text-danger">*</span></label>
+                        <select id="saleInventoryId" class="form-select" required>
+                            <option value="">Select a product...</option>
+                            @foreach (var p in Model.AvailableProducts)
+                            {
+                                <option value="@p.InventoryID" data-product-id="@p.ProductID" data-available="@p.AvailableQuantity">
+                                    @p.ProductName (Available: @p.AvailableQuantity)
+                                </option>
+                            }
+                        </select>
+                        <div class="invalid-feedback">Please select a product.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Buyer Name <span class="text-danger">*</span></label>
+                        <input type="text" id="saleBuyerName" class="form-control" required maxlength="256" />
+                        <div class="invalid-feedback">Buyer name is required.</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Buyer Email</label>
+                            <input type="email" id="saleBuyerEmail" class="form-control" maxlength="256" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Buyer Phone</label>
+                            <input type="text" id="saleBuyerPhone" class="form-control" maxlength="50" />
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Quantity <span class="text-danger">*</span></label>
+                            <input type="number" id="saleQuantity" class="form-control" min="1" required />
+                            <div class="invalid-feedback">Enter a valid quantity.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Unit Price (₱) <span class="text-danger">*</span></label>
+                            <input type="number" id="saleUnitPrice" class="form-control" min="0.01" step="0.01" required />
+                            <div class="invalid-feedback">Enter a valid price.</div>
+                        </div>
+                    </div>
+                    <div class="mb-3 bg-light rounded p-3 text-center">
+                        <small class="text-muted">Total Amount</small>
+                        <h4 class="mb-0 fw-bold text-primary" id="saleTotalDisplay">₱0.00</h4>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea id="saleNotes" class="form-control" rows="2" maxlength="500"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createSale()">
+                    <i class="bi bi-cart-check me-1"></i> Create Sale
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal (Finance) -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-credit-card me-2"></i>Process Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="paymentSaleId" />
+                <div class="text-center mb-3">
+                    <h6 class="text-muted" id="paymentInvoiceLabel"></h6>
+                    <h3 class="fw-bold text-primary" id="paymentAmountLabel"></h3>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Payment Method</label>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-success flex-fill payment-method-btn active" data-method="Cash" onclick="selectPaymentMethod('Cash')">
+                            <i class="bi bi-cash-coin me-1"></i> Cash
+                        </button>
+                        <button type="button" class="btn btn-outline-primary flex-fill payment-method-btn" data-method="Online" onclick="selectPaymentMethod('Online')">
+                            <i class="bi bi-globe me-1"></i> Online (GCash)
+                        </button>
+                    </div>
+                </div>
+                <!-- Cash fields -->
+                <div id="cashFields">
+                    <div class="mb-3">
+                        <label class="form-label">Reference Number</label>
+                        <input type="text" id="cashRefNumber" class="form-control" maxlength="100" placeholder="Optional" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea id="cashNotes" class="form-control" rows="2" maxlength="500" placeholder="Optional"></textarea>
+                    </div>
+                </div>
+                <!-- Online info -->
+                <div id="onlineFields" style="display: none;">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-1"></i>
+                        You will be redirected to PayMongo to complete the payment via GCash.
+                        Inventory will be auto-deducted upon payment confirmation.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="processPaymentBtn" onclick="processPayment()">
+                    <i class="bi bi-check-lg me-1"></i> Confirm Payment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sale Detail Modal -->
+<div class="modal fade" id="saleDetailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-receipt me-2"></i>Sale Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="saleDetailBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // ── Filtering ────────────────────────────────────────────────────
+        document.getElementById('searchInput').addEventListener('input', filterSales);
+        document.getElementById('statusFilter').addEventListener('change', filterSales);
+
+        function filterSales() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+            const rows = document.querySelectorAll('#salesTable tbody tr');
+
+            rows.forEach(row => {
+                const text = row.getAttribute('data-search')?.toLowerCase() || '';
+                const rowStatus = row.getAttribute('data-status') || '';
+                const matchSearch = !search || text.includes(search);
+                const matchStatus = !status || rowStatus === status;
+                row.style.display = (matchSearch && matchStatus) ? '' : 'none';
+            });
+        }
+
+        // ── Total calculation ────────────────────────────────────────────
+        document.getElementById('saleQuantity')?.addEventListener('input', updateTotal);
+        document.getElementById('saleUnitPrice')?.addEventListener('input', updateTotal);
+
+        function updateTotal() {
+            const qty = parseFloat(document.getElementById('saleQuantity').value) || 0;
+            const price = parseFloat(document.getElementById('saleUnitPrice').value) || 0;
+            document.getElementById('saleTotalDisplay').textContent = '₱' + (qty * price).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // ── Create Sale ──────────────────────────────────────────────────
+        async function createSale() {
+            const form = document.getElementById('createSaleForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            const inventoryId = parseInt(document.getElementById('saleInventoryId').value);
+            const qty = parseInt(document.getElementById('saleQuantity').value);
+            const opt = document.getElementById('saleInventoryId').options[document.getElementById('saleInventoryId').selectedIndex];
+            const available = parseInt(opt.getAttribute('data-available')) || 0;
+
+            if (qty > available) {
+                showGlobalToast('error', `Insufficient stock. Available: ${available}`);
+                return;
+            }
+
+            const data = {
+                inventoryID: inventoryId,
+                buyerName: document.getElementById('saleBuyerName').value,
+                buyerEmail: document.getElementById('saleBuyerEmail').value || null,
+                buyerPhone: document.getElementById('saleBuyerPhone').value || null,
+                quantity: qty,
+                unitPrice: parseFloat(document.getElementById('saleUnitPrice').value),
+                notes: document.getElementById('saleNotes').value || null
+            };
+
+            try {
+                const response = await fetch('@Url.Action("CreateSale", "Sales")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    showGlobalToast('success', result.message);
+                    setTimeout(() => window.location.reload(), 500);
+                } else {
+                    showGlobalToast('error', result.message || 'Failed to create sale');
+                }
+            } catch (error) {
+                showGlobalToast('error', 'An error occurred');
+            }
+        }
+
+        // ── View Sale Detail ─────────────────────────────────────────────
+        async function viewSaleDetail(id) {
+            const modal = new bootstrap.Modal(document.getElementById('saleDetailModal'));
+            modal.show();
+
+            try {
+                const response = await fetch(`@Url.Action("GetSaleDetail", "Sales")/${id}`);
+                const sale = await response.json();
+
+                const statusClass = sale.paymentStatus === 'Paid' ? 'bg-success' :
+                                    sale.paymentStatus === 'Pending' ? 'bg-warning text-dark' : 'bg-secondary';
+
+                document.getElementById('saleDetailBody').innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1">${sale.invoiceNumber}</h5>
+                            <small class="text-muted">${new Date(sale.saleDate).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}</small>
+                        </div>
+                        <span class="badge ${statusClass}">${sale.paymentStatus}</span>
+                    </div>
+                    <hr/>
+                    <div class="row mb-2">
+                        <div class="col-5 text-muted">Product</div>
+                        <div class="col-7 fw-semibold">${sale.productName}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-5 text-muted">Buyer</div>
+                        <div class="col-7">${sale.buyerName}${sale.buyerEmail ? '<br/><small class="text-muted">' + sale.buyerEmail + '</small>' : ''}${sale.buyerPhone ? '<br/><small class="text-muted">' + sale.buyerPhone + '</small>' : ''}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-5 text-muted">Quantity</div>
+                        <div class="col-7">${sale.quantity}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-5 text-muted">Unit Price</div>
+                        <div class="col-7">₱${sale.unitPrice.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-5 text-muted">Total Amount</div>
+                        <div class="col-7 fw-bold text-primary fs-5">₱${sale.totalAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</div>
+                    </div>
+                    ${sale.paymentMethod ? `<div class="row mb-2"><div class="col-5 text-muted">Payment Method</div><div class="col-7">${sale.paymentMethod}</div></div>` : ''}
+                    ${sale.notes ? `<div class="row mb-2"><div class="col-5 text-muted">Notes</div><div class="col-7">${sale.notes}</div></div>` : ''}
+                    <div class="row mb-2">
+                        <div class="col-5 text-muted">Created By</div>
+                        <div class="col-7">${sale.createdByName}</div>
+                    </div>
+                `;
+            } catch {
+                document.getElementById('saleDetailBody').innerHTML = '<p class="text-danger">Failed to load details.</p>';
+            }
+        }
+
+        // ── Payment Processing ───────────────────────────────────────────
+        let selectedPaymentMethod = 'Cash';
+
+        function openPaymentModal(saleId, invoiceNumber, amount) {
+            document.getElementById('paymentSaleId').value = saleId;
+            document.getElementById('paymentInvoiceLabel').textContent = invoiceNumber;
+            document.getElementById('paymentAmountLabel').textContent = '₱' + amount.toLocaleString('en-PH', { minimumFractionDigits: 2 });
+            selectPaymentMethod('Cash');
+            new bootstrap.Modal(document.getElementById('paymentModal')).show();
+        }
+
+        function selectPaymentMethod(method) {
+            selectedPaymentMethod = method;
+            document.querySelectorAll('.payment-method-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-method') === method);
+            });
+            document.getElementById('cashFields').style.display = method === 'Cash' ? '' : 'none';
+            document.getElementById('onlineFields').style.display = method === 'Online' ? '' : 'none';
+            const btn = document.getElementById('processPaymentBtn');
+            btn.innerHTML = method === 'Cash'
+                ? '<i class="bi bi-check-lg me-1"></i> Confirm Payment'
+                : '<i class="bi bi-globe me-1"></i> Pay via GCash';
+        }
+
+        async function processPayment() {
+            const saleId = parseInt(document.getElementById('paymentSaleId').value);
+
+            if (selectedPaymentMethod === 'Cash') {
+                const data = {
+                    saleID: saleId,
+                    referenceNumber: document.getElementById('cashRefNumber').value || null,
+                    notes: document.getElementById('cashNotes').value || null
+                };
+
+                try {
+                    const response = await fetch('@Url.Action("ProcessCashPayment", "Sales")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    const result = await response.json();
+                    if (response.ok && result.success) {
+                        showGlobalToast('success', result.message);
+                        setTimeout(() => window.location.reload(), 500);
+                    } else {
+                        showGlobalToast('error', result.message || 'Payment failed');
+                    }
+                } catch {
+                    showGlobalToast('error', 'An error occurred');
+                }
+            } else {
+                // Online payment
+                try {
+                    const response = await fetch('@Url.Action("InitiateOnlinePayment", "Sales")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        },
+                        body: JSON.stringify({ saleID: saleId })
+                    });
+
+                    const result = await response.json();
+                    if (response.ok && result.success) {
+                        window.location.href = result.checkoutUrl;
+                    } else {
+                        showGlobalToast('error', result.message || 'Failed to initiate online payment');
+                    }
+                } catch {
+                    showGlobalToast('error', 'An error occurred');
+                }
+            }
+        }
+    </script>
+}

@@ -9,11 +9,11 @@
     string currentAction = ViewContext.RouteData.Values["Action"]?.ToString() ?? "";
 }
 
-<div class="sidebar">
+<div class="sidebar" role="navigation" aria-label="Main navigation">
     <!-- Brand / Logo -->
     <div class="sidebar-brand" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
         <div class="sidebar-brand-icon">
-            <i class="bi bi-droplet-half"></i>
+            <img src="~/images/logo.png" alt="DairyFlow Logo" style="width:36px;height:36px;object-fit:contain;" />
         </div>
         <div>
             <div class="sidebar-brand-text">DairyFlow</div>
@@ -37,7 +37,6 @@
                 <div class="sidebar-submenu">
                     <a class="submenu-link @(currentAction == "Products" ? "active" : "")" asp-controller="PLM" asp-action="Products">Products</a>
                     <a class="submenu-link @(currentAction == "Archives" ? "active" : "")" asp-controller="PLM" asp-action="Archives">Archive</a>
-                    <a class="submenu-link @(currentAction == "Formulation" ? "active" : "")" asp-controller="PLM" asp-action="Products">Formulation</a>
                     @if (User.IsInRole("Admin"))
                     {
                         <a class="submenu-link @(currentAction == "Approvals" ? "active" : "")" asp-controller="PLM" asp-action="Approvals">Product Approval</a>
@@ -56,7 +55,6 @@
                     <a class="submenu-link @(currentAction == "Schedule" ? "active" : "")" asp-controller="Production" asp-action="Schedule">Production Schedule</a>
                     <a class="submenu-link @(currentAction == "Costs" ? "active" : "")" asp-controller="Production" asp-action="Costs">Production Costs</a>
                     <a class="submenu-link @(currentAction == "History" ? "active" : "")" asp-controller="Production" asp-action="History">Production History</a>
-                    <a class="submenu-link @(currentAction == "Suppliers" ? "active" : "")" asp-controller="Production" asp-action="Suppliers">Suppliers</a>
                 </div>
             </div>
 
@@ -65,7 +63,7 @@
             </a>
         }
 
-        @if (User.IsInRole("Admin") || User.IsInRole("QualityChecker"))
+        @if (User.IsInRole("Admin") || User.IsInRole("QualityChecker") || User.IsInRole("ProductManager"))
         {
             <div class="sidebar-section-label">Quality & Compliance</div>
             <a class="sidebar-link" data-bs-toggle="collapse" href="#qmMenu">
@@ -75,8 +73,13 @@
             <div class="collapse @(currentController == "QM" ? "show" : "")" id="qmMenu">
                 <div class="sidebar-submenu">
                     <a class="submenu-link @(currentAction == "Inspections" ? "active" : "")" asp-controller="QM" asp-action="Inspections">Quality Inspections</a>
-                    <a class="submenu-link @(currentAction == "Results" ? "active" : "")" asp-controller="QM" asp-action="Results">Inspection Results</a>
+                    @if (User.IsInRole("Admin") || User.IsInRole("QualityChecker"))
+                    {
+                        <a class="submenu-link @(currentAction == "Results" ? "active" : "")" asp-controller="QM" asp-action="Results">Inspection Results</a>
+                    }
+                    @* Non-Conformance Reports - commented out
                     <a class="submenu-link @(currentAction == "NonConformance" ? "active" : "")" asp-controller="QM" asp-action="NonConformance">Non-Conformance Reports</a>
+                    *@
                 </div>
             </div>
         }
@@ -88,27 +91,47 @@
                 <span><i class="bi bi-box-seam me-2"></i> Inventory</span>
                 <i class="bi bi-chevron-down small opacity-50"></i>
             </a>
-            <div class="collapse @(currentController == "Inventory" ? "show" : "")" id="invMenu">
+            <div class="collapse @(currentController == "Inventory" || (currentController == "Sales" && currentAction == "ExpiredProducts") ? "show" : "")" id="invMenu">
                 <div class="sidebar-submenu">
                     <a class="submenu-link @(currentAction == "Index" && currentController == "Inventory" ? "active" : "")" asp-controller="Inventory" asp-action="Index">Finished Goods</a>
                     @if (User.IsInRole("Admin") || User.IsInRole("ProductManager"))
                     {
                         <a class="submenu-link @(currentAction == "RawMaterials" ? "active" : "")" asp-controller="Inventory" asp-action="RawMaterials">Raw Materials</a>
+                        <a class="submenu-link @(currentAction == "Suppliers" ? "active" : "")" asp-controller="Production" asp-action="Suppliers">Suppliers</a>
                     }
+                    <a class="submenu-link @(currentController == "Sales" && currentAction == "ExpiredProducts" ? "active" : "")" asp-controller="Sales" asp-action="ExpiredProducts">Expired Products</a>
                 </div>
             </div>
+        }
+
+        @if (User.IsInRole("Admin") || User.IsInRole("ProductManager"))
+        {
+            <div class="sidebar-section-label">Sales</div>
+            <a class="sidebar-link @(currentController == "Sales" && currentAction == "Index" ? "active" : "")" asp-controller="Sales" asp-action="Index">
+                <span><i class="bi bi-cart-check me-2"></i> Sales</span>
+            </a>
         }
 
         @if (User.IsInRole("Admin") || User.IsInRole("Finance"))
         {
             <div class="sidebar-section-label">Enterprise</div>
-            <a class="sidebar-link @(currentController == "Finance" ? "active" : "")" asp-controller="Finance" asp-action="Index">
+            <a class="sidebar-link" data-bs-toggle="collapse" href="#finMenu">
                 <span><i class="bi bi-calculator me-2"></i> Finance</span>
+                <i class="bi bi-chevron-down small opacity-50"></i>
             </a>
+            <div class="collapse @(currentController == "Finance" || (currentController == "Sales" && (currentAction == "Transactions" || currentAction == "Index")) ? "show" : "")" id="finMenu">
+                <div class="sidebar-submenu">
+                    <a class="submenu-link @(currentController == "Finance" && currentAction == "Index" ? "active" : "")" asp-controller="Finance" asp-action="Index">Dashboard</a>
+                    <a class="submenu-link @(currentController == "Finance" && currentAction == "BudgetAllotment" ? "active" : "")" asp-controller="Finance" asp-action="BudgetAllotment">Budget Allotment</a>
+                    <a class="submenu-link @(currentController == "Finance" && currentAction == "PurchaseRecords" ? "active" : "")" asp-controller="Finance" asp-action="PurchaseRecords">Purchase Records</a>
+                    <a class="submenu-link @(currentController == "Sales" && currentAction == "Index" && User.IsInRole("Finance") ? "active" : "")" asp-controller="Sales" asp-action="Index">Sales Records</a>
+                    <a class="submenu-link @(currentController == "Sales" && currentAction == "Transactions" ? "active" : "")" asp-controller="Sales" asp-action="Transactions">Transaction History</a>
+                </div>
+            </div>
         }
 
         <div class="sidebar-section-label">Support</div>
-        <a class="sidebar-link" href="#">
+        <a class="sidebar-link @(currentAction == "HelpSupport" ? "active" : "")" asp-controller="Home" asp-action="HelpSupport">
             <span><i class="bi bi-question-circle me-2"></i> Help & Support</span>
         </a>
     </div>

@@ -38,6 +38,13 @@ namespace IT15_DairyFlow.Data
         // Audit
         public DbSet<AuditLog> AuditLog { get; set; }
 
+        // Notifications
+        public DbSet<Notification> Notification { get; set; }
+
+        // Sales
+        public DbSet<Sale> Sale { get; set; }
+        public DbSet<SaleTransaction> SaleTransaction { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -218,6 +225,23 @@ namespace IT15_DairyFlow.Data
                 .HasForeignKey(al => al.UserID)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Configure Notification relationships
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Recipient)
+                .WithMany()
+                .HasForeignKey(n => n.RecipientUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Actor)
+                .WithMany()
+                .HasForeignKey(n => n.ActorUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<Notification>()
+                .HasIndex(n => new { n.RecipientUserId, n.IsRead, n.CreatedAt })
+                .HasDatabaseName("IX_Notification_Recipient_Read_Date");
+
             // Configure ProductFormulation relationships
             modelBuilder.Entity<ProductFormulation>()
                 .HasOne(pf => pf.Product)
@@ -285,6 +309,50 @@ namespace IT15_DairyFlow.Data
             // Configure decimal precision for NonConformance
             modelBuilder.Entity<NonConformance>()
                 .Property(nc => nc.CostImpact).HasPrecision(18, 2);
+
+            // Configure Sale relationships
+            modelBuilder.Entity<Sale>()
+                .HasOne(s => s.Company)
+                .WithMany(c => c.Sales)
+                .HasForeignKey(s => s.CompanyID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Sale>()
+                .HasOne(s => s.Inventory)
+                .WithMany()
+                .HasForeignKey(s => s.InventoryID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Sale>()
+                .HasOne(s => s.Product)
+                .WithMany()
+                .HasForeignKey(s => s.ProductID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Sale>()
+                .HasOne(s => s.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(s => s.CreatedByUserID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure SaleTransaction relationships
+            modelBuilder.Entity<SaleTransaction>()
+                .HasOne(t => t.Sale)
+                .WithMany(s => s.Transactions)
+                .HasForeignKey(t => t.SaleID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SaleTransaction>()
+                .HasOne(t => t.Company)
+                .WithMany()
+                .HasForeignKey(t => t.CompanyID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SaleTransaction>()
+                .HasOne(t => t.ProcessedByUser)
+                .WithMany()
+                .HasForeignKey(t => t.ProcessedByUserID)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

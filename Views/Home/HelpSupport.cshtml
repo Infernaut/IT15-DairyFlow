@@ -1,0 +1,211 @@
+@{
+    ViewData["Title"] = "Help & Support";
+}
+
+<div class="container-fluid p-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold mb-1">Help & Support</h2>
+            <p class="text-muted mb-0">Find answers to common questions and learn how to use DairyFlow.</p>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center p-4">
+                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width:64px;height:64px;">
+                        <i class="bi bi-book text-primary fs-3"></i>
+                    </div>
+                    <h5 class="fw-semibold">Getting Started</h5>
+                    <p class="text-muted small">Learn the basics of navigating and using DairyFlow ERP.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center p-4">
+                    <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width:64px;height:64px;">
+                        <i class="bi bi-gear text-success fs-3"></i>
+                    </div>
+                    <h5 class="fw-semibold">System Modules</h5>
+                    <p class="text-muted small">Explore the features across PLM, Production, QM, Inventory, and Finance.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center p-4">
+                    <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex align-items-center justify-content-center mb-3" style="width:64px;height:64px;">
+                        <i class="bi bi-envelope text-warning fs-3"></i>
+                    </div>
+                    <h5 class="fw-semibold">Contact Support</h5>
+                    <p class="text-muted small">Reach out to our team for technical assistance.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="fw-semibold mb-0"><i class="bi bi-question-circle me-2 text-primary"></i>Frequently Asked Questions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="faqAccordion">
+                        <!-- FAQ 1 -->
+                        <div class="accordion-item border-0 border-bottom">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                    How do I create a new product?
+                                </button>
+                            </h2>
+                            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body text-muted">
+                                    Navigate to <strong>Product Lifecycle &rarr; Products</strong> from the sidebar. Click the <strong>"Add Product"</strong> button, fill in the product name, type, and other details, then submit. Your product will be created with a "Draft" status.
+                                </div>
+                            </div>
+                        </div>
+                        <!-- FAQ 2 -->
+                        <div class="accordion-item border-0 border-bottom">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                    How do I add ingredients to a product formulation?
+                                </button>
+                            </h2>
+                            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body text-muted">
+                                    Open a product from the Products page and click the <strong>Formulation</strong> icon. In the formulation page, click <strong>"Add Ingredient"</strong>, select a raw material, enter the quantity, and submit. The unit will auto-fill based on the raw material's default unit.
+                                </div>
+                            </div>
+                        </div>
+                        <!-- FAQ 3 -->
+                        <div class="accordion-item border-0 border-bottom">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                    How does the product approval process work?
+                                </button>
+                            </h2>
+                            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body text-muted">
+                                    Once a product has formulation ingredients and is submitted for review, it appears in the Admin's <strong>Product Approval</strong> page. The Admin can review the formulation and either <strong>Approve</strong> or <strong>Reject</strong> the product with a reason.
+                                </div>
+                            </div>
+                        </div>
+                        <!-- FAQ 4 -->
+                        <div class="accordion-item border-0 border-bottom">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                    How do I create a production batch?
+                                </button>
+                            </h2>
+                            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body text-muted">
+                                    Go to <strong>Production &rarr; Production Batches</strong>. Click <strong>"Create Batch"</strong>, select an approved product, specify the quantity and dates, assign equipment, and submit. The batch will be created and appear in the schedule.
+                                </div>
+                            </div>
+                        </div>
+                        <!-- FAQ 5 -->
+                        <div class="accordion-item border-0 border-bottom">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                                    How do I manage raw materials and suppliers?
+                                </button>
+                            </h2>
+                            <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body text-muted">
+                                    Raw materials and suppliers are managed under <strong>Inventory</strong>. Go to <strong>Inventory &rarr; Raw Materials</strong> to add or update materials with their unit costs and units. Use <strong>Inventory &rarr; Suppliers</strong> to manage supplier contacts and information.
+                                </div>
+                            </div>
+                        </div>
+                        <!-- FAQ 6 -->
+                        <div class="accordion-item border-0 border-bottom">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq6">
+                                    How do quality inspections work?
+                                </button>
+                            </h2>
+                            <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body text-muted">
+                                    Navigate to <strong>Quality &rarr; Quality Inspections</strong>. Inspections can be created for production batches. Quality checkers perform the inspection and record a Pass or Fail result. Completed inspections move to <strong>Inspection Results</strong>.
+                                </div>
+                            </div>
+                        </div>
+                        <!-- FAQ 7 -->
+                        <div class="accordion-item border-0">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#faq7">
+                                    How do I view financial reports?
+                                </button>
+                            </h2>
+                            <div id="faq7" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body text-muted">
+                                    Access the <strong>Finance</strong> module from the sidebar. It provides an overview of budgets, expenses, journal entries, and billing invoices for your company. You can track production costs, equipment expenses, and more.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact & Info Panel -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="fw-semibold mb-0"><i class="bi bi-headset me-2 text-success"></i>Contact Support</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-envelope-fill text-primary me-2"></i>
+                            <strong>Email</strong>
+                        </div>
+                        <p class="text-muted mb-0 ms-4">support&#64;dairyflow.com</p>
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-clock-fill text-warning me-2"></i>
+                            <strong>Support Hours</strong>
+                        </div>
+                        <p class="text-muted mb-0 ms-4">Monday - Friday, 8:00 AM - 5:00 PM (PHT)</p>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-chat-dots-fill text-info me-2"></i>
+                            <strong>Response Time</strong>
+                        </div>
+                        <p class="text-muted mb-0 ms-4">We aim to respond within 24 hours.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-transparent border-0 pb-0">
+                    <h5 class="fw-semibold mb-0"><i class="bi bi-info-circle me-2 text-info"></i>System Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted">Platform</td>
+                                <td class="fw-semibold">DairyFlow ERP</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Version</td>
+                                <td class="fw-semibold">1.0.0</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Framework</td>
+                                <td class="fw-semibold">ASP.NET Core 9</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

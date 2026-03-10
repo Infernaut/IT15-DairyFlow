@@ -11,8 +11,17 @@ namespace IT15_DairyFlow.Models
         [Required]
         public int CompanyID { get; set; }
 
+        /// <summary>
+        /// Month period in "YYYY-MM" format (e.g. "2026-03")
+        /// </summary>
         [MaxLength(50)]
         public string? Period { get; set; }
+
+        /// <summary>
+        /// Budget category: Raw Materials, Equipment, Production, Other
+        /// </summary>
+        [MaxLength(50)]
+        public string? Category { get; set; } = "Other";
 
         [Column(TypeName = "decimal(18, 2)")]
         public decimal? AllocatedAmount { get; set; }

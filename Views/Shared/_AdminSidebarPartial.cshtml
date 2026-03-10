@@ -3,11 +3,11 @@
     string currentAction = ViewContext.RouteData.Values["Action"]?.ToString() ?? "";
 }
 
-<div class="sidebar">
+<div class="sidebar" role="navigation" aria-label="Admin navigation">
     <!-- Brand / Logo -->
     <div class="sidebar-brand" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
         <div class="sidebar-brand-icon">
-            <i class="bi bi-droplet-half"></i>
+            <img src="~/images/logo.png" alt="DairyFlow Logo" style="width:36px;height:36px;object-fit:contain;" />
         </div>
         <div>
             <div class="sidebar-brand-text">DairyFlow</div>
@@ -50,6 +50,11 @@
         </a>
         <a class="sidebar-link @(currentController == "Subscription" && currentAction == "ChangePlan" ? "active" : "")" asp-controller="Subscription" asp-action="ChangePlan">
             <span><i class="bi bi-credit-card me-2"></i> Subscription Plan</span>
+        </a>
+
+        <div class="sidebar-section-label">Support</div>
+        <a class="sidebar-link @(currentAction == "HelpSupport" ? "active" : "")" asp-controller="Home" asp-action="HelpSupport">
+            <span><i class="bi bi-question-circle me-2"></i> Help & Support</span>
         </a>
     </div>
 </div>

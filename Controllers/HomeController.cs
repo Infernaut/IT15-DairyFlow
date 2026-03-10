@@ -583,6 +583,12 @@ namespace IT15_DairyFlow.Controllers
             return View();
         }
 
+        [Authorize]
+        public IActionResult HelpSupport()
+        {
+            return View();
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

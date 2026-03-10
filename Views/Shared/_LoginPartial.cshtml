@@ -8,8 +8,8 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        color: #334155 !important;
-        background: #f1f5f9;
+        color: rgba(255,255,255,.85) !important;
+        background: rgba(255,255,255,.1);
         border-radius: 100px;
         padding: 6px 14px 6px 10px;
         font-weight: 600;
@@ -18,8 +18,8 @@
         transition: all 0.2s ease;
     }
     .nav-profile-pill:hover {
-        background: #e2e8f0;
-        color: #0d6efd !important;
+        background: rgba(255,255,255,.18);
+        color: #fff !important;
     }
     .nav-profile-pill .avatar-circle {
         width: 28px; height: 28px;
@@ -32,8 +32,8 @@
     }
 
     .logout-btn {
-        border: 1.5px solid #e2e8f0;
-        color: #64748b;
+        border: 1.5px solid rgba(255,255,255,.2);
+        color: rgba(255,255,255,.7);
         font-weight: 600;
         font-size: 0.82rem;
         border-radius: 8px;
@@ -44,7 +44,7 @@
     .logout-btn:hover {
         border-color: #ef4444;
         color: #ef4444;
-        background: rgba(239,68,68,.04);
+        background: rgba(239,68,68,.08);
     }
 
     .guest-signin-btn {
@@ -93,6 +93,25 @@
                 ? $"{parts[0][0]}{parts[1][0]}".ToUpper()
                 : loginUser.UserName.Substring(0, Math.Min(2, loginUser.UserName.Length)).ToUpper();
         }
+        <li class="nav-item position-relative" id="notificationBellContainer">
+            <button class="btn btn-sm notification-bell-btn position-relative" id="notificationBellBtn"
+                    type="button" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
+                <i class="bi bi-bell" style="font-size:1.15rem;"></i>
+                <span class="notification-badge d-none" id="notificationBadge">0</span>
+            </button>
+            <div class="notification-dropdown shadow-lg" id="notificationDropdown" role="menu" aria-label="Notifications">
+                <div class="notification-header d-flex justify-content-between align-items-center px-3 py-2">
+                    <span class="fw-bold" style="font-size:0.9rem;">Notifications</span>
+                    <button class="btn btn-link btn-sm text-primary p-0" id="markAllReadBtn" style="font-size:0.78rem;text-decoration:none;">Mark all read</button>
+                </div>
+                <div class="notification-list" id="notificationList">
+                    <div class="text-center text-muted py-4" style="font-size:0.82rem;">
+                        <i class="bi bi-bell-slash d-block mb-1" style="font-size:1.5rem;"></i>
+                        No notifications yet
+                    </div>
+                </div>
+            </div>
+        </li>
         <li class="nav-item">
             <a class="nav-profile-pill" asp-area="Identity" asp-page="/Account/Manage/Index">
                 <span class="avatar-circle">@initials</span>

@@ -250,25 +250,25 @@
         .fc-event.status-in-production {
             background: #fde8e8 !important;
             border-left: 3px solid #dc3545 !important;
-            color: #7c1d1d !important;
+            color: #1a1a2e !important;
         }
 
         .fc-event.status-completed {
             background: #d4edda !important;
             border-left: 3px solid #28a745 !important;
-            color: #155724 !important;
+            color: #1a1a2e !important;
         }
 
         .fc-event.status-scheduled {
             background: #d1ecf1 !important;
             border-left: 3px solid #17a2b8 !important;
-            color: #0c5460 !important;
+            color: #1a1a2e !important;
         }
 
         .fc-event.status-paused {
             background: #fff3cd !important;
             border-left: 3px solid #ffc107 !important;
-            color: #856404 !important;
+            color: #1a1a2e !important;
         }
 
         .fc .fc-more-link {
@@ -327,8 +327,8 @@
                 eventContent: function (arg) {
                     const props = arg.event.extendedProps;
                     return {
-                        html: `<div class="fc-event-title" style="font-weight:600;">${props.batchCode}</div>
-                               <div style="font-size:0.7rem;opacity:0.75;">${props.productName}</div>`
+                        html: `<div class="fc-event-title" style="font-weight:600;color:#1a1a2e;">${props.batchCode}</div>
+                               <div style="font-size:0.7rem;color:#1a1a2e;opacity:0.85;">${props.productName}</div>`
                     };
                 },
                 eventClick: function (info) {
@@ -531,7 +531,7 @@
                     if (response.ok) {
                         const data = await response.json();
                         calCostPerUnit = data.costPerUnit;
-                        document.getElementById('calCostPerUnitValue').textContent = '$' + calCostPerUnit.toFixed(2);
+                        document.getElementById('calCostPerUnitValue').textContent = '₱' + calCostPerUnit.toFixed(2);
                         calUpdateEstimatedCost();
                         costSection.style.display = 'block';
                     }
@@ -544,7 +544,7 @@
         function calUpdateEstimatedCost() {
             const qty = parseInt(document.getElementById('calBatchQuantity').value) || 0;
             const total = calCostPerUnit * qty;
-            document.getElementById('calEstimatedCostValue').textContent = '$' + total.toFixed(2);
+            document.getElementById('calEstimatedCostValue').textContent = '₱' + total.toFixed(2);
         }
 
         async function calCreateBatch() {

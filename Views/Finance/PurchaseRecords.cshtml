@@ -1,0 +1,143 @@
+@{
+    ViewData["Title"] = "Purchase Records";
+    var expenses = ViewBag.Expenses as List<IT15_DairyFlow.Models.Finance.ExpenseListViewModel> ?? new();
+    var categorySummaries = ViewBag.CategorySummaries as List<dynamic> ?? new();
+    var overBudgetCount = (int)(ViewBag.OverBudgetCount ?? 0);
+    var currentCategory = ViewBag.CurrentCategory as string;
+    var showOverBudgetOnly = (bool)(ViewBag.ShowOverBudgetOnly ?? false);
+    var categories = new[] { "Raw Materials", "Equipment", "Production", "Other" };
+}
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">Purchase Records</h2>
+            <p class="text-muted mb-0">All expense and purchase records across categories.</p>
+        </div>
+    </div>
+
+    <!-- Category Summary Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3 col-sm-6">
+            <a href="@Url.Action("PurchaseRecords", "Finance")" class="text-decoration-none">
+                <div class="card shadow-sm h-100 border-0 @(string.IsNullOrEmpty(currentCategory) && !showOverBudgetOnly ? "border-primary border-2" : "")">
+                    <div class="card-body text-center">
+                        <i class="bi bi-list-ul text-primary fs-3 mb-2 d-block"></i>
+                        <h6 class="text-muted small text-uppercase">All Purchases</h6>
+                        <h4 class="fw-bold">@expenses.Count</h4>
+                    </div>
+                </div>
+            </a>
+        </div>
+        @foreach (var cat in categories)
+        {
+            var isActive = currentCategory == cat && !showOverBudgetOnly;
+            <div class="col-md-2 col-sm-4">
+                <a href="@Url.Action("PurchaseRecords", "Finance", new { category = cat })" class="text-decoration-none">
+                    <div class="card shadow-sm h-100 border-0 @(isActive ? "border-primary border-2" : "")">
+                        <div class="card-body text-center">
+                            <i class="bi @(cat == "Raw Materials" ? "bi-box" : cat == "Equipment" ? "bi-gear" : cat == "Production" ? "bi-hammer" : "bi-three-dots") text-primary fs-4 mb-1 d-block"></i>
+                            <h6 class="text-muted small text-uppercase" style="font-size: 0.7rem;">@cat</h6>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+        <div class="col-md-2 col-sm-4">
+            <a href="@Url.Action("PurchaseRecords", "Finance", new { overBudgetOnly = true })" class="text-decoration-none">
+                <div class="card shadow-sm h-100 border-0 @(showOverBudgetOnly ? "border-danger border-2" : "")">
+                    <div class="card-body text-center">
+                        <i class="bi bi-exclamation-triangle text-danger fs-4 mb-1 d-block"></i>
+                        <h6 class="text-muted small text-uppercase" style="font-size: 0.7rem;">Over Budget</h6>
+                        <span class="badge bg-danger">@overBudgetCount</span>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Active Filter Badge -->
+    @if (!string.IsNullOrEmpty(currentCategory) || showOverBudgetOnly)
+    {
+        <div class="mb-3">
+            <span class="badge bg-primary bg-opacity-75 fs-6 px-3 py-2">
+                @if (showOverBudgetOnly)
+                {
+                    <text><i class="bi bi-exclamation-triangle me-1"></i> Showing: Over-Budget Expenses Only</text>
+                }
+                else
+                {
+                    <text><i class="bi bi-funnel me-1"></i> Category: @currentCategory</text>
+                }
+            </span>
+            <a href="@Url.Action("PurchaseRecords", "Finance")" class="btn btn-sm btn-outline-secondary ms-2">
+                <i class="bi bi-x-circle me-1"></i> Clear Filter
+            </a>
+        </div>
+    }
+
+    <!-- Records Table -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="px-4">Date</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                            <th>Supplier</th>
+                            <th>Recorded By</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!expenses.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-5">
+                                    <i class="bi bi-receipt display-4 d-block mb-3 opacity-25"></i>
+                                    <p class="mb-0">No purchase records found.</p>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var e in expenses)
+                            {
+                                <tr>
+                                    <td class="px-4">@(e.ExpenseDate?.ToString("MMM dd, yyyy") ?? "N/A")</td>
+                                    <td>
+                                        <span class="badge bg-primary bg-opacity-10 text-primary">@e.Category</span>
+                                    </td>
+                                    <td class="fw-semibold">₱@e.Amount.ToString("N2")</td>
+                                    <td>@e.SupplierName</td>
+                                    <td>@e.UserName</td>
+                                    <td>
+                                        @if (e.IsEmergency)
+                                        {
+                                            <span class="badge bg-danger" data-bs-toggle="tooltip" title="@(e.EmergencyReason ?? "No reason provided")">
+                                                <i class="bi bi-exclamation-triangle me-1"></i>Over Budget
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Normal</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Initialize tooltips
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
+    </script>
+}

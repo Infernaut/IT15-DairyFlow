@@ -17,6 +17,11 @@ namespace IT15_DairyFlow.Models
         [MaxLength(50)]
         public string? Status { get; set; }
 
+        /// <summary>
+        /// Date when the current subscription was activated. Used to calculate remaining days.
+        /// </summary>
+        public DateTime? SubscriptionStartDate { get; set; }
+
         // Navigation properties
         [ForeignKey("SubscriptionID")]
         public virtual Subscription? Subscription { get; set; }
@@ -36,5 +41,6 @@ namespace IT15_DairyFlow.Models
         public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
         public virtual ICollection<ApplicationUser> Users { get; set; } = new List<ApplicationUser>();
         public virtual ICollection<Equipment> Equipments { get; set; } = new List<Equipment>();
+        public virtual ICollection<Sale> Sales { get; set; } = new List<Sale>();
     }
 }

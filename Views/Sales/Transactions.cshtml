@@ -1,0 +1,169 @@
+@model IT15_DairyFlow.Models.Sales.TransactionPageViewModel
+
+@{
+    ViewData["Title"] = "Transaction History";
+}
+
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 fw-bold">Transaction History</h2>
+            <p class="text-muted mb-0">View all completed payment transactions.</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-receipt text-primary fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1 small text-uppercase">Total Transactions</h6>
+                            <h3 class="mb-0 fw-bold">@Model.Summary.TotalTransactions</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-cash-stack text-success fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1 small text-uppercase">Total Amount</h6>
+                            <h3 class="mb-0 fw-bold text-success">₱@Model.Summary.TotalAmount.ToString("N2")</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-cash-coin text-warning fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1 small text-uppercase">Cash Payments</h6>
+                            <h3 class="mb-0 fw-bold">@Model.Summary.CashPayments</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card shadow-sm h-100 border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-info bg-opacity-10 p-3 me-3">
+                            <i class="bi bi-globe text-info fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted mb-1 small text-uppercase">Online Payments</h6>
+                            <h3 class="mb-0 fw-bold">@Model.Summary.OnlinePayments</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body py-3">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
+                        <input type="text" id="txnSearchInput" class="form-control" placeholder="Search by invoice, buyer, processor...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select id="txnMethodFilter" class="form-select">
+                        <option value="">All Methods</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Online">Online</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            @if (Model.Transactions.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="txnTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="px-4">Invoice #</th>
+                                <th>Product</th>
+                                <th>Buyer</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Date</th>
+                                <th>Processed By</th>
+                                <th>Reference</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var txn in Model.Transactions)
+                            {
+                                var methodClass = txn.PaymentMethod == "Cash" ? "bg-warning text-dark" : "bg-info";
+                                <tr data-search="@txn.InvoiceNumber @txn.BuyerName @txn.ProductName @txn.ProcessedByName" data-method="@txn.PaymentMethod">
+                                    <td class="px-4 fw-semibold">@txn.InvoiceNumber</td>
+                                    <td>@txn.ProductName</td>
+                                    <td>@txn.BuyerName</td>
+                                    <td class="fw-semibold text-success">₱@txn.Amount.ToString("N2")</td>
+                                    <td><span class="badge @methodClass">@txn.PaymentMethod</span></td>
+                                    <td>@txn.PaymentDate.ToString("MMM dd, yyyy hh:mm tt")</td>
+                                    <td>@txn.ProcessedByName</td>
+                                    <td>@(txn.ReferenceNumber ?? "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-receipt display-4 d-block mb-3 opacity-25"></i>
+                    <p class="mb-0">No transactions recorded yet.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('txnSearchInput').addEventListener('input', filterTxn);
+        document.getElementById('txnMethodFilter').addEventListener('change', filterTxn);
+
+        function filterTxn() {
+            const search = document.getElementById('txnSearchInput').value.toLowerCase();
+            const method = document.getElementById('txnMethodFilter').value;
+            const rows = document.querySelectorAll('#txnTable tbody tr');
+
+            rows.forEach(row => {
+                const text = row.getAttribute('data-search')?.toLowerCase() || '';
+                const rowMethod = row.getAttribute('data-method') || '';
+                const matchSearch = !search || text.includes(search);
+                const matchMethod = !method || rowMethod === method;
+                row.style.display = (matchSearch && matchMethod) ? '' : 'none';
+            });
+        }
+    </script>
+}

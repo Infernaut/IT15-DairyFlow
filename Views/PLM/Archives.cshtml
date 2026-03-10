@@ -57,7 +57,7 @@
                                     <td>
                                         <span class="badge bg-secondary">@(product.LifecycleStatus ?? "Archived")</span>
                                     </td>
-                                    <td class="text-muted">@product.UserEmail</td>
+                                    <td class="text-muted">@product.UserName</td>
                                     <td class="text-end px-4">
                                         <button class="btn btn-sm btn-outline-success" onclick="event.stopPropagation(); unarchiveProduct(@product.ProductID, '@product.ProductName')">
                                             <i class="bi bi-arrow-counterclockwise"></i>
@@ -132,7 +132,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold text-muted small">Created By</label>
-                        <input type="text" class="form-control form-control-lg" value="${product.userEmail}" readonly>
+                        <input type="text" class="form-control form-control-lg" value="${product.userName}" readonly>
                     </div>
                     <div class="col-12">
                         <div class="alert alert-light border mb-0">

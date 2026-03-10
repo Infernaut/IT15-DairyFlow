@@ -50,7 +50,7 @@
                                 <td>@batch.Quantity</td>
                                 <td data-sort="@(batch.StartDate?.ToString("yyyy-MM-dd") ?? "")">@(batch.StartDate?.ToString("MMM dd, yyyy") ?? "-")</td>
                                 <td data-sort="@(batch.EndDate?.ToString("yyyy-MM-dd") ?? "")">@(batch.EndDate?.ToString("MMM dd, yyyy") ?? "-")</td>
-                                <td data-sort="@(batch.TotalCost?.ToString("F2") ?? "0")">@(batch.TotalCost?.ToString("C") ?? "-")</td>
+                                <td data-sort="@(batch.TotalCost?.ToString("F2") ?? "0")">@(batch.TotalCost.HasValue ? "₱" + batch.TotalCost.Value.ToString("N2") : "-")</td>
                                 <td><span class="badge bg-success">@batch.Status</span></td>
                             </tr>
                         }

@@ -81,12 +81,16 @@
                                             {
                                                 "underreview" => "bg-warning text-dark",
                                                 "Approved" => "bg-success",
+                                                "approved" => "bg-success",
                                                 "Needs Revision" => "bg-danger",
+                                                "Draft" => "bg-secondary",
                                                 _ => "bg-secondary"
                                             };
                                             var statusText = product.LifecycleStatus switch
                                             {
                                                 "underreview" => "Under Review",
+                                                "approved" => "Approved",
+                                                "Draft" => "Draft",
                                                 _ => product.LifecycleStatus ?? "Unknown"
                                             };
                                         }
@@ -94,7 +98,6 @@
                                     </td>
                                     <td>
                                         <div class="fw-semibold small">@product.CreatedByUserName</div>
-                                        <div class="text-muted small">@product.CreatedByEmail</div>
                                     </td>
                                     <td class="text-end px-4">
                                         <button class="btn btn-sm btn-outline-primary" onclick="viewApprovalDetail(@product.ProductID)">
@@ -229,7 +232,7 @@
                     `<span class="badge ${getStatusBadge(data.lifecycleStatus)}">${statusText}</span>`;
 
                 document.getElementById('detailCreatedBy').innerHTML =
-                    `<span class="fw-semibold">${data.createdByUserName}</span> <span class="text-muted">(${data.createdByEmail})</span>`;
+                    `<span class="fw-semibold">${data.createdByUserName}</span>`;
 
                 document.getElementById('detailUnitCost').textContent = `₱${data.totalUnitCost.toFixed(2)}`;
 

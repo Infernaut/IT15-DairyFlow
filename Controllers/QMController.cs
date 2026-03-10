@@ -2,6 +2,7 @@ using IT15_DairyFlow.Data;
 using IT15_DairyFlow.Hubs;
 using IT15_DairyFlow.Models;
 using IT15_DairyFlow.Models.QM;
+using IT15_DairyFlow.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,20 +11,22 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IT15_DairyFlow.Controllers
 {
-    [Authorize(Roles = "Admin,QualityChecker")]
+    [Authorize(Roles = "Admin,QualityChecker,ProductManager")]
     public class QMController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IHubContext<DairyFlowHub> _hub;
+        private readonly NotificationService _notificationService;
 
-        public QMController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IHubContext<DairyFlowHub> hub)
+        public QMController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IHubContext<DairyFlowHub> hub, NotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
             _roleManager = roleManager;
             _hub = hub;
+            _notificationService = notificationService;
         }
 
         private async Task<int> GetCompanyIdAsync()
@@ -74,7 +77,8 @@ namespace IT15_DairyFlow.Controllers
                 TotalOnHold = allInspections.Count(q => q.Status == "on-hold"),
                 PassedToday = allInspections.Count(q => q.Result == "pass" && q.CompletedDate?.Date == today),
                 FailedToday = allInspections.Count(q => q.Result == "fail" && q.CompletedDate?.Date == today),
-                OpenNCRs = await _context.NonConformance.CountAsync(nc => nc.CompanyID == companyId && nc.Status != "Closed")
+                OpenNCRs = 0 // Non-conformance reports commented out
+                // await _context.NonConformance.CountAsync(nc => nc.CompanyID == companyId && nc.Status != "Closed")
             };
 
             // Get quality checkers
@@ -128,7 +132,8 @@ namespace IT15_DairyFlow.Controllers
             return View(viewModel);
         }
 
-        // GET: QM/NonConformance
+        // GET: QM/NonConformance - COMMENTED OUT
+        /*
         [HttpGet]
         public async Task<IActionResult> NonConformance()
         {
@@ -183,6 +188,7 @@ namespace IT15_DairyFlow.Controllers
 
             return View(viewModel);
         }
+        */
 
         // GET: QM/GetInspectionDetail/{id}
         [HttpGet]
@@ -297,6 +303,7 @@ namespace IT15_DairyFlow.Controllers
         // POST: QM/PerformInspection
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,QualityChecker")]
         public async Task<IActionResult> PerformInspection([FromBody] PerformInspectionViewModel model)
         {
             var companyId = await GetCompanyIdAsync();
@@ -364,6 +371,8 @@ namespace IT15_DairyFlow.Controllers
             var batchCode = inspection.ProductionBatch?.BatchCode ?? "";
             await _hub.NotifyInspectionCompleted(companyId, batchCode, model.Result, user?.UserName ?? "");
             await _hub.NotifyDashboardRefresh(companyId, "Quality");
+            await _notificationService.NotifyCompanyActionAsync(
+                user?.Id ?? "", companyId, $"Inspection {model.Result} for batch {batchCode}", "Quality", model.Result == "pass" ? "bi-check-circle" : "bi-x-circle");
 
             return Ok(new { success = true, message = "Inspection completed successfully." });
         }
@@ -371,6 +380,7 @@ namespace IT15_DairyFlow.Controllers
         // POST: QM/HoldBatch
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,QualityChecker")]
         public async Task<IActionResult> HoldBatch([FromBody] HoldBatchViewModel model)
         {
             var companyId = await GetCompanyIdAsync();
@@ -390,6 +400,9 @@ namespace IT15_DairyFlow.Controllers
             // SignalR: notify batch on hold
             await _hub.NotifyBatchOnHold(companyId, $"Inspection #{model.InspectionID}", model.Reason ?? "");
             await _hub.NotifyDashboardRefresh(companyId, "Quality");
+            var holdUser = await _userManager.GetUserAsync(User);
+            await _notificationService.NotifyCompanyActionAsync(
+                holdUser?.Id ?? "", companyId, $"Batch placed on hold: Inspection #{model.InspectionID}", "Quality", "bi-pause-circle");
 
             return Ok(new { success = true, message = "Batch placed on hold." });
         }
@@ -397,6 +410,7 @@ namespace IT15_DairyFlow.Controllers
         // POST: QM/ReleaseBatch
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,QualityChecker")]
         public async Task<IActionResult> ReleaseBatch([FromBody] ReleaseBatchViewModel model)
         {
             var companyId = await GetCompanyIdAsync();
@@ -437,8 +451,8 @@ namespace IT15_DairyFlow.Controllers
             return Ok(new { success = true, message = "Batch released successfully." });
         }
 
-        // ==================== NonConformance Endpoints ====================
-
+        // ==================== NonConformance Endpoints - COMMENTED OUT ====================
+        /*
         // GET: QM/GetNonConformanceDetail/{id}
         [HttpGet]
         public async Task<IActionResult> GetNonConformanceDetail(int id)
@@ -662,16 +676,31 @@ namespace IT15_DairyFlow.Controllers
 
             return Json(batches);
         }
+        */   // End of commented-out NonConformance section
 
         private async Task AddToInventoryAsync(int companyId, int productId, int quantity)
         {
             var user = await _userManager.GetUserAsync(User);
+
+            // Get product's shelf life for expiry date calculation
+            var product = await _context.Product.FindAsync(productId);
+            DateTime? expiryDate = null;
+            if (product?.ShelfLifeDays != null && product.ShelfLifeDays > 0)
+            {
+                expiryDate = DateTime.UtcNow.AddDays(product.ShelfLifeDays.Value);
+            }
+
             var existing = await _context.Inventory
                 .FirstOrDefaultAsync(i => i.ProductID == productId && i.CompanyID == companyId);
 
             if (existing != null)
             {
                 existing.Quantity = (existing.Quantity ?? 0) + quantity;
+                // Update expiry if product has shelf life configured
+                if (expiryDate.HasValue)
+                {
+                    existing.Expiry = expiryDate;
+                }
             }
             else
             {
@@ -680,7 +709,8 @@ namespace IT15_DairyFlow.Controllers
                     ProductID = productId,
                     CompanyID = companyId,
                     UserID = user?.Id ?? string.Empty,
-                    Quantity = quantity
+                    Quantity = quantity,
+                    Expiry = expiryDate
                 });
             }
 

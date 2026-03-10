@@ -23,6 +23,23 @@ namespace IT15_DairyFlow.Models
 
         public DateTime? ExpenseDate { get; set; }
 
+        /// <summary>
+        /// Expense category: Raw Materials, Equipment, Production, Other
+        /// </summary>
+        [MaxLength(50)]
+        public string? Category { get; set; } = "Other";
+
+        /// <summary>
+        /// Whether this expense exceeded the monthly budget limit (emergency override)
+        /// </summary>
+        public bool IsEmergency { get; set; } = false;
+
+        /// <summary>
+        /// Reason provided when exceeding the monthly budget limit
+        /// </summary>
+        [MaxLength(500)]
+        public string? EmergencyReason { get; set; }
+
         // Navigation properties
         [ForeignKey("CompanyID")]
         public virtual Company Company { get; set; } = null!;

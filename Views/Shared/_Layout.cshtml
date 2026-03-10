@@ -14,6 +14,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - DairyFlow ERP</title>
+    <link rel="icon" type="image/png" href="~/images/logo.png" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -84,11 +85,12 @@
             color: var(--blue-main);
         }
 
-        /* When sidebar is present, push content */
+        /* When sidebar is present, push content — gradient navbar */
         .has-sidebar .navbar-custom {
             margin-left: var(--sidebar-width);
-            border-bottom: 1px solid var(--border) !important;
-            box-shadow: none;
+            background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%) !important;
+            border-bottom: none !important;
+            box-shadow: 0 2px 12px rgba(15,23,42,.18);
         }
 
         /* Sidebar brand overlay behind navbar */
@@ -110,7 +112,12 @@
         /* ═══ AUTHENTICATED NAVBAR ENHANCEMENTS ═══════════════ */
         .has-sidebar .navbar-custom .navbar-nav .nav-link {
             font-size: .85rem;
-            color: var(--slate);
+            color: rgba(255,255,255,.8);
+            transition: color .2s ease;
+        }
+
+        .has-sidebar .navbar-custom .navbar-nav .nav-link:hover {
+            color: #fff;
         }
 
         /* Portal label */
@@ -119,8 +126,24 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .06em;
-            color: var(--muted);
+            color: rgba(255,255,255,.5);
             opacity: .7;
+        }
+
+        /* Authenticated navbar brand text & icons */
+        .has-sidebar .navbar-custom .navbar-brand {
+            color: #fff !important;
+        }
+
+        .has-sidebar .navbar-custom .btn-outline-secondary,
+        .has-sidebar .navbar-custom .text-muted {
+            color: rgba(255,255,255,.7) !important;
+            border-color: rgba(255,255,255,.2) !important;
+        }
+
+        .has-sidebar .navbar-custom .btn-outline-secondary:hover {
+            background: rgba(255,255,255,.1) !important;
+            color: #fff !important;
         }
 
         /* Right-side scrollbar for main content area */
@@ -320,20 +343,23 @@
     </style>
 </head>
 <body class="@(SignInManager.IsSignedIn(User) ? "has-sidebar" : "")">
+    <!-- Skip to main content link for keyboard/screen-reader users -->
+    <a href="#mainContent" class="skip-to-content">Skip to main content</a>
+
     @if (SignInManager.IsSignedIn(User))
     {
-        <button class="mobile-nav-toggle" id="mobileNavToggle" aria-label="Toggle navigation">
+        <button class="mobile-nav-toggle" id="mobileNavToggle" aria-label="Toggle navigation menu">
             <i class="bi bi-list" id="mobileNavIcon"></i>
         </button>
-        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
     }
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-light navbar-custom">
+    <header role="banner">
+        <nav class="navbar navbar-expand-sm navbar-light navbar-custom" aria-label="Main navigation">
             <div class="container-fluid px-3">
                 @if (!SignInManager.IsSignedIn(User))
                 {
                     <a class="navbar-brand fw-bold text-primary d-flex align-items-center" asp-controller="Home" asp-action="Index">
-                        <i class="bi bi-droplet-half me-2" style="font-size:1.2rem;"></i>DairyFlow
+                        <img src="~/images/logo.png" alt="DairyFlow Logo" style="width:28px;height:28px;object-fit:contain;" class="me-2" />DairyFlow
                     </a>
                 }
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
@@ -377,7 +403,7 @@
             }
         }
 
-        <main role="main">
+        <main role="main" id="mainContent" tabindex="-1">
             @RenderBody()
 
             @if (!SignInManager.IsSignedIn(User))
@@ -392,14 +418,14 @@
     </div>
 
     <!-- Global Confirm Modal -->
-    <div class="modal fade" id="globalConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal fade" id="globalConfirmModal" tabindex="-1" aria-hidden="true" aria-labelledby="globalConfirmTitle" role="dialog">
         <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content">
                 <div class="modal-header border-0 pb-0">
                     <h6 class="modal-title fw-bold" id="globalConfirmTitle">
                         <i class="bi bi-exclamation-triangle text-warning me-2"></i>Confirm Action
                     </h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close dialog"></button>
                 </div>
                 <div class="modal-body pt-2">
                     <p class="mb-0 text-muted" id="globalConfirmMessage">Are you sure?</p>
@@ -412,8 +438,13 @@
         </div>
     </div>
 
+    @if (SignInManager.IsSignedIn(User))
+    {
+        @Html.AntiForgeryToken()
+    }
+
     <!-- Global Error Toast Container -->
-    <div id="globalToastContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+    <div id="globalToastContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;" role="status" aria-live="polite"></div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -504,6 +535,9 @@
             });
         })();
     </script>
+    <script src="~/js/table-pagination.js" asp-append-version="true"></script>
+    <script src="~/js/password-criteria.js" asp-append-version="true"></script>
+    <script src="~/js/notifications.js" asp-append-version="true" defer></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

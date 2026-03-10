@@ -10,6 +10,8 @@ namespace IT15_DairyFlow.Models.Finance
         public List<BillingInvoiceListViewModel> RecentInvoices { get; set; } = new List<BillingInvoiceListViewModel>();
         public List<ProductionCostViewModel> ProductionCosts { get; set; } = new List<ProductionCostViewModel>();
         public List<SupplierLookupViewModel> Suppliers { get; set; } = new List<SupplierLookupViewModel>();
+        public List<MonthlyBudgetStatusViewModel> MonthlyBudgets { get; set; } = new List<MonthlyBudgetStatusViewModel>();
+        public string CurrentPeriod { get; set; } = string.Empty;
     }
 
     public class FinancialSummaryViewModel
@@ -34,6 +36,8 @@ namespace IT15_DairyFlow.Models.Finance
         public string Category { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public bool IsEmergency { get; set; }
+        public string? EmergencyReason { get; set; }
     }
 
     public class ExpenseDetailViewModel
@@ -45,6 +49,9 @@ namespace IT15_DairyFlow.Models.Finance
         public string SupplierName { get; set; } = string.Empty;
         public string UserName { get; set; } = string.Empty;
         public string UserID { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public bool IsEmergency { get; set; }
+        public string? EmergencyReason { get; set; }
     }
 
     public class CreateExpenseViewModel
@@ -56,6 +63,18 @@ namespace IT15_DairyFlow.Models.Finance
         public DateTime? ExpenseDate { get; set; }
 
         public int? SupplierID { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string Category { get; set; } = "Other";
+
+        /// <summary>
+        /// Set to true to override the budget limit (emergency spending)
+        /// </summary>
+        public bool IsEmergency { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? EmergencyReason { get; set; }
     }
 
     public class UpdateExpenseViewModel
@@ -70,16 +89,22 @@ namespace IT15_DairyFlow.Models.Finance
         public DateTime? ExpenseDate { get; set; }
 
         public int? SupplierID { get; set; }
+
+        [MaxLength(50)]
+        public string Category { get; set; } = "Other";
     }
 
     public class BudgetListViewModel
     {
         public int BudgetID { get; set; }
         public string Period { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
         public decimal AllocatedAmount { get; set; }
         public decimal SpentAmount { get; set; }
         public decimal RemainingAmount { get; set; }
         public decimal UtilizationPercentage { get; set; }
+        public bool IsOverBudget { get; set; }
+        public int EmergencyCount { get; set; }
     }
 
     public class CreateBudgetViewModel
@@ -87,6 +112,10 @@ namespace IT15_DairyFlow.Models.Finance
         [Required]
         [MaxLength(50)]
         public string Period { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(50)]
+        public string Category { get; set; } = "Other";
 
         [Required]
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than 0")]
@@ -103,8 +132,43 @@ namespace IT15_DairyFlow.Models.Finance
         public string Period { get; set; } = string.Empty;
 
         [Required]
+        [MaxLength(50)]
+        public string Category { get; set; } = "Other";
+
+        [Required]
         [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than 0")]
         public decimal AllocatedAmount { get; set; }
+    }
+
+    /// <summary>
+    /// Shows budget status per category for the current month
+    /// </summary>
+    public class MonthlyBudgetStatusViewModel
+    {
+        public int BudgetID { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public string Period { get; set; } = string.Empty;
+        public decimal AllocatedAmount { get; set; }
+        public decimal SpentAmount { get; set; }
+        public decimal RemainingAmount { get; set; }
+        public decimal UtilizationPercentage { get; set; }
+        public bool IsOverBudget { get; set; }
+        public int EmergencyCount { get; set; }
+        public decimal EmergencyTotal { get; set; }
+    }
+
+    /// <summary>
+    /// Used by the CheckBudget endpoint to return limit status before creating expense
+    /// </summary>
+    public class BudgetCheckResult
+    {
+        public bool HasBudget { get; set; }
+        public bool IsOverLimit { get; set; }
+        public decimal AllocatedAmount { get; set; }
+        public decimal SpentAmount { get; set; }
+        public decimal RemainingAmount { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public string Period { get; set; } = string.Empty;
     }
 
     public class BillingInvoiceListViewModel

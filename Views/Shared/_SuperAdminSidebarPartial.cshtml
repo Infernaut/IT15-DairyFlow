@@ -3,11 +3,11 @@
     string currentAction = ViewContext.RouteData.Values["Action"]?.ToString() ?? "";
 }
 
-<div class="sidebar">
+<div class="sidebar" role="navigation" aria-label="SuperAdmin navigation">
     <!-- Brand / Logo -->
     <div class="sidebar-brand" style="background: linear-gradient(135deg, #d4a017 0%, #b8860b 100%);">
         <div class="sidebar-brand-icon">
-            <i class="bi bi-crown-fill"></i>
+            <img src="~/images/logo.png" alt="DairyFlow Logo" style="width:36px;height:36px;object-fit:contain;" />
         </div>
         <div>
             <div class="sidebar-brand-text">DairyFlow</div>
@@ -16,18 +16,25 @@
     </div>
 
     <div class="sidebar-scroll-container">
-        <div class="sidebar-section-label">Platform</div>
+        <div class="sidebar-section-label" id="superadmin-platform-label">Platform</div>
 
-        <a class="sidebar-link @(currentController == "SuperAdmin" && currentAction == "Dashboard" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Dashboard">
+        @{
+            string dashboardAria = currentAction == "Dashboard" ? "page" : "";
+            string companiesAria = currentAction == "Companies" ? "page" : "";
+            string subscriptionsAria = currentAction == "Subscriptions" ? "page" : "";
+            string analyticsAria = currentAction == "Analytics" ? "page" : "";
+        }
+
+        <a class="sidebar-link @(currentController == "SuperAdmin" && currentAction == "Dashboard" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Dashboard" aria-current="@dashboardAria">
             <span><i class="bi bi-speedometer2 me-2"></i> Dashboard</span>
         </a>
-        <a class="sidebar-link @(currentController == "SuperAdmin" && currentAction == "Companies" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Companies">
+        <a class="sidebar-link @(currentController == "SuperAdmin" && currentAction == "Companies" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Companies" aria-current="@companiesAria">
             <span><i class="bi bi-buildings me-2"></i> Companies</span>
         </a>
-        <a class="sidebar-link @(currentController == "SuperAdmin" && currentAction == "Subscriptions" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Subscriptions">
+        <a class="sidebar-link @(currentController == "SuperAdmin" && currentAction == "Subscriptions" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Subscriptions" aria-current="@subscriptionsAria">
             <span><i class="bi bi-receipt-cutoff me-2"></i> Subscriptions</span>
         </a>
-        <a class="sidebar-link @(currentController == "SuperAdmin" && currentAction == "Analytics" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Analytics">
+        <a class="sidebar-link @(currentController == "SuperAdmin" && currentAction == "Analytics" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Analytics" aria-current="@analyticsAria">
             <span><i class="bi bi-bar-chart me-2"></i> Usage Analytics</span>
         </a>
     </div>

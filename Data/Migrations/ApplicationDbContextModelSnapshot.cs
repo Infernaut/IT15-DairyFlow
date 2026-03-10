@@ -199,6 +199,9 @@ namespace IT15_DairyFlow.Data.Migrations
                     b.Property<int?>("SubscriptionID")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("SubscriptionStartDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("CompanyID");
 
                     b.HasIndex("SubscriptionID");
@@ -462,6 +465,54 @@ namespace IT15_DairyFlow.Data.Migrations
                     b.HasIndex("VerifiedByUserId");
 
                     b.ToTable("NonConformance");
+                });
+
+            modelBuilder.Entity("IT15_DairyFlow.Models.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActorUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RecipientUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("RecipientUserId", "IsRead", "CreatedAt")
+                        .HasDatabaseName("IX_Notification_Recipient_Read_Date");
+
+                    b.ToTable("Notification");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.Product", b =>
@@ -1162,6 +1213,24 @@ namespace IT15_DairyFlow.Data.Migrations
                     b.Navigation("ReportedByUser");
 
                     b.Navigation("VerifiedByUser");
+                });
+
+            modelBuilder.Entity("IT15_DairyFlow.Models.Notification", b =>
+                {
+                    b.HasOne("IT15_DairyFlow.Models.ApplicationUser", "Actor")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("IT15_DairyFlow.Models.ApplicationUser", "Recipient")
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Actor");
+
+                    b.Navigation("Recipient");
                 });
 
             modelBuilder.Entity("IT15_DairyFlow.Models.Product", b =>

@@ -2,6 +2,7 @@ using IT15_DairyFlow.Data;
 using IT15_DairyFlow.Hubs;
 using IT15_DairyFlow.Models;
 using IT15_DairyFlow.Models.InventoryVM;
+using IT15_DairyFlow.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -17,14 +18,16 @@ namespace IT15_DairyFlow.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IHubContext<DairyFlowHub> _hub;
+        private readonly NotificationService _notificationService;
         private const int LowStockThreshold = 10;
         private const int ExpiringSoonDays = 7;
 
-        public InventoryController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IHubContext<DairyFlowHub> hub)
+        public InventoryController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IHubContext<DairyFlowHub> hub, NotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
             _hub = hub;
+            _notificationService = notificationService;
         }
 
         private async Task<int> GetCompanyIdAsync()
@@ -40,6 +43,18 @@ namespace IT15_DairyFlow.Controllers
             var companyId = await GetCompanyIdAsync();
             var today = DateTime.UtcNow.Date;
             var expiringSoonDate = today.AddDays(ExpiringSoonDays);
+
+            // Pre-compute ingredient costs per product for minimum unit price
+            var ingredientCosts = await _context.ProductFormulation
+                .Include(f => f.RawMaterial)
+                .Where(f => f.CompanyID == companyId && f.IsActive)
+                .GroupBy(f => f.ProductID)
+                .Select(g => new
+                {
+                    ProductID = g.Key,
+                    TotalCost = g.Sum(f => f.Quantity * (f.RawMaterial.UnitCost ?? 0))
+                })
+                .ToDictionaryAsync(x => x.ProductID, x => x.TotalCost);
 
             var inventoryItems = await _context.Inventory
                 .Include(i => i.Product)
@@ -59,9 +74,19 @@ namespace IT15_DairyFlow.Controllers
                                   (i.Quantity ?? 0) < LowStockThreshold ? "Low Stock" : "In Stock",
                     IsExpiringSoon = i.Expiry.HasValue && i.Expiry.Value.Date <= expiringSoonDate && i.Expiry.Value.Date > today,
                     IsExpired = i.Expiry.HasValue && i.Expiry.Value.Date <= today,
-                    DaysUntilExpiry = i.Expiry.HasValue ? (int)(i.Expiry.Value.Date - today).TotalDays : int.MaxValue
+                    DaysUntilExpiry = i.Expiry.HasValue ? (int)(i.Expiry.Value.Date - today).TotalDays : int.MaxValue,
+                    UnitPrice = i.Product.UnitPrice ?? 0
                 })
                 .ToListAsync();
+
+            // Populate MinUnitPrice from ingredient costs
+            foreach (var item in inventoryItems)
+            {
+                item.MinUnitPrice = ingredientCosts.TryGetValue(item.ProductID, out var cost) ? cost : 0;
+                // If unit price not yet set, default to ingredient cost
+                if (item.UnitPrice == 0 && item.MinUnitPrice > 0)
+                    item.UnitPrice = item.MinUnitPrice;
+            }
 
             var products = await _context.Product
                 .Where(p => p.CompanyID == companyId && 
@@ -256,6 +281,8 @@ namespace IT15_DairyFlow.Controllers
                 await _hub.NotifyLowStock(companyId, $"Item #{model.InventoryID}", newQuantity, LowStockThreshold);
             }
             await _hub.NotifyDashboardRefresh(companyId, "Inventory");
+            await _notificationService.NotifyCompanyActionAsync(
+                user?.Id ?? "", companyId, $"Inventory {model.AdjustmentType}: Item #{model.InventoryID} (qty: {newQuantity})", "Inventory", "bi-box-seam");
 
             return Ok(new { 
                 success = true, 
@@ -283,6 +310,86 @@ namespace IT15_DairyFlow.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { success = true, message = "Inventory item deleted successfully." });
+        }
+
+        // GET: Inventory/GetProductPriceInfo/{productId}
+        [HttpGet]
+        public async Task<IActionResult> GetProductPriceInfo(int productId)
+        {
+            var companyId = await GetCompanyIdAsync();
+
+            var product = await _context.Product
+                .FirstOrDefaultAsync(p => p.ProductID == productId && p.CompanyID == companyId);
+
+            if (product == null)
+                return NotFound();
+
+            var formulations = await _context.ProductFormulation
+                .Include(f => f.RawMaterial)
+                .Where(f => f.ProductID == productId && f.CompanyID == companyId && f.IsActive)
+                .ToListAsync();
+
+            var ingredients = formulations.Select(f => new IngredientCostViewModel
+            {
+                MaterialName = f.RawMaterial?.MaterialName ?? "Unknown",
+                Quantity = f.Quantity,
+                Unit = f.Unit ?? "kg",
+                UnitCost = f.RawMaterial?.UnitCost ?? 0,
+                TotalCost = f.Quantity * (f.RawMaterial?.UnitCost ?? 0)
+            }).ToList();
+
+            var minPrice = ingredients.Sum(i => i.TotalCost);
+
+            return Json(new ProductPriceInfoViewModel
+            {
+                ProductID = product.ProductID,
+                ProductName = product.ProductName ?? "Unknown",
+                CurrentUnitPrice = product.UnitPrice ?? minPrice,
+                MinUnitPrice = minPrice,
+                Ingredients = ingredients
+            });
+        }
+
+        // POST: Inventory/SetUnitPrice
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SetUnitPrice([FromBody] SetUnitPriceViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var companyId = await GetCompanyIdAsync();
+
+            var product = await _context.Product
+                .FirstOrDefaultAsync(p => p.ProductID == model.ProductID && p.CompanyID == companyId);
+
+            if (product == null)
+                return NotFound("Product not found.");
+
+            // Calculate minimum price from ingredients
+            var minPrice = await _context.ProductFormulation
+                .Include(f => f.RawMaterial)
+                .Where(f => f.ProductID == model.ProductID && f.CompanyID == companyId && f.IsActive)
+                .SumAsync(f => f.Quantity * (f.RawMaterial.UnitCost ?? 0));
+
+            if (model.UnitPrice < minPrice)
+            {
+                return BadRequest(new
+                {
+                    error = $"Unit price (₱{model.UnitPrice:N2}) cannot be lower than ingredient cost (₱{minPrice:N2})."
+                });
+            }
+
+            product.UnitPrice = model.UnitPrice;
+            _context.Product.Update(product);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = $"Unit price for {product.ProductName} set to ₱{model.UnitPrice:N2}.",
+                unitPrice = model.UnitPrice
+            });
         }
 
         // GET: Inventory/LowStock
@@ -498,7 +605,10 @@ namespace IT15_DairyFlow.Controllers
                     SupplierID = material.SupplierID,
                     UserID = user!.Id,
                     Amount = material.CurrentStock.Value * material.UnitCost.Value,
-                    ExpenseDate = DateTime.UtcNow
+                    ExpenseDate = DateTime.UtcNow,
+                    Category = "Raw Materials",
+                    IsEmergency = model.IsEmergencyOverride,
+                    EmergencyReason = model.IsEmergencyOverride ? model.EmergencyReason : null
                 };
                 _context.Expense.Add(expense);
                 await _context.SaveChangesAsync();
@@ -573,7 +683,10 @@ namespace IT15_DairyFlow.Controllers
                     SupplierID = material.SupplierID,
                     UserID = user!.Id,
                     Amount = model.Quantity * material.UnitCost.Value,
-                    ExpenseDate = DateTime.UtcNow
+                    ExpenseDate = DateTime.UtcNow,
+                    Category = "Raw Materials",
+                    IsEmergency = model.IsEmergencyOverride,
+                    EmergencyReason = model.IsEmergencyOverride ? model.EmergencyReason : null
                 };
                 _context.Expense.Add(expense);
             }
@@ -727,6 +840,11 @@ namespace IT15_DairyFlow.Controllers
 
         [Range(0, int.MaxValue)]
         public int? MinimumStock { get; set; } = 10;
+
+        public bool IsEmergencyOverride { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? EmergencyReason { get; set; }
     }
 
     public class UpdateRawMaterialViewModel
@@ -761,6 +879,11 @@ namespace IT15_DairyFlow.Controllers
         public int Quantity { get; set; }
 
         public bool CreateExpense { get; set; } = true;
+
+        public bool IsEmergencyOverride { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? EmergencyReason { get; set; }
     }
 
     public class ConsumeRawMaterialViewModel

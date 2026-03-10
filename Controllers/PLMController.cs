@@ -1,6 +1,7 @@
 using IT15_DairyFlow.Data;
 using IT15_DairyFlow.Models;
 using IT15_DairyFlow.Models.PLM;
+using IT15_DairyFlow.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,11 +15,13 @@ namespace IT15_DairyFlow.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly NotificationService _notificationService;
 
-        public PLMController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public PLMController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, NotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
+            _notificationService = notificationService;
         }
 
         // GET: PLM/Products
@@ -51,7 +54,8 @@ namespace IT15_DairyFlow.Controllers
                     Type = p.Type,
                     LifecycleStatus = p.LifecycleStatus,
                     CompanyID = p.CompanyID,
-                    UserEmail = p.User.Email ?? string.Empty
+                    UserName = p.User.UserName ?? p.User.Email ?? "Unknown",
+                    ShelfLifeDays = p.ShelfLifeDays
                 })
                 .AsNoTracking()
                 .ToListAsync();
@@ -83,7 +87,7 @@ namespace IT15_DairyFlow.Controllers
                     Type = p.Type,
                     LifecycleStatus = p.LifecycleStatus,
                     CompanyID = p.CompanyID,
-                    UserEmail = p.User.Email ?? string.Empty
+                    UserName = p.User.UserName ?? p.User.Email ?? "Unknown"
                 })
                 .AsNoTracking()
                 .ToListAsync();
@@ -107,7 +111,8 @@ namespace IT15_DairyFlow.Controllers
                     LifecycleStatus = p.LifecycleStatus,
                     CompanyID = p.CompanyID,
                     UserID = p.UserID,
-                    UserEmail = p.User.Email ?? string.Empty
+                    UserName = p.User.UserName ?? p.User.Email ?? "Unknown",
+                    ShelfLifeDays = p.ShelfLifeDays
                 })
                 .AsNoTracking()
                 .FirstOrDefaultAsync();
@@ -140,7 +145,8 @@ namespace IT15_DairyFlow.Controllers
             {
                 ProductName = model.ProductName,
                 Type = model.Type,
-                LifecycleStatus = "underreview",
+                LifecycleStatus = "Draft",
+                ShelfLifeDays = model.ShelfLifeDays,
                 CompanyID = companyId,
                 UserID = user.Id
             };
@@ -148,7 +154,51 @@ namespace IT15_DairyFlow.Controllers
             _context.Product.Add(product);
             await _context.SaveChangesAsync();
 
+            await _notificationService.NotifyCompanyActionAsync(
+                user.Id, companyId,
+                $"{user.UserName} created a new product: {product.ProductName}",
+                "PLM", "bi-box-seam");
+
             return Ok(new { success = true, message = "Product created successfully!" });
+        }
+
+        // POST: PLM/SubmitForReview/{id}
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SubmitForReview(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            var companyId = GetUserCompanyId(user);
+            var product = await _context.Product.FirstOrDefaultAsync(p => p.ProductID == id && p.CompanyID == companyId);
+            if (product == null) return NotFound();
+
+            // Only Draft or Needs Revision products can be submitted
+            if (product.LifecycleStatus != "Draft" && product.LifecycleStatus != "Needs Revision")
+            {
+                return BadRequest(new { success = false, message = "Only draft or revised products can be submitted for review." });
+            }
+
+            // Require at least one formulation ingredient
+            var hasFormulation = await _context.ProductFormulation
+                .AnyAsync(f => f.ProductID == id && f.CompanyID == companyId && f.IsActive);
+
+            if (!hasFormulation)
+            {
+                return BadRequest(new { success = false, message = "Please add at least one formulation ingredient before submitting for review." });
+            }
+
+            product.LifecycleStatus = "underreview";
+            _context.Product.Update(product);
+            await _context.SaveChangesAsync();
+
+            await _notificationService.NotifyCompanyActionAsync(
+                user.Id, companyId,
+                $"{user.UserName} submitted product for review: {product.ProductName}",
+                "PLM", "bi-send-check");
+
+            return Ok(new { success = true, message = "Product submitted for review successfully!" });
         }
 
         // POST: PLM/UpdateProduct
@@ -183,6 +233,7 @@ namespace IT15_DairyFlow.Controllers
             product.ProductName = model.ProductName;
             product.Type = model.Type;
             product.LifecycleStatus = model.LifecycleStatus;
+            product.ShelfLifeDays = model.ShelfLifeDays;
 
             _context.Product.Update(product);
             await _context.SaveChangesAsync();
@@ -278,7 +329,8 @@ namespace IT15_DairyFlow.Controllers
                 {
                     Id = m.RawMaterialID,
                     Name = m.MaterialName ?? "Unknown",
-                    UnitCost = m.UnitCost ?? 0
+                    UnitCost = m.UnitCost ?? 0,
+                    Unit = m.Unit ?? "kg"
                 })
                 .AsNoTracking()
                 .ToListAsync();
@@ -508,7 +560,7 @@ namespace IT15_DairyFlow.Controllers
             var companyId = GetUserCompanyId(user);
 
             var products = await _context.Product
-                .Where(p => p.CompanyID == companyId && p.LifecycleStatus != "Archived")
+                .Where(p => p.CompanyID == companyId && p.LifecycleStatus != "Archived" && p.LifecycleStatus != "Approved")
                 // Only show products that have at least one active formulation ingredient
                 .Where(p => _context.ProductFormulation.Any(f => f.ProductID == p.ProductID && f.CompanyID == companyId && f.IsActive))
                 .OrderByDescending(p => p.ProductID)
@@ -603,6 +655,12 @@ namespace IT15_DairyFlow.Controllers
                 product.LifecycleStatus = "Approved";
                 _context.Product.Update(product);
                 await _context.SaveChangesAsync();
+
+                await _notificationService.NotifyCompanyActionAsync(
+                    user.Id, companyId,
+                    $"{user.UserName} approved the product: {product.ProductName}",
+                    "PLM", "bi-check-circle");
+
                 return Ok(new { success = true, message = "Product has been approved." });
             }
             else
@@ -611,6 +669,12 @@ namespace IT15_DairyFlow.Controllers
                 product.LifecycleStatus = "Needs Revision";
                 _context.Product.Update(product);
                 await _context.SaveChangesAsync();
+
+                await _notificationService.NotifyCompanyActionAsync(
+                    user.Id, companyId,
+                    $"{user.UserName} requested revision for product: {product.ProductName}",
+                    "PLM", "bi-arrow-return-left");
+
                 return Ok(new { success = true, message = $"Product status set to Needs Revision. Reason: {model.Reason}" });
             }
         }
