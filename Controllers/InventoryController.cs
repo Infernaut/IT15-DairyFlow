@@ -91,7 +91,7 @@ namespace IT15_DairyFlow.Controllers
             var products = await _context.Product
                 .Where(p => p.CompanyID == companyId && 
                        (p.LifecycleStatus == "Active" || p.LifecycleStatus == "approved" || p.LifecycleStatus == "Produced"))
-                .OrderBy(p => p.ProductName)
+                .OrderBy(p => p.ProductNameEncrypted)
                 .Select(p => new ProductLookupViewModel
                 {
                     Id = p.ProductID,

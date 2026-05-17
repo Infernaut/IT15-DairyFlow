@@ -66,7 +66,7 @@ namespace IT15_DairyFlow.Controllers
 
             var products = await _context.Product
                 .Where(p => p.CompanyID == companyId && p.LifecycleStatus == "Approved")
-                .OrderBy(p => p.ProductName)
+                .OrderBy(p => p.ProductNameEncrypted)
                 .Select(p => new LookupItemViewModel
                 {
                     Id = p.ProductID,
@@ -77,7 +77,7 @@ namespace IT15_DairyFlow.Controllers
 
             var equipments = await _context.Equipment
                 .Where(e => e.CompanyID == companyId && e.Status == "Available")
-                .OrderBy(e => e.EquipmentName)
+                .OrderBy(e => e.EquipmentNameEncrypted)
                 .Select(e => new LookupItemViewModel
                 {
                     Id = e.EquipmentID,
@@ -128,7 +128,7 @@ namespace IT15_DairyFlow.Controllers
 
             var products = await _context.Product
                 .Where(p => p.CompanyID == companyId && p.LifecycleStatus == "Approved")
-                .OrderBy(p => p.ProductName)
+                .OrderBy(p => p.ProductNameEncrypted)
                 .Select(p => new LookupItemViewModel
                 {
                     Id = p.ProductID,
@@ -139,7 +139,7 @@ namespace IT15_DairyFlow.Controllers
 
             var equipments = await _context.Equipment
                 .Where(e => e.CompanyID == companyId && e.Status == "Available")
-                .OrderBy(e => e.EquipmentName)
+                .OrderBy(e => e.EquipmentNameEncrypted)
                 .Select(e => new LookupItemViewModel
                 {
                     Id = e.EquipmentID,

@@ -1,0 +1,83 @@
+@using IT15_DairyFlow.Models.Admin
+@model EmailBackfillViewModel
+
+@{
+    ViewData["Title"] = "Backfill Protected Emails";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-1 fw-bold">Backfill Protected Emails</h2>
+            <p class="text-muted mb-0">
+                One-time operation to populate <code>EmailLookupHash</code> and <code>EmailEncrypted</code> for existing users.
+            </p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Message))
+    {
+        <div class="alert alert-info">@Model.Message</div>
+    }
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="text-muted">Total Users</div>
+                    <div class="fs-3 fw-bold">@Model.TotalUsers</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="text-muted">Needing Backfill</div>
+                    <div class="fs-3 fw-bold">@Model.UsersNeedingBackfill</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="text-muted">Updated (last run)</div>
+                    <div class="fs-3 fw-bold">@Model.Updated</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mt-3">
+        <div class="card-body">
+            <form asp-action="BackfillProtectedEmails" method="post" class="row gy-2 gx-3 align-items-end">
+                @Html.AntiForgeryToken()
+
+                <div class="col-sm-3">
+                    <label asp-for="BatchSize" class="form-label">Batch size</label>
+                    <input asp-for="BatchSize" class="form-control" type="number" min="1" max="2000" />
+                    <div class="form-text">Runs in batches to avoid timeouts. Max 2000.</div>
+                </div>
+
+                <div class="col-sm-3">
+                    <div class="form-check mt-4">
+                        <input asp-for="DryRun" class="form-check-input" type="checkbox" />
+                        <label asp-for="DryRun" class="form-check-label">Dry run (no DB writes)</label>
+                    </div>
+                </div>
+
+                <div class="col-sm-6 text-end">
+                    <button type="submit" class="btn btn-primary">
+                        Run Backfill
+                    </button>
+                </div>
+            </form>
+
+            <hr />
+
+            <div class="text-muted small">
+                <strong>Recommended:</strong> Run a dry run first. Then uncheck dry run and re-run until "Needing Backfill" becomes 0.
+            </div>
+        </div>
+    </div>
+</div>

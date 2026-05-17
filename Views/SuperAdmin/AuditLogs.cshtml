@@ -1,0 +1,110 @@
+@using IT15_DairyFlow.Models.Admin
+@model AuditLogFilterViewModel
+
+@{
+    ViewData["Title"] = "Audit Logs";
+    var companyId = (int?)ViewBag.CompanyId;
+    var moduleFilter = (string?)ViewBag.ModuleFilter;
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h1 class="card-title mb-2">Audit Logs</h1>
+                    <p class="text-muted mb-0">User actions (create/update/delete/login/etc.) across all companies</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Filter</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-2">
+                            <label class="form-label">Start (UTC)</label>
+                            <input type="date" class="form-control" name="startDateUtc" value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">End (UTC)</label>
+                            <input type="date" class="form-control" name="endDateUtc" value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label">Company ID</label>
+                            <input type="number" class="form-control" name="companyId" value="@(companyId?.ToString() ?? "")" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">User</label>
+                            <input type="text" class="form-control" name="userFilter" value="@Model.UserFilter" placeholder="user id / username / email" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Action contains</label>
+                            <input type="text" class="form-control" name="actionFilter" value="@Model.ActionFilter" placeholder="create, delete, login..." />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label class="form-label">Module contains</label>
+                            <input type="text" class="form-control" name="moduleFilter" value="@moduleFilter" placeholder="Inventory, Finance..." />
+                        </div>
+
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Apply</button>
+                            <a href="@Url.Action("AuditLogs")" class="btn btn-secondary">Reset</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        Audit Logs
+                        <span class="badge bg-primary float-end">@Model.TotalRecords records (showing up to 2000)</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.AuditLogs.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 32%;">User</th>
+                                        <th style="width: 48%;">Action</th>
+                                        <th style="width: 20%;">Timestamp</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var log in Model.AuditLogs)
+                                    {
+                                        <tr>
+                                            <td>@log.UserName</td>
+                                            <td>@log.Action</td>
+                                            <td>@log.FormattedTimeStamp</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No audit logs found for the selected filters.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

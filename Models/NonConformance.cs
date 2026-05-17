@@ -40,27 +40,45 @@ namespace IT15_DairyFlow.Models
         // Title/Summary
         [Required]
         [MaxLength(200)]
-        public string Title { get; set; } = string.Empty;
+    [NotMapped]
+    public string Title { get; set; } = string.Empty;
+
+    public string? TitleEncrypted { get; set; }
 
         // Detailed description
         [MaxLength(2000)]
-        public string? Description { get; set; }
+    [NotMapped]
+    public string? Description { get; set; }
+
+    public string? DescriptionEncrypted { get; set; }
 
         // Root Cause Analysis
         [MaxLength(2000)]
-        public string? RootCause { get; set; }
+    [NotMapped]
+    public string? RootCause { get; set; }
+
+    public string? RootCauseEncrypted { get; set; }
 
         // Immediate corrective action taken
         [MaxLength(2000)]
-        public string? ImmediateAction { get; set; }
+    [NotMapped]
+    public string? ImmediateAction { get; set; }
+
+    public string? ImmediateActionEncrypted { get; set; }
 
         // Long-term corrective action / CAPA
         [MaxLength(2000)]
-        public string? CorrectiveAction { get; set; }
+    [NotMapped]
+    public string? CorrectiveAction { get; set; }
+
+    public string? CorrectiveActionEncrypted { get; set; }
 
         // Preventive action
         [MaxLength(2000)]
-        public string? PreventiveAction { get; set; }
+    [NotMapped]
+    public string? PreventiveAction { get; set; }
+
+    public string? PreventiveActionEncrypted { get; set; }
 
         // Status: Open, InProgress, PendingVerification, Closed
         [Required]

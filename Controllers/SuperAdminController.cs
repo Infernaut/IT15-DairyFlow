@@ -2,10 +2,13 @@ using IT15_DairyFlow.Models.Admin;
 using IT15_DairyFlow.Models;
 using IT15_DairyFlow.Data;
 using IT15_DairyFlow.Services;
+using IT15_DairyFlow.Services.Security;
+using IT15_DairyFlow.Models.SuperAdmin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using IT15_DairyFlow.Security.Crypto;
 
 namespace IT15_DairyFlow.Controllers
 {
@@ -15,15 +18,58 @@ namespace IT15_DairyFlow.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ApplicationDbContext _dbContext;
         private readonly NotificationService _notificationService;
+        private readonly ICryptoService _crypto;
+        private readonly IEncryptionBackfillService _encryptionBackfill;
 
         public SuperAdminController(
             UserManager<ApplicationUser> userManager,
             ApplicationDbContext dbContext,
-            NotificationService notificationService)
+            NotificationService notificationService,
+            ICryptoService crypto,
+            IEncryptionBackfillService encryptionBackfill)
         {
             _userManager = userManager;
             _dbContext = dbContext;
             _notificationService = notificationService;
+            _crypto = crypto;
+            _encryptionBackfill = encryptionBackfill;
+        }
+
+        // ─── APP-LAYER ENCRYPTION BACKFILL (BUSINESS TABLES) ─────
+        [HttpGet]
+        public IActionResult BackfillEncryptedBusinessData()
+        {
+            return View(new BusinessDataEncryptionBackfillViewModel());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BackfillEncryptedBusinessData(BusinessDataEncryptionBackfillViewModel input)
+        {
+            if (input.DryRun)
+            {
+                input.Message = input.CompanyID.HasValue
+                    ? $"Dry run: would backfill encrypted columns for CompanyID={input.CompanyID.Value}."
+                    : "Dry run: would backfill encrypted columns for ALL companies.";
+                return View(input);
+            }
+
+            var result = await _encryptionBackfill.BackfillAsync(input.CompanyID);
+
+            input.Result = result;
+            input.Message = $"Backfill completed. Products={result.ProductsUpdated}, Batches={result.ProductionBatchesUpdated}, QI={result.QualityInspectionsUpdated}, NCR={result.NonConformancesUpdated}, Equipment={result.EquipmentsUpdated}, Sales={result.SalesUpdated}, Txns={result.SaleTransactionsUpdated}.";
+
+            await LogAuditAsync(
+                $"Business-data encryption backfill ran. CompanyID={(input.CompanyID.HasValue ? input.CompanyID.Value.ToString() : "ALL")}. " +
+                input.Message);
+
+            await _notificationService.NotifySuperAdminsAsync(
+                "Business data encryption backfill completed.",
+                "System",
+                "bi-shield-lock",
+                _userManager.GetUserId(User));
+
+            return View(input);
         }
 
         // ─── DASHBOARD ────────────────────────────────────────────
@@ -169,7 +215,8 @@ namespace IT15_DairyFlow.Controllers
             }
 
             // Check if email already exists
-            var existingUser = await _userManager.FindByEmailAsync(addModel.AdminEmail);
+            var emailLookup = _crypto.ComputeLookupHash(addModel.AdminEmail);
+            var existingUser = await _userManager.Users.FirstOrDefaultAsync(u => u.EmailLookupHash == emailLookup);
             if (existingUser != null)
             {
                 TempData["ErrorMessage"] = "A user with that email already exists.";
@@ -192,10 +239,11 @@ namespace IT15_DairyFlow.Controllers
             var user = new ApplicationUser
             {
                 UserName = addModel.AdminUserName,
-                Email = addModel.AdminEmail,
                 EmailConfirmed = true,
                 CompanyID = company.CompanyID
             };
+
+            UserEmailProtector.ProtectEmail(user, _crypto, addModel.AdminEmail);
 
             var result = await _userManager.CreateAsync(user, addModel.Password);
             if (!result.Succeeded)
@@ -288,6 +336,216 @@ namespace IT15_DairyFlow.Controllers
             return View(model);
         }
 
+        // ─── LOGS (SEPARATED) ─────────────────────────────────────
+
+        /// <summary>
+        /// Platform operational/technical logs (health + performance). Not user audit logs.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> SystemLogs(
+            DateTime? startDateUtc = null,
+            DateTime? endDateUtc = null,
+            string? level = null,
+            string? component = null,
+            string? eventName = null,
+            int? companyId = null,
+            string? correlationId = null)
+        {
+            var query = _dbContext.SystemLogs.AsQueryable();
+
+            if (startDateUtc.HasValue)
+                query = query.Where(s => s.TimeStampUtc >= new DateTimeOffset(startDateUtc.Value, TimeSpan.Zero));
+            if (endDateUtc.HasValue)
+                query = query.Where(s => s.TimeStampUtc <= new DateTimeOffset(endDateUtc.Value.AddDays(1), TimeSpan.Zero));
+            if (!string.IsNullOrWhiteSpace(level))
+                query = query.Where(s => s.Level == level);
+            if (!string.IsNullOrWhiteSpace(component))
+                query = query.Where(s => s.Component.Contains(component));
+            if (!string.IsNullOrWhiteSpace(eventName))
+                query = query.Where(s => s.EventName.Contains(eventName));
+            if (companyId.HasValue)
+                query = query.Where(s => s.CompanyId == companyId);
+            if (!string.IsNullOrWhiteSpace(correlationId))
+                query = query.Where(s => s.CorrelationId == correlationId);
+
+            // Keep the page reasonably small; can be extended to pagination later.
+            var logs = await query
+                .OrderByDescending(s => s.TimeStampUtc)
+                .Take(1000)
+                .ToListAsync();
+
+            var vm = new SystemLogFilterViewModel
+            {
+                StartDateUtc = startDateUtc,
+                EndDateUtc = endDateUtc,
+                Level = level,
+                Component = component,
+                EventName = eventName,
+                CompanyId = companyId,
+                CorrelationId = correlationId,
+                Logs = logs.Select(s => new SystemLogListItemViewModel
+                {
+                    SystemLogId = s.SystemLogId,
+                    TimeStampUtc = s.TimeStampUtc,
+                    Level = s.Level,
+                    Component = s.Component,
+                    EventName = s.EventName,
+                    Message = s.Message,
+                    CompanyId = s.CompanyId,
+                    UserId = s.UserId,
+                    DurationMs = s.DurationMs,
+                    CorrelationId = s.CorrelationId
+                }).ToList(),
+                TotalRecords = logs.Count
+            };
+
+            return View(vm);
+        }
+
+        /// <summary>
+        /// User/business action audit logs across all companies (transparency).
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> AuditLogs(
+            DateTime? startDateUtc = null,
+            DateTime? endDateUtc = null,
+            int? companyId = null,
+            string? userFilter = null,
+            string? actionFilter = null,
+            string? moduleFilter = null)
+        {
+            var query = _dbContext.AuditLog
+                .Include(a => a.User)
+                .AsQueryable();
+
+            if (startDateUtc.HasValue)
+                query = query.Where(a => a.TimeStampUtc >= new DateTimeOffset(startDateUtc.Value, TimeSpan.Zero));
+            if (endDateUtc.HasValue)
+                query = query.Where(a => a.TimeStampUtc <= new DateTimeOffset(endDateUtc.Value.AddDays(1), TimeSpan.Zero));
+            if (companyId.HasValue)
+                query = query.Where(a => a.CompanyID == companyId);
+            if (!string.IsNullOrWhiteSpace(userFilter))
+                query = query.Where(a => a.UserID == userFilter || (a.User != null && (a.User.UserName!.Contains(userFilter) || a.User.Email!.Contains(userFilter))));
+            if (!string.IsNullOrWhiteSpace(actionFilter))
+                query = query.Where(a => (a.Message ?? a.ActionType).Contains(actionFilter));
+            if (!string.IsNullOrWhiteSpace(moduleFilter))
+                query = query.Where(a => a.Module.Contains(moduleFilter));
+
+            var logs = await query
+                .OrderByDescending(a => a.TimeStampUtc)
+                .Take(2000)
+                .ToListAsync();
+
+            var vm = new IT15_DairyFlow.Models.Admin.AuditLogFilterViewModel
+            {
+                StartDate = startDateUtc,
+                EndDate = endDateUtc,
+                ActionFilter = actionFilter,
+                UserFilter = userFilter,
+                AuditLogs = logs.Select(log => new IT15_DairyFlow.Models.Admin.AuditLogViewModel
+                {
+                    AuditLogID = log.AuditLogID,
+                    UserName = log.User?.UserName ?? log.User?.Email ?? log.UserID,
+                    Action = string.IsNullOrWhiteSpace(log.Message) ? (log.ActionType ?? "Unknown") : log.Message,
+                    TimeStamp = log.TimeStampUtc.UtcDateTime
+                }).ToList(),
+                TotalRecords = logs.Count
+            };
+
+            ViewBag.CompanyId = companyId;
+            ViewBag.ModuleFilter = moduleFilter;
+
+            return View(vm);
+        }
+
+        // ─── EMAIL BACKFILL (SECURITY UPGRADE) ─────────────────────
+        [HttpGet]
+        public async Task<IActionResult> BackfillProtectedEmails()
+        {
+            var total = await _userManager.Users.CountAsync();
+            var needing = await _userManager.Users.CountAsync(u => u.EmailLookupHash == null);
+
+            var vm = new EmailBackfillViewModel
+            {
+                TotalUsers = total,
+                UsersNeedingBackfill = needing,
+                Updated = 0,
+                DryRun = true,
+                BatchSize = 200
+            };
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BackfillProtectedEmails(EmailBackfillViewModel input)
+        {
+            var batchSize = input.BatchSize <= 0 ? 200 : Math.Min(input.BatchSize, 2000);
+            var dryRun = input.DryRun;
+
+            var query = _userManager.Users
+                .Where(u => u.EmailLookupHash == null)
+                .OrderBy(u => u.Id)
+                .Take(batchSize);
+
+            var users = await query.ToListAsync();
+            var updated = 0;
+
+            foreach (var u in users)
+            {
+                if (string.IsNullOrWhiteSpace(u.Email))
+                {
+                    continue;
+                }
+
+                // Fill protected columns
+                u.EmailLookupHash = _crypto.ComputeLookupHash(u.Email);
+                u.EmailEncrypted = _crypto.EncryptToBase64(u.Email);
+
+                if (!dryRun)
+                {
+                    // Use UserManager to ensure Identity normalization behaviors
+                    var result = await _userManager.UpdateAsync(u);
+                    if (result.Succeeded)
+                    {
+                        updated++;
+                    }
+                }
+                else
+                {
+                    updated++;
+                }
+            }
+
+            var total = await _userManager.Users.CountAsync();
+            var needing = await _userManager.Users.CountAsync(u => u.EmailLookupHash == null);
+
+            if (!dryRun)
+            {
+                await LogAuditAsync($"Backfilled protected emails for {updated} user(s). BatchSize={batchSize}.");
+                await _notificationService.NotifySuperAdminsAsync(
+                    $"Protected email backfill completed: {updated} user(s) updated.",
+                    "System",
+                    "bi-shield-lock",
+                    _userManager.GetUserId(User));
+            }
+
+            var vm = new EmailBackfillViewModel
+            {
+                TotalUsers = total,
+                UsersNeedingBackfill = needing,
+                Updated = updated,
+                BatchSize = batchSize,
+                DryRun = dryRun,
+                Message = dryRun
+                    ? $"Dry run: would update {updated} user(s). Unprotected remaining: {needing}."
+                    : $"Updated {updated} user(s). Unprotected remaining: {needing}."
+            };
+
+            return View(vm);
+        }
+
         // ─── HELPERS ──────────────────────────────────────────────
 
         /// <summary>
@@ -323,8 +581,10 @@ namespace IT15_DairyFlow.Controllers
             {
                 CompanyID = currentUser.CompanyID.Value,
                 UserID = currentUserId,
-                Action = action,
-                TimeStamp = DateTime.Now
+                Module = "Admin",
+                ActionType = "SuperAdminAction",
+                Message = action,
+                TimeStampUtc = DateTimeOffset.UtcNow
             });
             await _dbContext.SaveChangesAsync();
         }

@@ -20,9 +20,14 @@ namespace IT15_DairyFlow.Models
         [Column("UserID")]
         public string UserID { get; set; } = string.Empty;
 
-        [MaxLength(256)]
-        [Column("productName")]
-        public string? ProductName { get; set; }
+    // Stored encrypted at rest in ProductNameEncrypted; ProductName is a plaintext facade for the app.
+    [Column("ProductNameEncrypted")]
+    public string? ProductNameEncrypted { get; set; }
+            // Deterministic lookup hash for equality search (HMAC-SHA256 Base64)
+            public string? ProductNameLookupHash { get; set; }
+
+    [NotMapped]
+    public string? ProductName { get; set; }
 
         [MaxLength(100)]
         [Column("type")]

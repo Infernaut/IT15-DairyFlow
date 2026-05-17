@@ -24,7 +24,12 @@ namespace IT15_DairyFlow.Models
 
         [MaxLength(100)]
         [Column("batchCode")]
-        public string? BatchCode { get; set; }
+    [NotMapped]
+    public string? BatchCode { get; set; }
+
+    [Column("BatchCodeEncrypted")]
+    public string? BatchCodeEncrypted { get; set; }
+            public string? BatchCodeLookupHash { get; set; }
 
         public DateTime? StartDate { get; set; }
 

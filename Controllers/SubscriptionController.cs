@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using IT15_DairyFlow.Security.Crypto;
 
 namespace IT15_DairyFlow.Controllers
 {
@@ -17,6 +18,7 @@ namespace IT15_DairyFlow.Controllers
         private readonly SubscriptionEmailService _emailService;
         private readonly NotificationService _notificationService;
         private readonly ILogger<SubscriptionController> _logger;
+    private readonly ICryptoService _crypto;
 
         public SubscriptionController(
             UserManager<ApplicationUser> userManager,
@@ -24,7 +26,8 @@ namespace IT15_DairyFlow.Controllers
             PayMongoService payMongoService,
             SubscriptionEmailService emailService,
             NotificationService notificationService,
-            ILogger<SubscriptionController> logger)
+            ILogger<SubscriptionController> logger,
+            ICryptoService crypto)
         {
             _userManager = userManager;
             _dbContext = dbContext;
@@ -32,6 +35,7 @@ namespace IT15_DairyFlow.Controllers
             _emailService = emailService;
             _notificationService = notificationService;
             _logger = logger;
+            _crypto = crypto;
         }
 
         // ─── Plan definitions ──────────────────────────────────────
@@ -117,7 +121,8 @@ namespace IT15_DairyFlow.Controllers
                 return View(model);
 
             // Check if email already exists
-            var existingUser = await _userManager.FindByEmailAsync(model.Email);
+            var emailLookup = _crypto.ComputeLookupHash(model.Email);
+            var existingUser = await _userManager.Users.FirstOrDefaultAsync(u => u.EmailLookupHash == emailLookup);
             if (existingUser != null)
             {
                 ModelState.AddModelError("Email", "An account with this email already exists. Please log in instead.");
@@ -139,10 +144,11 @@ namespace IT15_DairyFlow.Controllers
             var user = new ApplicationUser
             {
                 UserName = model.UserName,
-                Email = model.Email,
                 EmailConfirmed = true, // Auto-confirm since this is subscription registration
                 CompanyID = company.CompanyID
             };
+
+            UserEmailProtector.ProtectEmail(user, _crypto, model.Email);
 
             var result = await _userManager.CreateAsync(user, model.Password);
 

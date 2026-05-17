@@ -1,0 +1,130 @@
+@using IT15_DairyFlow.Models.SuperAdmin
+@model SystemLogFilterViewModel
+
+@{
+    ViewData["Title"] = "System Logs";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h1 class="card-title mb-2">System Logs</h1>
+                    <p class="text-muted mb-0">Operational health and technical performance logs (platform-wide)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Filter</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-2">
+                            <label class="form-label">Start (UTC)</label>
+                            <input type="date" class="form-control" name="startDateUtc" value="@(Model.StartDateUtc?.ToString("yyyy-MM-dd"))" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">End (UTC)</label>
+                            <input type="date" class="form-control" name="endDateUtc" value="@(Model.EndDateUtc?.ToString("yyyy-MM-dd"))" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Level</label>
+                            <select class="form-select" name="level">
+                                <option value="" selected="@(string.IsNullOrWhiteSpace(Model.Level))">Any</option>
+                                <option value="Information" selected="@(Model.Level == "Information")">Information</option>
+                                <option value="Warning" selected="@(Model.Level == "Warning")">Warning</option>
+                                <option value="Error" selected="@(Model.Level == "Error")">Error</option>
+                                <option value="Critical" selected="@(Model.Level == "Critical")">Critical</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Component</label>
+                            <input type="text" class="form-control" name="component" value="@Model.Component" placeholder="Web, Identity..." />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Event</label>
+                            <input type="text" class="form-control" name="eventName" value="@Model.EventName" placeholder="RequestCompleted" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Company ID</label>
+                            <input type="number" class="form-control" name="companyId" value="@(Model.CompanyId?.ToString() ?? "")" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Correlation Id</label>
+                            <input type="text" class="form-control" name="correlationId" value="@Model.CorrelationId" placeholder="(TraceIdentifier)" />
+                        </div>
+
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Apply</button>
+                            <a href="@Url.Action("SystemLogs")" class="btn btn-secondary">Reset</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        System Logs
+                        <span class="badge bg-primary float-end">@Model.TotalRecords records (showing up to 1000)</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Logs.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 16%">Time (UTC)</th>
+                                        <th style="width: 8%">Level</th>
+                                        <th style="width: 12%">Component</th>
+                                        <th style="width: 14%">Event</th>
+                                        <th style="width: 8%">Company</th>
+                                        <th style="width: 10%">Duration</th>
+                                        <th>Message</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var log in Model.Logs)
+                                    {
+                                        <tr>
+                                            <td>@log.TimeStampUtc.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                            <td>@log.Level</td>
+                                            <td>@log.Component</td>
+                                            <td>@log.EventName</td>
+                                            <td>@(log.CompanyId?.ToString() ?? "-")</td>
+                                            <td>@(log.DurationMs.HasValue ? $"{log.DurationMs.Value} ms" : "-")</td>
+                                            <td>
+                                                <div class="text-truncate" style="max-width: 720px" title="@log.Message">@log.Message</div>
+                                                @if (!string.IsNullOrWhiteSpace(log.CorrelationId))
+                                                {
+                                                    <small class="text-muted">Corr: @log.CorrelationId</small>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No system logs found for the selected filters.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

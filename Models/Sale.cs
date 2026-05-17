@@ -19,13 +19,25 @@ namespace IT15_DairyFlow.Models
 
         [Required]
         [MaxLength(256)]
-        public string BuyerName { get; set; } = string.Empty;
+    [NotMapped]
+    public string BuyerName { get; set; } = string.Empty;
+
+    public string? BuyerNameEncrypted { get; set; }
+            public string? BuyerNameLookupHash { get; set; }
 
         [MaxLength(256)]
-        public string? BuyerEmail { get; set; }
+    [NotMapped]
+    public string? BuyerEmail { get; set; }
+
+    public string? BuyerEmailEncrypted { get; set; }
+            public string? BuyerEmailLookupHash { get; set; }
 
         [MaxLength(50)]
-        public string? BuyerPhone { get; set; }
+    [NotMapped]
+    public string? BuyerPhone { get; set; }
+
+    public string? BuyerPhoneEncrypted { get; set; }
+            public string? BuyerPhoneLookupHash { get; set; }
 
         [Required]
         public int Quantity { get; set; }
@@ -62,7 +74,10 @@ namespace IT15_DairyFlow.Models
         public string CreatedByUserID { get; set; } = string.Empty;
 
         [MaxLength(500)]
-        public string? Notes { get; set; }
+    [NotMapped]
+    public string? Notes { get; set; }
+
+    public string? NotesEncrypted { get; set; }
 
         // Navigation properties
         [ForeignKey("CompanyID")]

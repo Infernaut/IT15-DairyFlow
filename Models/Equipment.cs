@@ -14,13 +14,20 @@ namespace IT15_DairyFlow.Models
 
         [Required]
         [MaxLength(200)]
-        public string EquipmentName { get; set; } = string.Empty;
+    [NotMapped]
+    public string EquipmentName { get; set; } = string.Empty;
+
+    public string? EquipmentNameEncrypted { get; set; }
+            public string? EquipmentNameLookupHash { get; set; }
 
         [MaxLength(100)]
         public string? EquipmentType { get; set; }
 
         [MaxLength(200)]
-        public string? Location { get; set; }
+    [NotMapped]
+    public string? Location { get; set; }
+
+    public string? LocationEncrypted { get; set; }
 
         [MaxLength(50)]
         public string? Status { get; set; }

@@ -14,6 +14,9 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
+using IT15_DairyFlow.Security.Crypto;
+using IT15_DairyFlow.Services.Security.Captcha;
 
 namespace IT15_DairyFlow.Areas.Identity.Pages.Account
 {
@@ -21,11 +24,15 @@ namespace IT15_DairyFlow.Areas.Identity.Pages.Account
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailSender _emailSender;
+    private readonly ICryptoService _crypto;
+        private readonly ICaptchaVerificationService _captcha;
 
-        public ForgotPasswordModel(UserManager<ApplicationUser> userManager, IEmailSender emailSender)
+        public ForgotPasswordModel(UserManager<ApplicationUser> userManager, IEmailSender emailSender, ICryptoService crypto, ICaptchaVerificationService captcha)
         {
             _userManager = userManager;
             _emailSender = emailSender;
+            _crypto = crypto;
+            _captcha = captcha;
         }
 
         /// <summary>
@@ -48,13 +55,30 @@ namespace IT15_DairyFlow.Areas.Identity.Pages.Account
             [Required]
             [EmailAddress]
             public string Email { get; set; }
+
+			// reCAPTCHA token (v3 uses explicit grecaptcha.execute)
+			public string RecaptchaToken { get; set; }
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
             if (ModelState.IsValid)
             {
-                var user = await _userManager.FindByEmailAsync(Input.Email);
+                // CAPTCHA validation (if enabled)
+                var captchaToken = Request.Form["g-recaptcha-response"].ToString();
+                if (string.IsNullOrWhiteSpace(captchaToken))
+                {
+					captchaToken = Input.RecaptchaToken;
+				}
+                var captchaResult = await _captcha.VerifyAsync(captchaToken, HttpContext.Connection.RemoteIpAddress?.ToString());
+                if (!captchaResult.Success)
+                {
+                    ModelState.AddModelError(string.Empty, captchaResult.Error ?? "CAPTCHA verification failed.");
+                    return Page();
+                }
+
+                var lookup = _crypto.ComputeLookupHash(Input.Email);
+                var user = await _userManager.Users.FirstOrDefaultAsync(u => u.EmailLookupHash == lookup);
                 if (user == null || !(await _userManager.IsEmailConfirmedAsync(user)))
                 {
                     // Don't reveal that the user does not exist or is not confirmed

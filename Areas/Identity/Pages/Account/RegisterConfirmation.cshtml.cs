@@ -11,19 +11,24 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
+using IT15_DairyFlow.Models;
+using IT15_DairyFlow.Security.Crypto;
 
 namespace IT15_DairyFlow.Areas.Identity.Pages.Account
 {
     [AllowAnonymous]
     public class RegisterConfirmationModel : PageModel
     {
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailSender _sender;
+        private readonly ICryptoService _crypto;
 
-        public RegisterConfirmationModel(UserManager<IdentityUser> userManager, IEmailSender sender)
+        public RegisterConfirmationModel(UserManager<ApplicationUser> userManager, IEmailSender sender, ICryptoService crypto)
         {
             _userManager = userManager;
             _sender = sender;
+            _crypto = crypto;
         }
 
         /// <summary>
@@ -52,7 +57,8 @@ namespace IT15_DairyFlow.Areas.Identity.Pages.Account
             }
             returnUrl = returnUrl ?? Url.Content("~/");
 
-            var user = await _userManager.FindByEmailAsync(email);
+            var lookup = _crypto.ComputeLookupHash(email);
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.EmailLookupHash == lookup);
             if (user == null)
             {
                 return NotFound($"Unable to load user with email '{email}'.");

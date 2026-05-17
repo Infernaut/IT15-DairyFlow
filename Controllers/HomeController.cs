@@ -297,17 +297,17 @@ namespace IT15_DairyFlow.Controllers
             var recentLogs = await _dbContext.AuditLog
                 .Where(a => a.CompanyID == companyId)
                 .Include(a => a.User)
-                .OrderByDescending(a => a.TimeStamp)
+                .OrderByDescending(a => a.TimeStampUtc)
                 .Take(10)
                 .ToListAsync();
 
             vm.RecentAuditLogs = recentLogs.Select(log =>
             {
-                var action = log.Action ?? "";
+                var action = string.IsNullOrWhiteSpace(log.Message) ? (log.ActionType ?? "") : log.Message;
                 var module = DeriveModule(action);
                 var status = DeriveStatus(action);
 
-                var elapsed = now - log.TimeStamp;
+                var elapsed = now - log.TimeStampUtc.UtcDateTime;
                 string timeAgo;
                 if (elapsed.TotalMinutes < 1) timeAgo = "Just now";
                 else if (elapsed.TotalMinutes < 60) timeAgo = $"{(int)elapsed.TotalMinutes} min ago";
@@ -410,14 +410,14 @@ namespace IT15_DairyFlow.Controllers
             var recentLogs = await _dbContext.AuditLog
                 .Where(a => a.CompanyID == companyId)
                 .Include(a => a.User)
-                .OrderByDescending(a => a.TimeStamp)
+                .OrderByDescending(a => a.TimeStampUtc)
                 .Take(10)
                 .ToListAsync();
 
             vm.RecentAuditLogs = recentLogs
                 .Where(log =>
                 {
-                    var lower = (log.Action ?? "").ToLower();
+                    var lower = (string.IsNullOrWhiteSpace(log.Message) ? (log.ActionType ?? "") : log.Message).ToLower();
                     return lower.Contains("quality") || lower.Contains("inspection")
                         || lower.Contains("ncr") || lower.Contains("non-conformance")
                         || lower.Contains("hold") || lower.Contains("release")
@@ -507,14 +507,14 @@ namespace IT15_DairyFlow.Controllers
             var recentLogs = await _dbContext.AuditLog
                 .Where(a => a.CompanyID == companyId)
                 .Include(a => a.User)
-                .OrderByDescending(a => a.TimeStamp)
+                .OrderByDescending(a => a.TimeStampUtc)
                 .Take(20)
                 .ToListAsync();
 
             vm.RecentAuditLogs = recentLogs
                 .Where(log =>
                 {
-                    var lower = (log.Action ?? "").ToLower();
+                    var lower = (string.IsNullOrWhiteSpace(log.Message) ? (log.ActionType ?? "") : log.Message).ToLower();
                     return lower.Contains("expense") || lower.Contains("budget")
                         || lower.Contains("invoice") || lower.Contains("finance")
                         || lower.Contains("payment");
@@ -529,10 +529,10 @@ namespace IT15_DairyFlow.Controllers
         // ── Shared audit item builder ─────────────────────────────
         private DashboardAuditItem BuildAuditItem(AuditLog log, DateTime now)
         {
-            var action = log.Action ?? "";
+            var action = string.IsNullOrWhiteSpace(log.Message) ? (log.ActionType ?? "") : log.Message;
             var module = DeriveModule(action);
             var status = DeriveStatus(action);
-            var elapsed = now - log.TimeStamp;
+            var elapsed = now - log.TimeStampUtc.UtcDateTime;
             string timeAgo;
             if (elapsed.TotalMinutes < 1) timeAgo = "Just now";
             else if (elapsed.TotalMinutes < 60) timeAgo = $"{(int)elapsed.TotalMinutes} min ago";

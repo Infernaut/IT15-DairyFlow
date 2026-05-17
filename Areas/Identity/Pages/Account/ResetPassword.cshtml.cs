@@ -11,16 +11,26 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
+using IT15_DairyFlow.Models;
+using IT15_DairyFlow.Security.Crypto;
+using IT15_DairyFlow.Services.Security;
 
 namespace IT15_DairyFlow.Areas.Identity.Pages.Account
 {
     public class ResetPasswordModel : PageModel
     {
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IPasswordHistoryService _passwordHistory;
+        private readonly ICryptoService _crypto;
+        private readonly CryptoSettings _cryptoSettings;
 
-        public ResetPasswordModel(UserManager<IdentityUser> userManager)
+        public ResetPasswordModel(UserManager<ApplicationUser> userManager, IPasswordHistoryService passwordHistory, ICryptoService crypto, Microsoft.Extensions.Options.IOptions<CryptoSettings> cryptoSettings)
         {
             _userManager = userManager;
+            _passwordHistory = passwordHistory;
+            _crypto = crypto;
+            _cryptoSettings = cryptoSettings.Value;
         }
 
         /// <summary>
@@ -94,16 +104,30 @@ namespace IT15_DairyFlow.Areas.Identity.Pages.Account
                 return Page();
             }
 
-            var user = await _userManager.FindByEmailAsync(Input.Email);
+            var lookup = _crypto.ComputeLookupHash(Input.Email);
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.EmailLookupHash == lookup);
             if (user == null)
             {
                 // Don't reveal that the user does not exist
                 return RedirectToPage("./ResetPasswordConfirmation");
             }
 
+            // Prevent password reuse (last N)
+            var ok = await _passwordHistory.IsPasswordReusedAsync(user.Id, Input.Password, _cryptoSettings.PasswordReuseHistoryDepth);
+            if (!ok)
+            {
+                ModelState.AddModelError(string.Empty, $"You can't reuse your last {_cryptoSettings.PasswordReuseHistoryDepth} passwords.");
+                return Page();
+            }
+
             var result = await _userManager.ResetPasswordAsync(user, Input.Code, Input.Password);
             if (result.Succeeded)
             {
+                // Record new password hash for reuse prevention
+                if (!string.IsNullOrWhiteSpace(user.PasswordHash))
+                {
+                    await _passwordHistory.RecordPasswordHashAsync(user.Id, user.PasswordHash, _cryptoSettings.PasswordReuseHistoryDepth);
+                }
                 return RedirectToPage("./ResetPasswordConfirmation");
             }
 

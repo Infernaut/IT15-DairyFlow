@@ -245,6 +245,55 @@
         let currentProductId = null;
         let isEditMode = false;
 
+        function getAntiForgeryToken() {
+            const el = document.querySelector('input[name="__RequestVerificationToken"]');
+            return el ? el.value : null;
+        }
+
+        async function readErrorMessage(response) {
+            // Prefer JSON, but gracefully fall back to text/HTML.
+            const contentType = response.headers.get('content-type') || '';
+            try {
+                if (contentType.includes('application/json'))
+                {
+                    const err = await response.json();
+
+                    // Our standard error envelope
+                    if (err && typeof err === 'object' && (err.message || err.detail)) {
+                        return {
+                            message: err.message || `Request failed (${response.status})`,
+                            detail: err.detail
+                        };
+                    }
+
+                    // ASP.NET ModelState dictionary: { field: ["error1", ...], ... }
+                    for (const key in err) {
+                        const val = err[key];
+                        if (Array.isArray(val) && val.length) {
+                            return { message: val[0] };
+                        }
+                    }
+
+                    return { message: `Request failed (${response.status})` };
+                }
+            } catch {
+                // ignore JSON parse errors
+            }
+
+            try {
+                const text = (await response.text())?.trim();
+                if (text) {
+                    // Avoid dumping full HTML into a toast
+                    const isHtml = text.startsWith('<!DOCTYPE') || text.startsWith('<html');
+                    return { message: isHtml ? `Request failed (${response.status})` : text };
+                }
+            } catch {
+                // ignore
+            }
+
+            return { message: `Request failed (${response.status})` };
+        }
+
         // Toggle archived view
         function toggleArchivedView() {
             const currentUrl = new URL(window.location);
@@ -300,11 +349,17 @@
             };
 
             try {
+                const token = getAntiForgeryToken();
+                if (!token) {
+                    showToast('error', 'Security token missing. Refresh the page and try again.');
+                    return;
+                }
+
                 const response = await fetch('@Url.Action("CreateProduct", "PLM")', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        'RequestVerificationToken': token
                     },
                     body: JSON.stringify(data)
                 });
@@ -314,12 +369,21 @@
                     showToast('success', result.message);
                     setTimeout(() => window.location.reload(), 300);
                 } else {
-                    showToast('error', 'Failed to create product');
+                    const err = await readErrorMessage(response);
+                    if (err.detail) console.error('CreateProduct detail:', err.detail);
+                    showToast('error', err.message || 'Failed to create product');
                 }
             } catch (error) {
                 showToast('error', 'An error occurred');
                 console.error(error);
             }
+        }
+
+        // Re-use accurate error handling for other POST actions on this page
+        async function handleNonOk(response, fallbackMessage, contextLabel) {
+            const err = await readErrorMessage(response);
+            if (err.detail) console.error(`${contextLabel} detail:`, err.detail);
+            showToast('error', err.message || fallbackMessage);
         }
 
         // View product detail
@@ -448,11 +512,17 @@
             };
 
             try {
+                const token = getAntiForgeryToken();
+                if (!token) {
+                    showToast('error', 'Security token missing. Refresh the page and try again.');
+                    return;
+                }
+
                 const response = await fetch('@Url.Action("UpdateProduct", "PLM")', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        'RequestVerificationToken': token
                     },
                     body: JSON.stringify(data)
                 });
@@ -462,7 +532,7 @@
                     showToast('success', result.message);
                     setTimeout(() => window.location.reload(), 300);
                 } else {
-                    showToast('error', 'Failed to update product');
+                    await handleNonOk(response, 'Failed to update product', 'UpdateProduct');
                 }
             } catch (error) {
                 showToast('error', 'An error occurred');
@@ -473,19 +543,25 @@
         async function submitForReview(productId, productName) {
             showConfirmModal(`Submit "${productName}" for review? The product must have a formulation.`, async () => {
                 try {
+                    const token = getAntiForgeryToken();
+                    if (!token) {
+                        showToast('error', 'Security token missing. Refresh the page and try again.');
+                        return;
+                    }
+
                     const response = await fetch(`@Url.Action("SubmitForReview", "PLM")/${productId}`, {
                         method: 'POST',
                         headers: {
-                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                            'RequestVerificationToken': token
                         }
                     });
 
-                    const result = await response.json();
                     if (response.ok) {
+                        const result = await response.json();
                         showToast('success', result.message);
                         setTimeout(() => window.location.reload(), 300);
                     } else {
-                        showToast('error', result.message || 'Failed to submit for review');
+                        await handleNonOk(response, 'Failed to submit for review', 'SubmitForReview');
                     }
                 } catch (error) {
                     showToast('error', 'An error occurred');
@@ -497,10 +573,16 @@
         async function archiveProduct(productId, productName) {
             showConfirmModal(`Are you sure you want to archive "${productName}"?`, async () => {
                 try {
+                    const token = getAntiForgeryToken();
+                    if (!token) {
+                        showToast('error', 'Security token missing. Refresh the page and try again.');
+                        return;
+                    }
+
                     const response = await fetch(`@Url.Action("ArchiveProduct", "PLM")/${productId}`, {
                         method: 'POST',
                         headers: {
-                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                            'RequestVerificationToken': token
                         }
                     });
 
@@ -509,7 +591,7 @@
                         showToast('success', result.message);
                         setTimeout(() => window.location.reload(), 300);
                     } else {
-                        showToast('error', 'Failed to archive product');
+                        await handleNonOk(response, 'Failed to archive product', 'ArchiveProduct');
                     }
                 } catch (error) {
                     showToast('error', 'An error occurred');

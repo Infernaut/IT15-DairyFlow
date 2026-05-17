@@ -46,7 +46,7 @@ namespace IT15_DairyFlow.Controllers
             }
 
             var products = await query
-                .OrderBy(p => p.ProductName)
+                .OrderBy(p => p.ProductNameEncrypted)
                 .Select(p => new ProductListViewModel
                 {
                     ProductID = p.ProductID,
@@ -79,7 +79,7 @@ namespace IT15_DairyFlow.Controllers
             var products = await _context.Product
                 .Where(p => p.CompanyID == companyId &&
                     (p.LifecycleStatus == "Archived" || p.LifecycleStatus == "Archive"))
-                .OrderBy(p => p.ProductName)
+                .OrderBy(p => p.ProductNameEncrypted)
                 .Select(p => new ProductListViewModel
                 {
                     ProductID = p.ProductID,
@@ -130,6 +130,10 @@ namespace IT15_DairyFlow.Controllers
         {
             if (!ModelState.IsValid)
             {
+                var log = HttpContext.RequestServices.GetRequiredService<ILogger<PLMController>>();
+                log.LogWarning("CreateProduct validation failed for user {UserId}. Errors: {Errors}",
+                    User?.Identity?.Name,
+                    ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToArray());
                 return BadRequest(ModelState);
             }
 
@@ -140,6 +144,16 @@ namespace IT15_DairyFlow.Controllers
             }
 
             var companyId = GetUserCompanyId(user);
+
+            // Avoid silently creating data under CompanyID=1 for users that haven't been assigned a tenant.
+            if (user.CompanyID == null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Your account isn't assigned to a company yet. Please contact an admin to set your CompanyID before creating products."
+                });
+            }
 
             var product = new Product
             {
@@ -152,7 +166,37 @@ namespace IT15_DairyFlow.Controllers
             };
 
             _context.Product.Add(product);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                var log = HttpContext.RequestServices.GetRequiredService<ILogger<PLMController>>();
+                log.LogError(ex,
+                    "CreateProduct DbUpdateException for user {UserId} company {CompanyId}. ProductName={ProductName}",
+                    user.Id, companyId, model.ProductName);
+                // Common causes: missing/invalid CompanyID FK, missing/invalid UserID FK, or DB constraints.
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Failed to create product due to a database constraint.",
+                    detail = ex.InnerException?.Message ?? ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                var log = HttpContext.RequestServices.GetRequiredService<ILogger<PLMController>>();
+                log.LogError(ex,
+                    "CreateProduct unexpected exception for user {UserId} company {CompanyId}. ProductName={ProductName}",
+                    user.Id, companyId, model.ProductName);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Failed to create product due to an unexpected error.",
+                    detail = ex.Message
+                });
+            }
 
             await _notificationService.NotifyCompanyActionAsync(
                 user.Id, companyId,

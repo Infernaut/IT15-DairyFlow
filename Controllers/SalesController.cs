@@ -83,7 +83,7 @@ namespace IT15_DairyFlow.Controllers
                 .Include(i => i.Product)
                 .Where(i => i.CompanyID == companyId && (i.Quantity ?? 0) > 0)
                 .Where(i => !i.Expiry.HasValue || i.Expiry.Value.Date > DateTime.UtcNow.Date)
-                .OrderBy(i => i.Product.ProductName)
+                .OrderBy(i => i.Product.ProductNameEncrypted)
                 .Select(i => new InventoryProductLookupViewModel
                 {
                     InventoryID = i.InventoryID,

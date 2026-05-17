@@ -38,10 +38,16 @@ namespace IT15_DairyFlow.Models
         public string? PayMongoSessionId { get; set; }
 
         [MaxLength(100)]
-        public string? ReferenceNumber { get; set; }
+    [NotMapped]
+    public string? ReferenceNumber { get; set; }
+
+    public string? ReferenceNumberEncrypted { get; set; }
 
         [MaxLength(500)]
-        public string? Notes { get; set; }
+    [NotMapped]
+    public string? Notes { get; set; }
+
+    public string? NotesEncrypted { get; set; }
 
         // Navigation properties
         [ForeignKey("SaleID")]

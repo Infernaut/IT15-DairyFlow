@@ -62,10 +62,16 @@ namespace IT15_DairyFlow.Models
 
         // Notes and remarks
         [MaxLength(2000)]
-        public string? Notes { get; set; }
+    [NotMapped]
+    public string? Notes { get; set; }
+
+    public string? NotesEncrypted { get; set; }
 
         [MaxLength(500)]
-        public string? CorrectiveAction { get; set; }
+    [NotMapped]
+    public string? CorrectiveAction { get; set; }
+
+    public string? CorrectiveActionEncrypted { get; set; }
 
         // Navigation properties
         [ForeignKey("CompanyID")]

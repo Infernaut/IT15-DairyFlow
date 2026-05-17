@@ -35,7 +35,7 @@ namespace IT15_DairyFlow.Controllers
 
             var equipment = await _context.Equipment
                 .Where(e => e.CompanyID == companyId)
-                .OrderBy(e => e.EquipmentName)
+                .OrderBy(e => e.EquipmentNameEncrypted)
                 .Select(e => new EquipmentListViewModel
                 {
                     EquipmentID = e.EquipmentID,

@@ -23,6 +23,8 @@
             string companiesAria = currentAction == "Companies" ? "page" : "";
             string subscriptionsAria = currentAction == "Subscriptions" ? "page" : "";
             string analyticsAria = currentAction == "Analytics" ? "page" : "";
+			string auditLogsAria = currentAction == "AuditLogs" ? "page" : "";
+			string systemLogsAria = currentAction == "SystemLogs" ? "page" : "";
         }
 
         <a class="sidebar-link @(currentController == "SuperAdmin" && currentAction == "Dashboard" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Dashboard" aria-current="@dashboardAria">
@@ -36,6 +38,16 @@
         </a>
         <a class="sidebar-link @(currentController == "SuperAdmin" && currentAction == "Analytics" ? "active" : "")" asp-controller="SuperAdmin" asp-action="Analytics" aria-current="@analyticsAria">
             <span><i class="bi bi-bar-chart me-2"></i> Usage Analytics</span>
+        </a>
+
+		<div class="sidebar-section-label mt-3" id="superadmin-logs-label">Logs</div>
+
+        <a class="sidebar-link @(currentController == "SuperAdmin" && currentAction == "AuditLogs" ? "active" : "")" asp-controller="SuperAdmin" asp-action="AuditLogs" aria-current="@auditLogsAria">
+            <span><i class="bi bi-journal-text me-2"></i> Audit Logs</span>
+        </a>
+
+        <a class="sidebar-link @(currentController == "SuperAdmin" && currentAction == "SystemLogs" ? "active" : "")" asp-controller="SuperAdmin" asp-action="SystemLogs" aria-current="@systemLogsAria">
+            <span><i class="bi bi-activity me-2"></i> System Logs</span>
         </a>
     </div>
 </div>

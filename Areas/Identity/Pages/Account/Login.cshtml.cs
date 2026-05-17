@@ -17,6 +17,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using IT15_DairyFlow.Services.Security;
+using IT15_DairyFlow.Security.Crypto;
+using IT15_DairyFlow.Services.Security.Captcha;
+using Microsoft.Extensions.Options;
 
 namespace IT15_DairyFlow.Areas.Identity.Pages.Account
 {
@@ -25,13 +29,21 @@ namespace IT15_DairyFlow.Areas.Identity.Pages.Account
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ApplicationDbContext _dbContext;
+    private readonly IAuditService _audit;
+    private readonly ICryptoService _crypto;
+    private readonly ICaptchaVerificationService _captcha;
+	private readonly IOptions<CaptchaSettings> _captchaOptions;
         private readonly ILogger<LoginModel> _logger;
 
-        public LoginModel(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ApplicationDbContext dbContext, ILogger<LoginModel> logger)
+    public LoginModel(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ApplicationDbContext dbContext, IAuditService audit, ICryptoService crypto, ICaptchaVerificationService captcha, IOptions<CaptchaSettings> captchaOptions, ILogger<LoginModel> logger)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _dbContext = dbContext;
+            _audit = audit;
+            _crypto = crypto;
+            _captcha = captcha;
+			_captchaOptions = captchaOptions;
             _logger = logger;
         }
 
@@ -89,6 +101,9 @@ namespace IT15_DairyFlow.Areas.Identity.Pages.Account
             /// </summary>
             [Display(Name = "Remember me?")]
             public bool RememberMe { get; set; }
+
+            // Google reCAPTCHA token (v2 checkbox uses implicit g-recaptcha-response)
+            public string RecaptchaToken { get; set; }
         }
 
         public async Task<IActionResult> OnGetAsync(string returnUrl = null, string email = null)
@@ -130,18 +145,45 @@ namespace IT15_DairyFlow.Areas.Identity.Pages.Account
 
             if (ModelState.IsValid)
             {
-                // Look up user by email, then sign in using their UserName
-                var user = await _userManager.FindByEmailAsync(Input.Email);
+                // CAPTCHA validation (only when enabled). Google sends token in "g-recaptcha-response".
+				if (_captchaOptions.Value.Enabled)
+				{
+					var captchaToken = Request.Form["g-recaptcha-response"].ToString();
+					if (string.IsNullOrWhiteSpace(captchaToken))
+					{
+						captchaToken = Input.RecaptchaToken;
+					}
+
+					var captchaResult = await _captcha.VerifyAsync(captchaToken, HttpContext.Connection.RemoteIpAddress?.ToString());
+					if (!captchaResult.Success)
+					{
+						ModelState.AddModelError(string.Empty, captchaResult.Error ?? "CAPTCHA verification failed.");
+						return Page();
+					}
+				}
+
+                // Email-only: find user by deterministic email hash (email is stored encrypted in DB)
+                var lookup = _crypto.ComputeLookupHash(Input.Email);
+                var user = await _userManager.Users.FirstOrDefaultAsync(u => u.EmailLookupHash == lookup);
                 if (user == null)
                 {
                     ModelState.AddModelError(string.Empty, "Invalid login attempt.");
                     return Page();
                 }
 
-                var result = await _signInManager.PasswordSignInAsync(user.UserName, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+                var result = await _signInManager.PasswordSignInAsync(user.UserName, Input.Password, Input.RememberMe, lockoutOnFailure: true);
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User logged in.");
+
+                    await _audit.LogAsync(
+                        module: "Identity",
+                        actionType: "LoginSucceeded",
+                        message: "User login succeeded.",
+                        entityName: nameof(ApplicationUser),
+                        entityId: user.Id,
+                        companyIdOverride: user.CompanyID,
+                        userIdOverride: user.Id);
 
                     // If user's company has no subscription yet, force plan selection
                     if (user.CompanyID.HasValue)
@@ -160,15 +202,40 @@ namespace IT15_DairyFlow.Areas.Identity.Pages.Account
                 }
                 if (result.RequiresTwoFactor)
                 {
+                    await _audit.LogAsync(
+                        module: "Identity",
+                        actionType: "LoginRequiresTwoFactor",
+                        message: "Login requires 2FA.",
+                        entityName: nameof(ApplicationUser),
+                        entityId: user.Id,
+                        companyIdOverride: user.CompanyID,
+                        userIdOverride: user.Id);
                     return RedirectToPage("./LoginWith2fa", new { ReturnUrl = returnUrl, RememberMe = Input.RememberMe });
                 }
                 if (result.IsLockedOut)
                 {
                     _logger.LogWarning("User account locked out.");
+
+                    await _audit.LogAsync(
+                        module: "Identity",
+                        actionType: "LoginLockedOut",
+                        message: "Account locked out due to failed login attempts.",
+                        entityName: nameof(ApplicationUser),
+                        entityId: user.Id,
+                        companyIdOverride: user.CompanyID,
+                        userIdOverride: user.Id);
                     return RedirectToPage("./Lockout");
                 }
                 else
                 {
+                    await _audit.LogAsync(
+                        module: "Identity",
+                        actionType: "LoginFailed",
+                        message: "Invalid login attempt.",
+                        entityName: nameof(ApplicationUser),
+                        entityId: user.Id,
+                        companyIdOverride: user.CompanyID,
+                        userIdOverride: user.Id);
                     ModelState.AddModelError(string.Empty, "Invalid login attempt.");
                     return Page();
                 }

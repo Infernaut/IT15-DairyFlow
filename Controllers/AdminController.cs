@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using IT15_DairyFlow.Security.Crypto;
 
 namespace IT15_DairyFlow.Controllers
 {
@@ -17,13 +18,15 @@ namespace IT15_DairyFlow.Controllers
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ApplicationDbContext _dbContext;
         private readonly NotificationService _notificationService;
+    private readonly ICryptoService _crypto;
 
-        public AdminController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext dbContext, NotificationService notificationService)
+        public AdminController(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, ApplicationDbContext dbContext, NotificationService notificationService, ICryptoService crypto)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _dbContext = dbContext;
             _notificationService = notificationService;
+            _crypto = crypto;
         }
 
         [HttpGet]
@@ -107,7 +110,7 @@ namespace IT15_DairyFlow.Controllers
             var currentUserId = _userManager.GetUserId(User) ?? string.Empty;
             var isProtected = user.Id == currentUserId || roles.Contains(SuperAdminRoleName);
 
-            user.Email = model.Email;
+            UserEmailProtector.ProtectEmail(user, _crypto, model.Email);
             user.UserName = model.UserName;
             user.PhoneNumber = string.IsNullOrWhiteSpace(model.PhoneNumber) ? null : model.PhoneNumber;
 
@@ -150,6 +153,15 @@ namespace IT15_DairyFlow.Controllers
                 return View(model);
             }
 
+            // Prevent duplicate emails (email stored encrypted; use deterministic lookup hash)
+            var emailLookup = _crypto.ComputeLookupHash(model.Email);
+            var existing = await _userManager.Users.FirstOrDefaultAsync(u => u.EmailLookupHash == emailLookup);
+            if (existing != null)
+            {
+                ModelState.AddModelError(nameof(model.Email), "A user with that email already exists.");
+                return View(model);
+            }
+
             // Get the current admin's CompanyID
             var currentUserId = _userManager.GetUserId(User) ?? string.Empty;
             var currentUser = await _userManager.FindByIdAsync(currentUserId);
@@ -158,10 +170,11 @@ namespace IT15_DairyFlow.Controllers
             var user = new ApplicationUser
             {
                 UserName = model.UserName,
-                Email = model.Email,
                 EmailConfirmed = true,
                 CompanyID = companyId  // Set to admin's CompanyID
             };
+
+            UserEmailProtector.ProtectEmail(user, _crypto, model.Email);
 
             var result = await _userManager.CreateAsync(user, model.Password);
             if (result.Succeeded)
@@ -385,7 +398,7 @@ namespace IT15_DairyFlow.Controllers
             // Get recent audit logs (last 20)
             var auditLogs = await _dbContext.AuditLog
                 .Where(a => a.CompanyID == companyId)
-                .OrderByDescending(a => a.TimeStamp)
+                .OrderByDescending(a => a.TimeStampUtc)
                 .Take(20)
                 .Include(a => a.User)
                 .ToListAsync();
@@ -394,8 +407,8 @@ namespace IT15_DairyFlow.Controllers
             {
                 AuditLogID = log.AuditLogID,
                 UserName = log.User?.UserName ?? log.User?.Email ?? "Unknown",
-                Action = log.Action ?? "Unknown",
-                TimeStamp = log.TimeStamp
+                Action = string.IsNullOrWhiteSpace(log.Message) ? (log.ActionType ?? "Unknown") : log.Message,
+                TimeStamp = log.TimeStampUtc.UtcDateTime
             }).ToList();
 
             // Get user counts with EF-translatable expressions
@@ -545,12 +558,12 @@ namespace IT15_DairyFlow.Controllers
             // System KPIs
             var lastAuditLog = await _dbContext.AuditLog
                 .Where(a => a.CompanyID == companyId)
-                .OrderByDescending(a => a.TimeStamp)
+                .OrderByDescending(a => a.TimeStampUtc)
                 .FirstOrDefaultAsync();
-            kpiMetrics.LastModifiedDate = lastAuditLog?.TimeStamp ?? DateTime.Now;
+            kpiMetrics.LastModifiedDate = lastAuditLog?.TimeStampUtc.UtcDateTime ?? DateTime.UtcNow;
 
             kpiMetrics.SystemActivityCount = await _dbContext.AuditLog
-                .Where(a => a.CompanyID == companyId && a.TimeStamp >= DateTime.Now.AddDays(-30))
+                .Where(a => a.CompanyID == companyId && a.TimeStampUtc >= DateTimeOffset.UtcNow.AddDays(-30))
                 .CountAsync();
 
             return kpiMetrics;
@@ -577,29 +590,29 @@ namespace IT15_DairyFlow.Controllers
             // Apply filters
             if (startDate.HasValue)
             {
-                query = query.Where(a => a.TimeStamp >= startDate.Value);
+                query = query.Where(a => a.TimeStampUtc >= new DateTimeOffset(startDate.Value, TimeSpan.Zero));
             }
 
             if (endDate.HasValue)
             {
-                query = query.Where(a => a.TimeStamp <= endDate.Value.AddDays(1));
+                query = query.Where(a => a.TimeStampUtc <= new DateTimeOffset(endDate.Value.AddDays(1), TimeSpan.Zero));
             }
 
             if (!string.IsNullOrWhiteSpace(actionFilter))
             {
-                query = query.Where(a => a.Action!.Contains(actionFilter));
+                query = query.Where(a => (a.Message ?? a.ActionType).Contains(actionFilter));
             }
 
             var auditLogs = await query
-                .OrderByDescending(a => a.TimeStamp)
+                .OrderByDescending(a => a.TimeStampUtc)
                 .ToListAsync();
 
             var auditLogViewModels = auditLogs.Select(log => new AuditLogViewModel
             {
                 AuditLogID = log.AuditLogID,
                 UserName = log.User?.UserName ?? log.User?.Email ?? "Unknown",
-                Action = log.Action ?? "Unknown",
-                TimeStamp = log.TimeStamp
+                Action = string.IsNullOrWhiteSpace(log.Message) ? (log.ActionType ?? "Unknown") : log.Message,
+                TimeStamp = log.TimeStampUtc.UtcDateTime
             }).ToList();
 
             var model = new AuditLogFilterViewModel
@@ -757,8 +770,10 @@ namespace IT15_DairyFlow.Controllers
             {
                 CompanyID = currentUser.CompanyID.Value,
                 UserID = currentUserId,
-                Action = action,
-                TimeStamp = DateTime.Now
+                Module = "Admin",
+                ActionType = "AdminAction",
+                Message = action,
+                TimeStampUtc = DateTimeOffset.UtcNow
             };
 
             _dbContext.AuditLog.Add(auditLog);

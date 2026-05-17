@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using IT15_DairyFlow.Models;
+using IT15_DairyFlow.Models.Security;
 
 namespace IT15_DairyFlow.Data
 {
@@ -37,6 +38,12 @@ namespace IT15_DairyFlow.Data
 
         // Audit
         public DbSet<AuditLog> AuditLog { get; set; }
+
+    // System / operational logs (separate from audit logs)
+    public DbSet<SystemLog> SystemLogs { get; set; }
+
+    // Security
+    public DbSet<PasswordHistory> PasswordHistories { get; set; }
 
         // Notifications
         public DbSet<Notification> Notification { get; set; }
@@ -260,6 +267,19 @@ namespace IT15_DairyFlow.Data
                 .WithMany()
                 .HasForeignKey(pf => pf.RawMaterialID)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure SystemLog indexes (for SuperAdmin queries)
+            modelBuilder.Entity<SystemLog>()
+                .HasIndex(s => s.TimeStampUtc)
+                .HasDatabaseName("IX_SystemLogs_TimeStampUtc");
+
+            modelBuilder.Entity<SystemLog>()
+                .HasIndex(s => new { s.Level, s.Component, s.EventName })
+                .HasDatabaseName("IX_SystemLogs_Level_Component_Event");
+
+            modelBuilder.Entity<SystemLog>()
+                .HasIndex(s => s.CompanyId)
+                .HasDatabaseName("IX_SystemLogs_CompanyId");
 
             // Configure NonConformance relationships
             modelBuilder.Entity<NonConformance>()

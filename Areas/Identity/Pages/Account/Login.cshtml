@@ -1,6 +1,8 @@
 ﻿@page
 @model LoginModel
 
+@inject Microsoft.Extensions.Options.IOptions<IT15_DairyFlow.Services.Security.Captcha.CaptchaSettings> CaptchaOptions
+
 @{
     ViewData["Title"] = "System Access";
 }
@@ -169,6 +171,12 @@
                         <a id="forgot-password" asp-page="./ForgotPassword" class="small text-primary text-decoration-none fw-medium">Forgot Password?</a>
                     </div>
 
+                    @if (CaptchaOptions.Value.Enabled && !string.IsNullOrWhiteSpace(CaptchaOptions.Value.SiteKey))
+                    {
+                        <input type="hidden" name="Input.RecaptchaToken" id="recaptchaToken" />
+                        <span asp-validation-for="Input.RecaptchaToken" class="text-danger small"></span>
+                    }
+
                     <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary btn-login mb-4">
                         <i class="bi bi-unlock-fill me-2"></i> Secure Login
                     </button>
@@ -198,6 +206,43 @@
             </div>
         </div>
     </div>
+
+@if (CaptchaOptions.Value.Enabled && !string.IsNullOrWhiteSpace(CaptchaOptions.Value.SiteKey))
+{
+    <script src="https://www.google.com/recaptcha/api.js?render=@CaptchaOptions.Value.SiteKey"></script>
+    <script>
+        (function () {
+            var form = document.getElementById('account');
+            if (!form) return;
+
+            form.addEventListener('submit', function (e) {
+                var tokenInput = document.getElementById('recaptchaToken');
+                if (!tokenInput) return; // Captcha disabled or not rendered.
+
+                // If we already have a token, allow submit to proceed.
+                if (tokenInput.value) return;
+
+                e.preventDefault();
+                if (!window.grecaptcha) {
+                    // Fail closed: no grecaptcha loaded.
+                    alert('Security check failed to load. Please refresh and try again.');
+                    return;
+                }
+
+                grecaptcha.ready(function () {
+                    grecaptcha.execute('@CaptchaOptions.Value.SiteKey', { action: 'login' })
+                        .then(function (token) {
+                            tokenInput.value = token;
+                            form.submit();
+                        })
+                        .catch(function () {
+                            alert('Security check failed. Please try again.');
+                        });
+                });
+            });
+        })();
+    </script>
+}
 </div>
 
 @section Scripts {

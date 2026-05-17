@@ -1,0 +1,70 @@
+@model IT15_DairyFlow.Models.Admin.BusinessDataEncryptionBackfillViewModel
+@{
+    ViewData["Title"] = "Backfill Encrypted Business Data";
+}
+
+<div class="container py-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h3 class="mb-1">Backfill Encrypted Business Data</h3>
+            <div class="text-muted">
+                Copies legacy plaintext values into the new <code>*Encrypted</code> columns (Product/Production/QM/Equipment/Sales).
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-warning">
+        <strong>Important:</strong> Run the SQL update (adds <code>*Encrypted</code> columns) before running this backfill.
+        This will encrypt existing rows so the app can read the data normally via the interceptor.
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Message))
+    {
+        <div class="alert alert-info">@Model.Message</div>
+    }
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <form asp-action="BackfillEncryptedBusinessData" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Company ID (optional)</label>
+                        <input class="form-control" type="number" asp-for="CompanyID" placeholder="Leave blank for ALL companies" />
+                        <div class="form-text">Use this if you want to backfill one tenant at a time.</div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Mode</label>
+                        <select class="form-select" asp-for="DryRun">
+                            <option value="true">Dry run (no changes)</option>
+                            <option value="false">Run backfill (write changes)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            Run
+                        </button>
+                    </div>
+                </div>
+
+                @if (Model.Result != null)
+                {
+                    <hr />
+                    <h6 class="mb-2">Updated rows</h6>
+                    <div class="row g-2">
+                        <div class="col-md-3"><div class="border rounded p-2">Products: <strong>@Model.Result.ProductsUpdated</strong></div></div>
+                        <div class="col-md-3"><div class="border rounded p-2">Batches: <strong>@Model.Result.ProductionBatchesUpdated</strong></div></div>
+                        <div class="col-md-3"><div class="border rounded p-2">Quality Inspections: <strong>@Model.Result.QualityInspectionsUpdated</strong></div></div>
+                        <div class="col-md-3"><div class="border rounded p-2">NCRs: <strong>@Model.Result.NonConformancesUpdated</strong></div></div>
+                        <div class="col-md-3"><div class="border rounded p-2">Equipment: <strong>@Model.Result.EquipmentsUpdated</strong></div></div>
+                        <div class="col-md-3"><div class="border rounded p-2">Sales: <strong>@Model.Result.SalesUpdated</strong></div></div>
+                        <div class="col-md-3"><div class="border rounded p-2">Transactions: <strong>@Model.Result.SaleTransactionsUpdated</strong></div></div>
+                    </div>
+                }
+            </form>
+        </div>
+    </div>
+</div>
